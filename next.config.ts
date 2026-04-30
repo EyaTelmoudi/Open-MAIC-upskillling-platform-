@@ -1,5 +1,18 @@
 import type { NextConfig } from 'next';
 
+function resolveFrameAncestors(): string {
+  const configured = process.env.ALLOWED_FRAME_ANCESTORS?.trim();
+  const defaultDevAncestors =
+    process.env.NODE_ENV === 'production'
+      ? []
+      : ['http://localhost:3001', 'http://127.0.0.1:3001'];
+
+  const configuredAncestors = configured ? configured.split(/\s+/).filter(Boolean) : [];
+  const merged = Array.from(new Set([...configuredAncestors, ...defaultDevAncestors]));
+
+  return merged.length > 0 ? `'self' ${merged.join(' ')}` : "'self'";
+}
+
 const nextConfig: NextConfig = {
   output: process.env.VERCEL ? undefined : 'standalone',
   transpilePackages: ['mathml2omml', 'pptxgenjs'],
@@ -9,7 +22,7 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     const extraAncestors = process.env.ALLOWED_FRAME_ANCESTORS?.trim();
-    const frameAncestors = extraAncestors ? `'self' ${extraAncestors}` : "'self'";
+    const frameAncestors = resolveFrameAncestors();
 
     return [
       {

@@ -1,0 +1,16 @@
+{
+  "requirement": "Build an onboarding course from this PDF. Keep it\r\npractical, include quizzes after each lesson, and use a clear beginner-friendly\r\nprogression.",
+  "options": {
+    "enableWebSearch": true,
+    "enableImageGeneration": true,
+    "enableVideoGeneration": true,
+    "enableTTS": true,
+    "agentMode": "generate"
+  },
+  "pdf": {
+    "fileName": "generative ai and llm's .pdf",
+    "size": 96451,
+    "type": "application/pdf"
+  },
+  "createdAt": "2026-04-29T21:37:21.081Z"
+}

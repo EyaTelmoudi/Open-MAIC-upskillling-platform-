@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/lib/hooks/use-theme';
 import { useStageStore } from '@/lib/store';
 import { loadImageMapping } from '@/lib/utils/image-storage';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useSceneGenerator } from '@/lib/hooks/use-scene-generator';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
 import { useWhiteboardHistoryStore } from '@/lib/store/whiteboard-history';
@@ -17,7 +17,9 @@ const log = createLogger('Classroom');
 
 export default function ClassroomDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const classroomId = params?.id as string;
+  const forceServerRefresh = searchParams?.get('refresh') === 'server';
 
   const { loadFromStorage } = useStageStore();
 
@@ -34,10 +36,17 @@ export default function ClassroomDetailPage() {
 
   const loadClassroom = useCallback(async () => {
     try {
-      await loadFromStorage(classroomId);
+      if (forceServerRefresh) {
+        useStageStore.getState().clearStore();
+        const { deleteStageWithRelatedData } = await import('@/lib/utils/database');
+        await deleteStageWithRelatedData(classroomId);
+      } else {
+        await loadFromStorage(classroomId);
+      }
 
-      // If IndexedDB had no data, try server-side storage (API-generated classrooms)
-      if (!useStageStore.getState().stage) {
+      // If IndexedDB had no data, or we explicitly requested a fresh server load,
+      // try server-side storage (API-generated classrooms)
+      if (forceServerRefresh || !useStageStore.getState().stage) {
         log.info('No IndexedDB data, trying server-side storage for:', classroomId);
         try {
           const res = await fetch(`/api/classroom?id=${encodeURIComponent(classroomId)}`);
@@ -102,7 +111,7 @@ export default function ClassroomDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [classroomId, loadFromStorage]);
+  }, [classroomId, forceServerRefresh, loadFromStorage]);
 
   useEffect(() => {
     // Reset loading state on course switch to unmount Stage during transition,
@@ -127,7 +136,7 @@ export default function ClassroomDetailPage() {
     return () => {
       stop();
     };
-  }, [classroomId, loadClassroom, stop]);
+  }, [classroomId, forceServerRefresh, loadClassroom, stop]);
 
   // Auto-resume generation for pending outlines
   useEffect(() => {

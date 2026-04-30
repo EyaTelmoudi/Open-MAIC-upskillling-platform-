@@ -1,0 +1,16 @@
+{
+  "requirement": "Build a practical beginner course on Generative Al and LLMs from this PDF. Use clear English, add quizzes after each major\r\nconcept, and prepare teacher-friendly narration.",
+  "options": {
+    "enableWebSearch": true,
+    "enableImageGeneration": true,
+    "enableVideoGeneration": true,
+    "enableTTS": true,
+    "agentMode": "generate"
+  },
+  "pdf": {
+    "fileName": "generative ai and llm's .pdf",
+    "size": 96451,
+    "type": "application/pdf"
+  },
+  "createdAt": "2026-04-30T09:28:12.655Z"
+}

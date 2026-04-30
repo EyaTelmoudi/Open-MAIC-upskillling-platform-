@@ -1,0 +1,1906 @@
+{
+  "id": "REHc15xA1z",
+  "stage": {
+    "id": "REHc15xA1z",
+    "name": "Course Overview",
+    "languageDirective": "Deliver the entire course in clear English. Use simple, beginner‑friendly terminology and brief explanations for technical terms such as \"token\" or \"transformer\". All narration notes should be teacher‑friendly, ready to be read aloud during the presentation.",
+    "style": "interactive",
+    "createdAt": 1777541401977,
+    "updatedAt": 1777541401977,
+    "generatedAgentConfigs": [
+      {
+        "id": "gen-server-0",
+        "name": "Dr. Maya Patel",
+        "role": "teacher",
+        "persona": "Maya is an enthusiastic instructor who breaks down complex ideas into bite‑size, everyday language. She uses real‑world analogies and a calm, encouraging tone, making beginners feel confident as they explore generative AI.",
+        "avatar": "/avatars/teacher.png",
+        "color": "#3b82f6",
+        "priority": 10
+      },
+      {
+        "id": "gen-server-1",
+        "name": "Alex Rivera",
+        "role": "assistant",
+        "persona": "Alex is a supportive teaching assistant who loves visual aids and quick recap questions. He steps in with short summaries, clarifies jargon, and highlights key take‑aways after each section.",
+        "avatar": "/avatars/assist.png",
+        "color": "#10b981",
+        "priority": 7
+      },
+      {
+        "id": "gen-server-2",
+        "name": "Samira Khan",
+        "role": "assistant",
+        "persona": "Samira is a detail‑oriented assistant who enjoys providing concrete examples and hands‑on mini‑exercises. She reinforces learning by prompting learners to try simple code snippets and reflect on results.",
+        "avatar": "/avatars/curious.png",
+        "color": "#f59e0b",
+        "priority": 7
+      },
+      {
+        "id": "gen-server-3",
+        "name": "Jordan Lee",
+        "role": "student",
+        "persona": "Jordan is a curious beginner eager to ask questions and share insights. He voices common learner doubts, helping the teacher address misunderstandings and keep the pacing beginner‑friendly.",
+        "avatar": "/avatars/thinker.png",
+        "color": "#ec4899",
+        "priority": 5
+      },
+      {
+        "id": "gen-server-4",
+        "name": "Taylor Chen",
+        "role": "student",
+        "persona": "Taylor is an engaged learner who often connects new concepts to everyday experiences. He offers peer‑to‑peer explanations, encouraging collaborative discussion and reinforcing core ideas.",
+        "avatar": "/avatars/note-taker.png",
+        "color": "#06b6d4",
+        "priority": 5
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "scene_744M3Dak2p",
+      "stageId": "REHc15xA1z",
+      "type": "slide",
+      "title": "Course Overview",
+      "order": 1,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "Op52YWiORKAOxuNnEmfZn",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_C52jCCA-",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 70,
+              "content": "<p style=\"font-size:32px; text-align:center;\"><strong>Course Overview</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_RLzZRJFD",
+              "type": "text",
+              "left": 60,
+              "top": 130,
+              "width": 880,
+              "height": 130,
+              "content": "<p style=\"font-size:18px;\">• What is generative AI?</p><p style=\"font-size:18px;\">• Why large language models matter</p><p style=\"font-size:18px;\">• Course objectives and structure</p><p style=\"font-size:18px;\">• Estimated duration and target audience</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_OdUUPV7R",
+          "type": "spotlight",
+          "elementId": "text_C52jCCA-"
+        },
+        {
+          "id": "action_GlbUkhQ5",
+          "type": "speech",
+          "text": "Good morning, everyone! I’m Dr. Maya Patel, and today we’ll start our journey into Generative AI and Large Language Models."
+        },
+        {
+          "id": "action_1Im7kjbA",
+          "type": "spotlight",
+          "elementId": "text_RLzZRJFD"
+        },
+        {
+          "id": "action_IBYntk7d",
+          "type": "speech",
+          "text": "First, we’ll answer the question “What is generative AI?” and explore why large language models are so powerful. Then we’ll walk through the course objectives, how the sessions are organized, the estimated time commitment, and who will benefit most from this learning path."
+        },
+        {
+          "id": "action_tDCIIH0j",
+          "type": "laser",
+          "elementId": "text_RLzZRJFD"
+        },
+        {
+          "id": "action_Ju2wsZSH",
+          "type": "speech",
+          "text": "By the end of today’s overview, you’ll have a clear picture of what we’ll achieve together and feel confident about the exciting topics ahead."
+        }
+      ],
+      "createdAt": 1777541433458,
+      "updatedAt": 1777541433458
+    },
+    {
+      "id": "scene_EMY_hQpD8V",
+      "stageId": "REHc15xA1z",
+      "type": "slide",
+      "title": "Module 1 – Introduction to Generative AI",
+      "order": 2,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "AnK0iJ_EaM8deAdHG3-dM",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_Ldnk2f8t",
+              "type": "text",
+              "left": 60,
+              "top": 60,
+              "width": 880,
+              "height": 70,
+              "content": "<p style=\"font-size:32px; font-weight:bold; text-align:center;\">Module 1 – Introduction to Generative AI</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_pFJXA_CD",
+              "type": "text",
+              "left": 80,
+              "top": 150,
+              "width": 840,
+              "height": 52,
+              "content": "<p style=\"font-size:20px;\">• Generates new content: text, images, audio, code</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_mb4rDueN",
+              "type": "text",
+              "left": 80,
+              "top": 210,
+              "width": 840,
+              "height": 52,
+              "content": "<p style=\"font-size:20px;\">• Analytic AI = analysis of existing data; Generative AI = creates novel outputs</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_cdmVWbkB",
+              "type": "text",
+              "left": 80,
+              "top": 270,
+              "width": 840,
+              "height": 52,
+              "content": "<p style=\"font-size:20px;\">• Tools: ChatGPT (text), DALL·E (images), code generators (e.g., Copilot)</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_FBhQuHbp",
+              "type": "text",
+              "left": 80,
+              "top": 330,
+              "width": 840,
+              "height": 52,
+              "content": "<p style=\"font-size:20px;\">• Impact: reshapes writing, design, programming, and many modern professions</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_Dh3Cdf4s",
+          "type": "spotlight",
+          "elementId": "text_Ldnk2f8t"
+        },
+        {
+          "id": "action_Xat3pFWa",
+          "type": "speech",
+          "text": "Good morning, everyone! I’m Dr. Maya Patel, and today we’ll kick off Module 1 – an introduction to Generative AI. We’ll explore what it is, how it differs from traditional analytic AI, see some popular tools, and discuss its impact on today’s jobs."
+        },
+        {
+          "id": "action__YnWr3vK",
+          "type": "spotlight",
+          "elementId": "text_pFJXA_CD"
+        },
+        {
+          "id": "action_9eKBWYOh",
+          "type": "speech",
+          "text": "First, Generative AI actually creates new content—whether it’s text, images, audio, or even code. Think of it as a creative partner that can draft a story, paint a picture, compose music, or write a program from scratch."
+        },
+        {
+          "id": "action_Im1FsiGm",
+          "type": "spotlight",
+          "elementId": "text_mb4rDueN"
+        },
+        {
+          "id": "action_4vgz1ayr",
+          "type": "speech",
+          "text": "Next, let’s contrast this with Analytic AI. Analytic AI focuses on analyzing existing data—finding patterns, making predictions. Generative AI goes a step further by producing something novel, not just interpreting what’s already there."
+        },
+        {
+          "id": "action_vdzEs4dx",
+          "type": "spotlight",
+          "elementId": "text_cdmVWbkB"
+        },
+        {
+          "id": "action_7ZJoG1NT",
+          "type": "speech",
+          "text": "Now, some real‑world tools: ChatGPT for generating text, DALL·E for creating images, and code generators that write snippets for you. These platforms illustrate the breadth of what Generative AI can do."
+        },
+        {
+          "id": "action_aorkb4fV",
+          "type": "spotlight",
+          "elementId": "text_FBhQuHbp"
+        },
+        {
+          "id": "action_IVJS588r",
+          "type": "speech",
+          "text": "Finally, the impact: Generative AI is reshaping professions—from writers drafting outlines, designers brainstorming visuals, to programmers getting starter code. It’s changing how we work and creating new opportunities across many fields."
+        }
+      ],
+      "createdAt": 1777541485761,
+      "updatedAt": 1777541485761
+    },
+    {
+      "id": "scene_E1B5NAou8O",
+      "stageId": "REHc15xA1z",
+      "type": "quiz",
+      "title": "Quiz – Introduction to Generative AI",
+      "order": 3,
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "single",
+            "question": "Which of the following best defines generative AI?",
+            "options": [
+              {
+                "value": "A",
+                "label": "A system that creates new content such as text, images, or audio based on learned patterns"
+              },
+              {
+                "value": "B",
+                "label": "A program that only analyzes existing data without producing new output"
+              },
+              {
+                "value": "C",
+                "label": "A database that stores large collections of pre‑written documents"
+              },
+              {
+                "value": "D",
+                "label": "A tool that compresses files to reduce their size"
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Generative AI learns from data and can generate novel content. The other options describe analysis‑only tools, storage, or compression, which are not generative.",
+            "points": 10,
+            "hasAnswer": true
+          },
+          {
+            "id": "q2",
+            "type": "single",
+            "question": "Which of the following is an example of a generative AI tool?",
+            "options": [
+              {
+                "value": "A",
+                "label": "ChatGPT, which can write essays and answer questions"
+              },
+              {
+                "value": "B",
+                "label": "Excel, which performs spreadsheet calculations"
+              },
+              {
+                "value": "C",
+                "label": "Google Search, which retrieves existing web pages"
+              },
+              {
+                "value": "D",
+                "label": "PowerPoint, which designs slide layouts from templates"
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "ChatGPT creates new text based on prompts, fitting the definition of generative AI. The other tools primarily retrieve, calculate, or format existing information.",
+            "points": 10,
+            "hasAnswer": true
+          },
+          {
+            "id": "q3",
+            "type": "single",
+            "question": "What is the main difference between analytic AI and generative AI?",
+            "options": [
+              {
+                "value": "A",
+                "label": "Analytic AI extracts insights from data, while generative AI produces new data"
+              },
+              {
+                "value": "B",
+                "label": "Analytic AI runs on servers, whereas generative AI runs only on mobile devices"
+              },
+              {
+                "value": "C",
+                "label": "Analytic AI uses rules, while generative AI uses only random number generators"
+              },
+              {
+                "value": "D",
+                "label": "Analytic AI works with numbers, and generative AI works with text only"
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Analytic AI focuses on understanding and interpreting existing data (e.g., classification, prediction). Generative AI goes a step further by creating new content. The other statements are inaccurate.",
+            "points": 10,
+            "hasAnswer": true
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_EnhsmWtP",
+          "type": "speech",
+          "text": "Hi everyone! Let’s take a quick quiz to see how well we’ve grasped the basics of generative AI that we just covered in Module 1."
+        },
+        {
+          "id": "action_cG2eYgo4",
+          "type": "speech",
+          "text": "Remember, generative AI is a system that creates new content—like text, images, or audio—by learning patterns from existing data. Tools such as ChatGPT are real‑world examples, while analytic AI focuses on extracting insights rather than generating fresh material."
+        },
+        {
+          "id": "action_1SE8OiV1",
+          "type": "speech",
+          "text": "Take your time with each question, read the options carefully, and think about how the definition, the examples, and the analytic‑vs‑generative distinction apply."
+        },
+        {
+          "id": "action_Th8ZqsKH",
+          "type": "discussion",
+          "topic": "Why is it important to distinguish between generative and analytic AI when choosing tools for a project?",
+          "prompt": "Consider how the capabilities of each type affect what they can be used for.",
+          "agentId": "gen-server-3"
+        }
+      ],
+      "createdAt": 1777541542841,
+      "updatedAt": 1777541542841
+    },
+    {
+      "id": "scene_gOB9FRrr68",
+      "stageId": "REHc15xA1z",
+      "type": "slide",
+      "title": "Module 2 – Understanding Large Language Models (LLMs)",
+      "order": 4,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "VAr7tFkifCUysD4YshCnd",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_Dd7ejOPT",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 70,
+              "content": "<p style=\"font-size:32px;\"><strong>Understanding Large Language Models (LLMs)</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_p53hn9al",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 130,
+              "content": "<p style=\"font-size:18px;\">• Large Language Model: AI trained on massive text data</p><p style=\"font-size:18px;\">• Token: basic text unit (word, sub‑word, or character)</p><p style=\"font-size:18px;\">• Prediction: model selects next token based on probability</p><p style=\"font-size:18px;\">• Context & Prompt: text provided to guide the model’s output</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_uN3GTynh",
+          "type": "spotlight",
+          "elementId": "text_Dd7ejOPT"
+        },
+        {
+          "id": "action_5klNKKxb",
+          "type": "speech",
+          "text": "Welcome, everyone! I’m Dr. Maya Patel. Let’s dive into Module 2 and explore what Large Language Models, or LLMs, really are."
+        },
+        {
+          "id": "action_FXKEgo6N",
+          "type": "spotlight",
+          "elementId": "text_p53hn9al"
+        },
+        {
+          "id": "action_DShz880j",
+          "type": "speech",
+          "text": "First, a Large Language Model is an AI system trained on massive amounts of text so it can understand and generate human‑like language."
+        },
+        {
+          "id": "action_XirZ5UfZ",
+          "type": "spotlight",
+          "elementId": "text_p53hn9al"
+        },
+        {
+          "id": "action_3y3hdDxi",
+          "type": "speech",
+          "text": "Next, think of a **token** as the smallest piece of text the model works with—often a word, part of a word, or even punctuation. It’s different from a full word because the model may split rare words into several tokens."
+        },
+        {
+          "id": "action_2TdoHD53",
+          "type": "spotlight",
+          "elementId": "text_p53hn9al"
+        },
+        {
+          "id": "action_XUO3FlNR",
+          "type": "speech",
+          "text": "LLMs predict the next token by looking at the surrounding context—essentially the words that came before. They choose the most likely next token, then repeat the process to generate whole sentences."
+        },
+        {
+          "id": "action_QfmBqkWf",
+          "type": "spotlight",
+          "elementId": "text_p53hn9al"
+        },
+        {
+          "id": "action_PAB7kVru",
+          "type": "speech",
+          "text": "Finally, **context** is the prompt you give the model. The richer the context, the more accurate and relevant the generated text will be. That’s how we guide LLMs to produce the output we need."
+        },
+        {
+          "id": "action_yBE0_4QN",
+          "type": "spotlight",
+          "elementId": "text_Dd7ejOPT"
+        },
+        {
+          "id": "action_7HsKEPel",
+          "type": "speech",
+          "text": "Great job! We’ve covered the definition, tokens, prediction, and context. Keep these ideas in mind as we move forward to see LLMs in action."
+        }
+      ],
+      "createdAt": 1777541585128,
+      "updatedAt": 1777541585128
+    },
+    {
+      "id": "scene_BsE-V4p1m1",
+      "stageId": "REHc15xA1z",
+      "type": "quiz",
+      "title": "Quiz – Large Language Models",
+      "order": 5,
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "single",
+            "question": "In the context of large language models, what is a token?",
+            "options": [
+              {
+                "value": "A",
+                "label": "A basic unit of text such as a word, sub‑word, or character that the model processes"
+              },
+              {
+                "value": "B",
+                "label": "A layer in the neural network architecture"
+              },
+              {
+                "value": "C",
+                "label": "The output probability distribution of the model"
+              },
+              {
+                "value": "D",
+                "label": "A special hardware accelerator for AI"
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "A token is the smallest piece of text (word, sub‑word, or character) that the model reads and generates. The other options describe unrelated concepts.",
+            "points": 10,
+            "hasAnswer": true
+          },
+          {
+            "id": "q2",
+            "type": "single",
+            "question": "What is the primary task that a large language model (LLM) is trained to perform?",
+            "options": [
+              {
+                "value": "A",
+                "label": "Predict the next token in a sequence of text"
+              },
+              {
+                "value": "B",
+                "label": "Classify images into predefined categories"
+              },
+              {
+                "value": "C",
+                "label": "Translate audio signals into text"
+              },
+              {
+                "value": "D",
+                "label": "Generate random numbers for encryption"
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "LLMs are trained on massive text corpora to predict the next token given previous tokens. The other tasks belong to vision, speech, or cryptography domains.",
+            "points": 10,
+            "hasAnswer": true
+          },
+          {
+            "id": "q3",
+            "type": "single",
+            "question": "How does the context window affect the text generated by an LLM?",
+            "options": [
+              {
+                "value": "A",
+                "label": "It limits how many previous tokens the model can consider, shaping relevance and coherence of the output"
+              },
+              {
+                "value": "B",
+                "label": "It determines the model's training speed but not the output quality"
+              },
+              {
+                "value": "C",
+                "label": "It selects which vocabulary words are allowed during generation"
+              },
+              {
+                "value": "D",
+                "label": "It adds random noise to the generated text to improve creativity"
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "The context window defines the number of preceding tokens the model can attend to; a larger window generally yields more coherent and context‑aware generations. The other statements are inaccurate.",
+            "points": 10,
+            "hasAnswer": true
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_vBnp2sTS",
+          "type": "speech",
+          "text": "Good day, everyone! I'm Dr. Maya Patel, and we're about to check how well you’ve grasped the basics of large language models. This short quiz will help us see if the ideas about tokens, the core training task, and the context window have clicked. Read each question carefully and choose the best answer."
+        },
+        {
+          "id": "action_PfGFhyK3",
+          "type": "speech",
+          "text": "Remember, a **token** is just a tiny piece of text—think of it as a word, part of a word, or even a single character—that the model processes one step at a time. The main job of an LLM is to **predict the next token** given everything it has seen so far. And the **context window** is the slice of recent tokens the model can look back on; a larger window means the model can keep more of the conversation in mind, leading to more coherent responses."
+        },
+        {
+          "id": "action_D9Hozwn9",
+          "type": "speech",
+          "text": "Now, go ahead and answer the three questions. Don't worry if you're unsure—just pick the option that feels most logical based on what we just reviewed."
+        },
+        {
+          "id": "action__kxIXh2b",
+          "type": "discussion",
+          "topic": "Why does understanding tokens and context windows matter when we use LLMs for real‑world applications?",
+          "prompt": "Think about how these concepts affect the quality and relevance of the text the model generates.",
+          "agentId": "gen-server-3"
+        }
+      ],
+      "createdAt": 1777541635803,
+      "updatedAt": 1777541635803
+    },
+    {
+      "id": "scene_PR0sETc-86",
+      "stageId": "REHc15xA1z",
+      "type": "slide",
+      "title": "Module 3 – How LLMs Are Built",
+      "order": 6,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "CebH8DyyXzFKKwEkwWrHn",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_lKDSKt4S",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 58,
+              "content": "<p style=\"font-size:32px;\"><strong>Module 3 – How LLMs Are Built</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_1zRzHmN-",
+              "type": "text",
+              "left": 60,
+              "top": 130,
+              "width": 880,
+              "height": 130,
+              "content": "<p style=\"font-size:18px;\">• Training data: web text, books, code – billions of tokens</p><p style=\"font-size:18px;\">• Pre‑training learns language patterns; fine‑tuning adapts to specific tasks</p><p style=\"font-size:18px;\">• Instruction tuning shapes conversational behavior</p><p style=\"font-size:18px;\">• RLHF uses human feedback to improve safety and usefulness</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_bhjZRr3i",
+          "type": "spotlight",
+          "elementId": "text_lKDSKt4S"
+        },
+        {
+          "id": "action_8hrESGX1",
+          "type": "speech",
+          "text": "Alright, let’s dive into Module 3 – How Large Language Models are built."
+        },
+        {
+          "id": "action_LNfnFMf4",
+          "type": "spotlight",
+          "elementId": "text_1zRzHmN-"
+        },
+        {
+          "id": "action_9Tma9o3J",
+          "type": "speech",
+          "text": "First, the training data. We gather huge amounts of web text, books, and code—often billions of words—to teach the model the patterns of language."
+        },
+        {
+          "id": "action_oktd-mZx",
+          "type": "laser",
+          "elementId": "text_1zRzHmN-"
+        },
+        {
+          "id": "action_wIicun53",
+          "type": "speech",
+          "text": "Think of it like giving a child a massive library to read before they start speaking."
+        },
+        {
+          "id": "action_oGR_E3P_",
+          "type": "spotlight",
+          "elementId": "text_lKDSKt4S"
+        },
+        {
+          "id": "action_flrk9lwP",
+          "type": "speech",
+          "text": "Next, we pre‑train the model on that data, letting it predict the next word in a sentence. This builds a general understanding of language."
+        },
+        {
+          "id": "action_9YOef1VJ",
+          "type": "laser",
+          "elementId": "text_lKDSKt4S"
+        },
+        {
+          "id": "action_EgDXikev",
+          "type": "speech",
+          "text": "After pre‑training, we fine‑tune the model on a narrower dataset, often focused on a specific task like answering questions."
+        },
+        {
+          "id": "action_Q1iiCU61",
+          "type": "spotlight",
+          "elementId": "text_lKDSKt4S"
+        },
+        {
+          "id": "action_5mSoD65W",
+          "type": "speech",
+          "text": "Instruction tuning then teaches the model how to follow human prompts in a conversational way, making it more useful for chat."
+        },
+        {
+          "id": "action_d-PZfS-c",
+          "type": "laser",
+          "elementId": "text_lKDSKt4S"
+        },
+        {
+          "id": "action_SOp6a9Xa",
+          "type": "speech",
+          "text": "Finally, we apply Reinforcement Learning from Human Feedback, or RLHF, where we reward good responses and penalize poor ones, refining the model’s behavior."
+        },
+        {
+          "id": "action_2edBGQdQ",
+          "type": "speech",
+          "text": "To recap: massive diverse data, pre‑training for general language skills, fine‑tuning for specialization, instruction tuning for conversation, and RLHF for safety and usefulness. Great job following along!"
+        }
+      ],
+      "createdAt": 1777541674211,
+      "updatedAt": 1777541674211
+    },
+    {
+      "id": "scene_66Z1hmB0bt",
+      "stageId": "REHc15xA1z",
+      "type": "quiz",
+      "title": "Quiz – Building LLMs",
+      "order": 7,
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "single",
+            "question": "What is the main difference between pre‑training and fine‑tuning of a large language model?",
+            "options": [
+              {
+                "value": "A",
+                "label": "Pre‑training learns general language patterns from massive unlabeled text; fine‑tuning adapts those patterns to a specific task using labeled data."
+              },
+              {
+                "value": "B",
+                "label": "Pre‑training uses supervised data, while fine‑tuning uses unsupervised data."
+              },
+              {
+                "value": "C",
+                "label": "Pre‑training adjusts the model's architecture, whereas fine‑tuning changes the vocabulary."
+              },
+              {
+                "value": "D",
+                "label": "Pre‑training is performed after the model is deployed, while fine‑tuning happens before deployment."
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Option A correctly states that pre‑training learns broad language knowledge from large, unlabeled corpora, and fine‑tuning narrows that knowledge for a particular downstream task with labeled examples. The other options mix up supervision and architecture concepts.",
+            "points": 10,
+            "hasAnswer": true
+          },
+          {
+            "id": "q2",
+            "type": "single",
+            "question": "Why is instruction tuning added to the training pipeline of LLMs?",
+            "options": [
+              {
+                "value": "A",
+                "label": "To teach the model how to follow natural‑language instructions and generate helpful responses."
+              },
+              {
+                "value": "B",
+                "label": "To increase the size of the model’s vocabulary."
+              },
+              {
+                "value": "C",
+                "label": "To reduce the number of parameters needed for inference."
+              },
+              {
+                "value": "D",
+                "label": "To replace the transformer architecture with a recurrent network."
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Instruction tuning aligns the model with human‑provided prompts, improving its ability to understand and obey user instructions. The other choices describe unrelated effects.",
+            "points": 10,
+            "hasAnswer": true
+          },
+          {
+            "id": "q3",
+            "type": "single",
+            "question": "What role does Reinforcement Learning from Human Feedback (RLHF) play in improving model safety?",
+            "options": [
+              {
+                "value": "A",
+                "label": "It fine‑tunes the model to prefer outputs that humans rate as safe and appropriate."
+              },
+              {
+                "value": "B",
+                "label": "It expands the training corpus with more internet text."
+              },
+              {
+                "value": "C",
+                "label": "It changes the model’s tokenization method to avoid offensive words."
+              },
+              {
+                "value": "D",
+                "label": "It compresses the model to run faster on edge devices."
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "RLHF collects human judgments on model outputs and uses reinforcement learning to steer the model toward responses judged safe and useful. The other options describe unrelated techniques.",
+            "points": 10,
+            "hasAnswer": true
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_m-7ALQB7",
+          "type": "speech",
+          "text": "Alright, let's check what we've just learned about how large language models are built. Read each question carefully, then pick the answer that best matches the concepts we covered."
+        },
+        {
+          "id": "action_PtF57dXj",
+          "type": "speech",
+          "text": "Remember, pre‑training is where the model learns general language patterns from a huge amount of unlabeled text, while fine‑tuning takes those patterns and adapts them to a specific task using labeled examples. That's the key distinction for the first question."
+        },
+        {
+          "id": "action_NEX7z-Xp",
+          "type": "speech",
+          "text": "Instruction tuning is added so the model can understand and follow natural‑language prompts—think of it as teaching the model to be a helpful assistant that responds in a way that matches what you ask."
+        },
+        {
+          "id": "action_mYgYN1bI",
+          "type": "speech",
+          "text": "For the last question, RLHF (Reinforcement Learning from Human Feedback) helps make the model safer by rewarding responses that humans rate as appropriate and discouraging unsafe outputs."
+        },
+        {
+          "id": "action_RSzsyFFv",
+          "type": "discussion",
+          "topic": "How do pre‑training, instruction tuning, and RLHF work together to create a useful and safe AI assistant?",
+          "prompt": "Share which step you think is most important for real‑world use and why.",
+          "agentId": "gen-server-3"
+        }
+      ],
+      "createdAt": 1777541718626,
+      "updatedAt": 1777541718626
+    },
+    {
+      "id": "scene_XFS59ZxHHd",
+      "stageId": "REHc15xA1z",
+      "type": "interactive",
+      "title": "Interactive – Visualising Transformer Attention",
+      "order": 8,
+      "content": {
+        "type": "interactive",
+        "url": "",
+        "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<title>Interactive – Visualising Transformer Attention</title>\n<style>\n  body{margin:0;font-family:sans-serif;background:#111;color:#eee;overflow:hidden}\n  #sidebar{position:absolute;top:0;left:0;width:260px;height:100%;background:#222;padding:20px;box-sizing:border-box;transition:transform .3s;z-index:2}\n  #sidebar.collapsed{transform:translateX(-260px)}\n  #toggleBtn{position:absolute;top:10px;left:10px;background:#444;color:#fff;border:none;padding:8px 12px;cursor:pointer;z-index:3}\n  #svgContainer{position:absolute;top:0;left:0;width:100%;height:100%;}\n  .node{cursor:pointer;stroke:#555;stroke-width:2;fill:#fff;}\n  .label{pointer-events:none;font-size:14px;fill:#111;}\n  .detail{display:none;font-size:13px;fill:#333;}\n  .edge{stroke:#888;stroke-width:2;fill:none;marker-end:url(#arrow);}\n  .edgeLabel{font-size:12px;fill:#ccc;pointer-events:none;}\n  .controlPanel{margin-top:20px;}\n  button{background:#444;color:#fff;border:none;padding:6px 10px;margin:2px;cursor:pointer}\n  button:active{background:#666}\n</style>\n\n<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css\">\n<script src=\"https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js\"></script>\n<script src=\"https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js\"></script>\n<script>\ndocument.addEventListener(\"DOMContentLoaded\", function() {\n    const katexOptions = {\n        delimiters: [\n            {left: '\\\\[', right: '\\\\]', display: true},\n            {left: '\\\\(', right: '\\\\)', display: false},\n            {left: '$$', right: '$$', display: true},\n            {left: '$', right: '$', display: false}\n        ],\n        throwOnError: false,\n        strict: false,\n        trust: true\n    };\n\n    let renderTimeout;\n    function safeRender() {\n        if (renderTimeout) clearTimeout(renderTimeout);\n        renderTimeout = setTimeout(() => {\n            renderMathInElement(document.body, katexOptions);\n        }, 100);\n    }\n\n    renderMathInElement(document.body, katexOptions);\n\n    const observer = new MutationObserver((mutations) => {\n        let shouldRender = false;\n        mutations.forEach((mutation) => {\n            if (mutation.target &&\n                mutation.target.className &&\n                typeof mutation.target.className === 'string' &&\n                mutation.target.className.includes('katex')) {\n                return;\n            }\n            shouldRender = true;\n        });\n\n        if (shouldRender) {\n            safeRender();\n        }\n    });\n\n    observer.observe(document.body, {\n        childList: true,\n        subtree: true,\n        characterData: true\n    });\n\n    setInterval(() => {\n        const text = document.body.innerText;\n        if (text.includes('\\\\(') || text.includes('$$')) {\n            safeRender();\n        }\n    }, 2000);\n});\n</script>\n</head>\n<body>\n\n<button id=\"toggleBtn\">☰</button>\n\n<div id=\"sidebar\" class=\"collapsed\">\n  <h2>Attention Explorer</h2>\n  <p>Use the controls to step through the animation.</p>\n  <div class=\"controlPanel\">\n    <button id=\"prevBtn\">上一部</button>\n    <button id=\"nextBtn\">下一部</button>\n  </div>\n  <hr>\n  <h3>Explanation</h3>\n  <p id=\"narration\">Click “下一部” to start the demo.</p>\n</div>\n\n<div id=\"svgContainer\">\n<svg id=\"diagram\" width=\"100%\" height=\"100%\"></svg>\n</div>\n\n<script type=\"application/json\" id=\"widget-config\">\n{\n  \"nodes\": [\n    {\"id\":\"n1\",\"label\":\"The\",\"icon\":\"🔤\",\"details\":\"Token 1: ‘The’ – a determiner.\"},\n    {\"id\":\"n2\",\"label\":\"cat\",\"icon\":\"🐱\",\"details\":\"Token 2: ‘cat’ – the subject.\"},\n    {\"id\":\"n3\",\"label\":\"chased\",\"icon\":\"🏃\",\"details\":\"Token 3: ‘chased’ – the verb.\"},\n    {\"id\":\"n4\",\"label\":\"the\",\"icon\":\"🔤\",\"details\":\"Token 4: ‘the’ – another determiner.\"},\n    {\"id\":\"n5\",\"label\":\"mouse\",\"icon\":\"🐭\",\"details\":\"Token 5: ‘mouse’ – the object.\"},\n    {\"id\":\"n6\",\"label\":\"it\",\"icon\":\"🔤\",\"details\":\"Token 6: ‘it’ – pronoun referring to ‘cat’.\"}\n  ],\n  \"edges\": [\n    {\"from\":\"n2\",\"to\":\"n3\",\"label\":\"subject→verb\"},\n    {\"from\":\"n3\",\"to\":\"n5\",\"label\":\"verb→object\"},\n    {\"from\":\"n6\",\"to\":\"n2\",\"label\":\"pronoun→antecedent\"}\n  ],\n  \"revealOrder\": [\"n1\",\"n2\",\"n3\",\"n4\",\"n5\",\"n6\",\"e1\",\"e2\",\"e3\"]\n}\n</script>\n\n<script>\nconst SVG_NS = \"http://www.w3.org/2000/svg\";\nconst config = JSON.parse(document.getElementById('widget-config').textContent);\nconst NODE_W = 180, NODE_H = 70, ARROW_OFFSET = 10;\nconst svg = document.getElementById('diagram');\n\n// layout simple grid\nconst positions = {\n  n1:{x:120, y:80},\n  n2:{x:120, y:200},\n  n3:{x:360, y:200},\n  n4:{x:120, y:320},\n  n5:{x:360, y:320},\n  n6:{x:600, y:200}\n};\n\nfunction createNode(node) {\n  const g = document.createElementNS(SVG_NS,'g');\n  g.setAttribute('id',node.id);\n  g.setAttribute('transform',`translate(${positions[node.id].x},${positions[node.id].y})`);\n  g.style.visibility='hidden';\n\n  const rect = document.createElementNS(SVG_NS,'rect');\n  rect.setAttribute('class','node');\n  rect.setAttribute('x',-NODE_W/2);\n  rect.setAttribute('y',-NODE_H/2);\n  rect.setAttribute('width',NODE_W);\n  rect.setAttribute('height',NODE_H);\n  g.appendChild(rect);\n\n  const icon = document.createElementNS(SVG_NS,'text');\n  icon.setAttribute('class','label');\n  icon.setAttribute('x',-70);\n  icon.setAttribute('y',5);\n  icon.textContent = node.icon;\n  g.appendChild(icon);\n\n  const label = document.createElementNS(SVG_NS,'text');\n  label.setAttribute('class','label');\n  label.setAttribute('x',-20);\n  label.setAttribute('y',5);\n  label.textContent = node.label;\n  g.appendChild(label);\n\n  const detail = document.createElementNS(SVG_NS,'text');\n  detail.setAttribute('class','detail');\n  detail.setAttribute('x',-NODE_W/2+5);\n  detail.setAttribute('y',-NODE_H/2+20);\n  detail.textContent = node.details;\n  g.appendChild(detail);\n\n  rect.addEventListener('click',()=>{ detail.style.display = detail.style.display==='none'?'block':'none'; });\n  return g;\n}\n\nfunction getEdgePath(fromId,toId){\n  const from = positions[fromId];\n  const to   = positions[toId];\n  const dx = to.x - from.x, dy = to.y - from.y;\n  let sx,sy,ex,ey;\n  if (Math.abs(dy) > Math.abs(dx)) { // vertical\n    sx = from.x;\n    sy = dy>0? from.y + NODE_H/2 : from.y - NODE_H/2;\n    ex = to.x;\n    ey = dy>0? to.y - NODE_H/2 - ARROW_OFFSET : to.y + NODE_H/2 + ARROW_OFFSET;\n  } else { // horizontal\n    sx = dx>0? from.x + NODE_W/2 : from.x - NODE_W/2;\n    sy = from.y;\n    ex = dx>0? to.x - NODE_W/2 - ARROW_OFFSET : to.x + NODE_W/2 + ARROW_OFFSET;\n    ey = to.y;\n  }\n  return `M${sx} ${sy} L${ex} ${ey}`;\n}\n\nfunction createEdge(edge, idx){\n  const path = document.createElementNS(SVG_NS,'path');\n  path.setAttribute('class','edge');\n  path.setAttribute('d',getEdgePath(edge.from,edge.to));\n  path.setAttribute('id',`e${idx}`);\n  path.style.visibility='hidden';\n  svg.appendChild(path);\n\n  if (edge.label){\n    const midX = (positions[edge.from].x + positions[edge.to].x)/2;\n    const midY = (positions[edge.from].y + positions[edge.to].y)/2;\n    const txt = document.createElementNS(SVG_NS,'text');\n    txt.setAttribute('class','edgeLabel');\n    txt.setAttribute('x',midX);\n    txt.setAttribute('y',midY-5);\n    txt.textContent = edge.label;\n    txt.style.visibility='hidden';\n    txt.setAttribute('id',`el${idx}`);\n    svg.appendChild(txt);\n  }\n  return path;\n}\n\n// defs for arrowhead\nconst defs = document.createElementNS(SVG_NS,'defs');\nconst marker = document.createElementNS(SVG_NS,'marker');\nmarker.setAttribute('id','arrow');\nmarker.setAttribute('markerWidth','10');\nmarker.setAttribute('markerHeight','10');\nmarker.setAttribute('refX','0');\nmarker.setAttribute('refY','3');\nmarker.setAttribute('orient','auto');\nconst arrowPath = document.createElementNS(SVG_NS,'path');\narrowPath.setAttribute('d','M0,0 L0,6 L9,3 z');\narrowPath.setAttribute('fill','#888');\nmarker.appendChild(arrowPath);\ndefs.appendChild(marker);\nsvg.appendChild(defs);\n\n// build nodes\nconfig.nodes.forEach(node=>svg.appendChild(createNode(node)));\n// build edges\nconfig.edges.forEach((e,i)=>createEdge(e,i));\n\n// reveal logic\nlet step = 0;\nfunction showStep(i){\n  const order = config.revealOrder;\n  // hide all\n  order.forEach(id=>{\n    const el = document.getElementById(id);\n    if(el) el.style.visibility='hidden';\n    const txt = document.getElementById('el'+(id.startsWith('e')?id.slice(1):''));\n    if(txt) txt.style.visibility='hidden';\n  });\n  // show up to i\n  for(let j=0;j<=i && j<order.length;j++){\n    const id = order[j];\n    const el = document.getElementById(id);\n    if(el) el.style.visibility='visible';\n    if(id.startsWith('e')){\n      const txt = document.getElementById('el'+id.slice(1));\n      if(txt) txt.style.visibility='visible';\n    }\n  }\n  // narration\n  const narr = document.getElementById('narration');\n  const msgs = [\n    \"This sentence will help us see how attention works.\",\n    \"First word: ‘The’.\",\n    \"Next word: ‘cat’ – the subject.\",\n    \"Verb ‘chased’ connects to the subject.\",\n    \"Object ‘mouse’ appears.\",\n    \"Pronoun ‘it’ appears later.\",\n    \"Attention from ‘cat’ to ‘chased’.\",\n    \"Attention from ‘chased’ to ‘mouse’.\",\n    \"Pronoun ‘it’ points back to ‘cat’.\"\n  ];\n  narr.textContent = msgs[i]||\"\";\n}\nshowStep(step);\n\n// button handling\ndocument.getElementById('nextBtn').addEventListener('click',()=>{\n  if(step < config.revealOrder.length-1){ step++; showStep(step); }\n});\ndocument.getElementById('prevBtn').addEventListener('click',()=>{\n  if(step > 0){ step--; showStep(step); }\n});\n\n// sidebar toggle\nconst sidebar = document.getElementById('sidebar');\ndocument.getElementById('toggleBtn').addEventListener('click',()=>{\n  sidebar.classList.toggle('collapsed');\n});\n</script>\n</body>\n</html>",
+        "widgetType": "diagram",
+        "widgetConfig": {
+          "nodes": [
+            {
+              "id": "n1",
+              "label": "The",
+              "icon": "🔤",
+              "details": "Token 1: ‘The’ – a determiner."
+            },
+            {
+              "id": "n2",
+              "label": "cat",
+              "icon": "🐱",
+              "details": "Token 2: ‘cat’ – the subject."
+            },
+            {
+              "id": "n3",
+              "label": "chased",
+              "icon": "🏃",
+              "details": "Token 3: ‘chased’ – the verb."
+            },
+            {
+              "id": "n4",
+              "label": "the",
+              "icon": "🔤",
+              "details": "Token 4: ‘the’ – another determiner."
+            },
+            {
+              "id": "n5",
+              "label": "mouse",
+              "icon": "🐭",
+              "details": "Token 5: ‘mouse’ – the object."
+            },
+            {
+              "id": "n6",
+              "label": "it",
+              "icon": "🔤",
+              "details": "Token 6: ‘it’ – pronoun referring to ‘cat’."
+            }
+          ],
+          "edges": [
+            {
+              "from": "n2",
+              "to": "n3",
+              "label": "subject→verb"
+            },
+            {
+              "from": "n3",
+              "to": "n5",
+              "label": "verb→object"
+            },
+            {
+              "from": "n6",
+              "to": "n2",
+              "label": "pronoun→antecedent"
+            }
+          ],
+          "revealOrder": [
+            "n1",
+            "n2",
+            "n3",
+            "n4",
+            "n5",
+            "n6",
+            "e1",
+            "e2",
+            "e3"
+          ]
+        },
+        "teacherActions": [
+          {
+            "id": "intro",
+            "type": "speech",
+            "content": "Let's explore how attention connects words in a sentence.",
+            "label": "Intro"
+          },
+          {
+            "id": "reveal_tokens",
+            "type": "reveal",
+            "content": "",
+            "label": "Show tokens"
+          },
+          {
+            "id": "highlight_subject_verb",
+            "type": "highlight",
+            "target": "#e1",
+            "content": "The arrow shows the subject \"cat\" influencing the verb \"chased\".",
+            "label": "Subject → Verb"
+          },
+          {
+            "id": "highlight_pronoun_link",
+            "type": "highlight",
+            "target": "#e3",
+            "content": "This arrow connects the pronoun \"it\" to its antecedent \"cat\", illustrating a long‑range dependency.",
+            "label": "Pronoun link"
+          },
+          {
+            "id": "annotation_head",
+            "type": "annotation",
+            "target": "#n6",
+            "content": "Try adjusting the attention head to see how the strength of this link changes.",
+            "label": "Adjust head"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_cLHX7f6k",
+          "title": "Intro",
+          "type": "speech",
+          "text": "Let's explore how attention connects words in a sentence."
+        },
+        {
+          "id": "action_vL2DM9yD",
+          "title": "Show tokens",
+          "type": "widget_reveal",
+          "target": ""
+        },
+        {
+          "id": "action_AR8GLFEc",
+          "title": "Subject → Verb",
+          "type": "widget_highlight",
+          "target": "#e1"
+        },
+        {
+          "id": "action_AR8GLFEc_speech",
+          "type": "speech",
+          "text": "The arrow shows the subject \"cat\" influencing the verb \"chased\".",
+          "title": "Subject → Verb"
+        },
+        {
+          "id": "action_Om_8WlUI",
+          "title": "Pronoun link",
+          "type": "widget_highlight",
+          "target": "#e3"
+        },
+        {
+          "id": "action_Om_8WlUI_speech",
+          "type": "speech",
+          "text": "This arrow connects the pronoun \"it\" to its antecedent \"cat\", illustrating a long‑range dependency.",
+          "title": "Pronoun link"
+        },
+        {
+          "id": "action_7oe81s0D",
+          "title": "Adjust head",
+          "type": "widget_annotation",
+          "target": "#n6"
+        },
+        {
+          "id": "action_7oe81s0D_speech",
+          "type": "speech",
+          "text": "Try adjusting the attention head to see how the strength of this link changes.",
+          "title": "Adjust head"
+        }
+      ],
+      "createdAt": 1777541853828,
+      "updatedAt": 1777541853828
+    },
+    {
+      "id": "scene_aAC78daBRA",
+      "stageId": "REHc15xA1z",
+      "type": "slide",
+      "title": "Module 5 – Real‑World Use Cases of LLMs",
+      "order": 9,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "WBwnMdk7zAE-0lwxRdvsf",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_1VS7l9-o",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 70,
+              "content": "<p style=\"font-size:32px; font-weight:bold; text-align:center;\">Module 5 – Real‑World Use Cases of LLMs</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_tzwrfDkZ",
+              "type": "text",
+              "left": 60,
+              "top": 150,
+              "width": 880,
+              "height": 130,
+              "content": "<p style=\"font-size:18px;\">• Assisted writing & summarisation</p><p style=\"font-size:18px;\">• Code generation & debugging assistance</p><p style=\"font-size:18px;\">• Semantic search & document retrieval</p><p style=\"font-size:18px;\">• Customer‑facing chatbots & knowledge bases</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_mG5eTk6q",
+          "type": "spotlight",
+          "elementId": "text_1VS7l9-o"
+        },
+        {
+          "id": "action_bpERv57m",
+          "type": "speech",
+          "text": "Alright, everyone, let’s dive into Module 5, where we explore real‑world use cases of large language models."
+        },
+        {
+          "id": "action_kAQ6Jmv4",
+          "type": "spotlight",
+          "elementId": "text_tzwrfDkZ"
+        },
+        {
+          "id": "action_gpLP00vm",
+          "type": "speech",
+          "text": "First, LLMs excel at assisted writing and summarisation – they can help you draft emails, generate reports, or condense long articles into bite‑size summaries."
+        },
+        {
+          "id": "action_qJ5lZpjB",
+          "type": "laser",
+          "elementId": "text_tzwrfDkZ"
+        },
+        {
+          "id": "action_vS3V_nzA",
+          "type": "speech",
+          "text": "Second, they’re powerful code generation and debugging assistants, suggesting snippets, fixing syntax errors, and even explaining what a piece of code does."
+        },
+        {
+          "id": "action_6KqUemec",
+          "type": "laser",
+          "elementId": "text_tzwrfDkZ"
+        },
+        {
+          "id": "action_slWqUWKt",
+          "type": "speech",
+          "text": "Third, semantic search and document retrieval let you ask natural‑language questions and quickly pull relevant information from large text collections."
+        },
+        {
+          "id": "action_Y4sHnpdx",
+          "type": "laser",
+          "elementId": "text_tzwrfDkZ"
+        },
+        {
+          "id": "action_TV8uWm4Y",
+          "type": "speech",
+          "text": "Finally, customer‑facing chatbots and knowledge‑base assistants provide instant, on‑brand support, handling routine inquiries and guiding users to solutions."
+        },
+        {
+          "id": "action_HN02McgE",
+          "type": "speech",
+          "text": "These examples show how LLMs are already transforming industries – from marketing to software development, and beyond. Any questions before we move on?"
+        }
+      ],
+      "createdAt": 1777541878039,
+      "updatedAt": 1777541878039
+    },
+    {
+      "id": "scene_bB6DJm-NmO",
+      "stageId": "REHc15xA1z",
+      "type": "quiz",
+      "title": "Quiz – LLM Use Cases",
+      "order": 10,
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "single",
+            "question": "Which benefit best describes the use of a Large Language Model (LLM) for drafting customer support email replies?",
+            "options": [
+              {
+                "value": "A",
+                "label": "Fast generation of natural‑language text tailored to the customer's issue"
+              },
+              {
+                "value": "B",
+                "label": "Automatic extraction of structured data from PDFs"
+              },
+              {
+                "value": "C",
+                "label": "Real‑time video compression for streaming"
+              },
+              {
+                "value": "D",
+                "label": "Performing precise arithmetic with large matrices"
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "LLMs excel at generating fluent text, making them ideal for writing draft replies. Extracting data from PDFs, video compression, and matrix arithmetic are tasks better suited to other specialized tools.",
+            "points": 10,
+            "hasAnswer": true
+          },
+          {
+            "id": "q2",
+            "type": "multiple",
+            "question": "Select all tasks that are generally unsuitable for a Large Language Model (choose all that apply).",
+            "options": [
+              {
+                "value": "A",
+                "label": "Creating a real‑time control system for a robotic arm"
+              },
+              {
+                "value": "B",
+                "label": "Summarizing a news article into a short paragraph"
+              },
+              {
+                "value": "C",
+                "label": "Generating source code snippets based on a description"
+              },
+              {
+                "value": "D",
+                "label": "Performing cryptographic key generation"
+              }
+            ],
+            "answer": [
+              "A",
+              "D"
+            ],
+            "analysis": "LLMs are not designed for low‑latency control loops (A) or for generating secure cryptographic keys (D). Summarization (B) and code generation (C) are common, appropriate LLM applications.",
+            "points": 15,
+            "hasAnswer": true
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_4sRdpz5i",
+          "type": "speech",
+          "text": "Alright, let’s put what we just covered into practice with a quick quiz on LLM use cases. Read each question carefully and choose the best answer."
+        },
+        {
+          "id": "action_t1-NtrMg",
+          "type": "speech",
+          "text": "For the first question, think about what LLMs are strongest at: generating natural‑language text that fits the context. They’re not built for low‑level math or video compression."
+        },
+        {
+          "id": "action_SyL3mTKJ",
+          "type": "speech",
+          "text": "The second question asks you to spot tasks that don’t match an LLM’s strengths. Remember, LLMs excel at language‑based tasks, but they can’t safely run real‑time control loops or create cryptographic keys."
+        },
+        {
+          "id": "action_QSGE2rN7",
+          "type": "speech",
+          "text": "Take a moment to review your answers. If anything feels unclear, recall our analogy of LLMs as very skilled writers—they can draft emails or summarize articles, but they aren’t a hardware controller or a security module."
+        },
+        {
+          "id": "action_0WYJ4aW6",
+          "type": "discussion",
+          "topic": "Why are language models great for drafting text but not for real‑time control or cryptography?",
+          "prompt": "Share any examples you can think of where using an LLM would be a good idea versus a poor one.",
+          "agentId": "gen-server-3"
+        }
+      ],
+      "createdAt": 1777541919632,
+      "updatedAt": 1777541919632
+    },
+    {
+      "id": "scene_CaeMZ7JZDd",
+      "stageId": "REHc15xA1z",
+      "type": "slide",
+      "title": "Module 6 – Prompt Engineering Basics",
+      "order": 11,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "BouD4sRFQYCKyv1fPyGVO",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_1Eojh40-",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 106,
+              "content": "<p style=\"font-size:28px; text-align:center;\"><strong>Module 6 – Prompt Engineering Basics</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "shape_Ux-Wu-xR",
+              "type": "shape",
+              "left": 70,
+              "top": 164,
+              "width": 860,
+              "height": 3,
+              "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+              "viewBox": [
+                1,
+                1
+              ],
+              "fill": "#5b9bd5",
+              "fixedRatio": false,
+              "rotate": 0
+            },
+            {
+              "id": "text_H23NYJ1X",
+              "type": "text",
+              "left": 60,
+              "top": 190,
+              "width": 880,
+              "height": 112,
+              "content": "<p style=\"font-size:20px;\">• Specify role, objective, context, and output format</p><p style=\"font-size:20px;\">• Provide examples and constraints to steer the model</p><p style=\"font-size:20px;\">• Refine prompts iteratively for better results</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_tNPOlHmL",
+          "type": "spotlight",
+          "elementId": "text_1Eojh40-"
+        },
+        {
+          "id": "action_k3N5Nb1O",
+          "type": "speech",
+          "text": "Welcome, everyone! I'm Dr. Maya Patel. In this module we'll explore the basics of prompt engineering—how to give clear instructions to an AI so it gives us the answers we need."
+        },
+        {
+          "id": "action_epSagyEJ",
+          "type": "spotlight",
+          "elementId": "text_H23NYJ1X"
+        },
+        {
+          "id": "action_27lDA8zm",
+          "type": "speech",
+          "text": "First, let's break down the four key ingredients of a good prompt: a role for the model, a clear objective, relevant context, and the desired output format."
+        },
+        {
+          "id": "action_e0qMuBts",
+          "type": "laser",
+          "elementId": "text_H23NYJ1X"
+        },
+        {
+          "id": "action_8U4gksnY",
+          "type": "speech",
+          "text": "Think of it like ordering a coffee—you tell the barista who you are (role), what you want (objective), any special instructions (context), and how you want it served (output). That simple structure makes the AI’s job much easier."
+        },
+        {
+          "id": "action_lQd8rjLn",
+          "type": "laser",
+          "elementId": "text_H23NYJ1X"
+        },
+        {
+          "id": "action_VubrFMFO",
+          "type": "speech",
+          "text": "Next, we’ll see how adding examples and constraints can guide the model even further, and why refining prompts iteratively leads to better results."
+        }
+      ],
+      "createdAt": 1777541965885,
+      "updatedAt": 1777541965885
+    },
+    {
+      "id": "scene_PEb92g6N0t",
+      "stageId": "REHc15xA1z",
+      "type": "quiz",
+      "title": "Quiz – Prompt Engineering",
+      "order": 12,
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "single",
+            "question": "Which of the following essential elements is missing from the original prompt that makes it weak?",
+            "options": [
+              {
+                "value": "A",
+                "label": "A clear task description"
+              },
+              {
+                "value": "B",
+                "label": "A specific word limit"
+              },
+              {
+                "value": "C",
+                "label": "An example output format"
+              },
+              {
+                "value": "D",
+                "label": "A deadline for completion"
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "A clear task description is the fundamental missing component; without it the model does not know what to produce. Word limits, example formats, and deadlines can improve a prompt but are not as critical as defining the task itself.",
+            "points": 10,
+            "hasAnswer": true
+          },
+          {
+            "id": "q2",
+            "type": "single",
+            "question": "Which revised prompt best addresses the weaknesses identified in the original prompt?",
+            "options": [
+              {
+                "value": "A",
+                "label": "Write a short story about a brave dog."
+              },
+              {
+                "value": "B",
+                "label": "Create a 150‑word narrative describing a brave dog who overcomes a challenge, using a lively tone and past tense."
+              },
+              {
+                "value": "C",
+                "label": "Generate a blog post on dog training lasting 500 words."
+              },
+              {
+                "value": "D",
+                "label": "Provide a list of adjectives to describe bravery in animals."
+              }
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "Option B adds a clear task (write a narrative), specifies length (150 words), style (lively tone, past tense), and focus (brave dog overcoming a challenge), directly fixing the missing elements. The other options either lack detail or change the task entirely.",
+            "points": 15,
+            "hasAnswer": true
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_5HHjIPjC",
+          "type": "speech",
+          "text": "Hello everyone! Let’s dive into a quick quiz on Prompt Engineering. You’ll see two questions that ask you to spot what’s missing in a weak prompt and to pick the strongest revised version. Read each question carefully and choose the best answer."
+        },
+        {
+          "id": "action_qaVgoSZR",
+          "type": "speech",
+          "text": "Remember, a strong prompt usually includes a clear task description, any required length or format, and sometimes an example or deadline. Missing any of these can make the request vague and harder for the model to follow."
+        },
+        {
+          "id": "action_o7daCRrr",
+          "type": "speech",
+          "text": "After you answer, think about why the correct choice fits the key points we just reviewed, and why the other options fall short. This will help solidify your ability to craft better prompts."
+        },
+        {
+          "id": "action_ReuUSC7p",
+          "type": "discussion",
+          "topic": "How do clear task details and constraints improve the quality of AI-generated responses?",
+          "prompt": "Share an example of a prompt you’ve written that was unclear, and how you might refine it.",
+          "agentId": "gen-server-3"
+        }
+      ],
+      "createdAt": 1777542008476,
+      "updatedAt": 1777542008476
+    },
+    {
+      "id": "scene_9r0juQSBzN",
+      "stageId": "REHc15xA1z",
+      "type": "slide",
+      "title": "Module 7 – Limits, Risks and Governance",
+      "order": 13,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "2OqO7JC5kq2flgSwaGMY5",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_jjrZs9He",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 70,
+              "content": "<p style=\"font-size:32px;\"><strong>Module 7 – Limits, Risks and Governance</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            },
+            {
+              "id": "text_NUPyxgDm",
+              "type": "text",
+              "left": 60,
+              "top": 140,
+              "width": 880,
+              "height": 130,
+              "content": "<p style=\"font-size:18px;\">• Hallucination: confident but false output</p><p style=\"font-size:18px;\">• Bias inherited from training data</p><p style=\"font-size:18px;\">• Data privacy and IP considerations</p><p style=\"font-size:18px;\">• Human validation and responsible deployment</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#333333",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_b1QCZ4-V",
+          "type": "spotlight",
+          "elementId": "text_jjrZs9He"
+        },
+        {
+          "id": "action_VRzS0VI7",
+          "type": "speech",
+          "text": "Welcome back, everyone. In this module we'll explore the limits of generative AI, focusing on hallucinations, bias, data privacy, and how we can responsibly validate and deploy these systems."
+        },
+        {
+          "id": "action_A6LFezMP",
+          "type": "spotlight",
+          "elementId": "text_NUPyxgDm"
+        },
+        {
+          "id": "action_BX2siAYI",
+          "type": "speech",
+          "text": "First, let's look at hallucination – the model can produce confident statements that are simply false. Think of it like a very persuasive storyteller that sometimes makes up facts."
+        },
+        {
+          "id": "action_xrlVHf2h",
+          "type": "laser",
+          "elementId": "text_NUPyxgDm"
+        },
+        {
+          "id": "action_V5m5IPng",
+          "type": "speech",
+          "text": "Next, bias. Because the model learns from existing data, it can inherit any prejudices or stereotypes present in that data. That's why we must carefully examine training sources."
+        },
+        {
+          "id": "action_KcgqADXX",
+          "type": "laser",
+          "elementId": "text_NUPyxgDm"
+        },
+        {
+          "id": "action_lrnAExUm",
+          "type": "speech",
+          "text": "Third, data privacy and intellectual property. Using proprietary or personal data without permission can violate legal and ethical standards, so we always need clear usage rights."
+        },
+        {
+          "id": "action_0WCTSNxU",
+          "type": "laser",
+          "elementId": "text_NUPyxgDm"
+        },
+        {
+          "id": "action_L5lqCoFW",
+          "type": "speech",
+          "text": "Finally, human validation and responsible deployment. Even with safeguards, we should always have a human in the loop to review outputs before they reach users."
+        }
+      ],
+      "createdAt": 1777542070368,
+      "updatedAt": 1777542070368
+    },
+    {
+      "id": "scene_KXWKmXKB2c",
+      "stageId": "REHc15xA1z",
+      "type": "quiz",
+      "title": "Final Quiz – Course Review",
+      "order": 14,
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "single",
+            "question": "Which of the following best defines generative AI?",
+            "options": [
+              {
+                "value": "A",
+                "label": "A system that creates new content such as text, images, or music based on learned patterns"
+              },
+              {
+                "value": "B",
+                "label": "A program that only classifies existing data into categories"
+              },
+              {
+                "value": "C",
+                "label": "A database that stores large collections of static documents"
+              },
+              {
+                "value": "D",
+                "label": "A rule‑based chatbot that follows predefined scripts"
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Generative AI learns from data and can produce novel outputs. Options B, C, and D describe non‑generative functions.",
+            "points": 10,
+            "hasAnswer": true
+          },
+          {
+            "id": "q2",
+            "type": "single",
+            "question": "In the context of large language models, what is a token?",
+            "options": [
+              {
+                "value": "A",
+                "label": "A single character such as a letter or punctuation mark"
+              },
+              {
+                "value": "B",
+                "label": "A word or sub‑word piece that the model treats as a unit during processing"
+              },
+              {
+                "value": "C",
+                "label": "The final answer produced by the model"
+              },
+              {
+                "value": "D",
+                "label": "A hidden layer in the transformer architecture"
+              }
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "Tokens are the basic units (words or sub‑words) that LLMs convert into numerical representations. Option A is too narrow, C and D are unrelated.",
+            "points": 10,
+            "hasAnswer": true
+          },
+          {
+            "id": "q3",
+            "type": "single",
+            "question": "Which statement correctly describes the attention mechanism in a transformer?",
+            "options": [
+              {
+                "value": "A",
+                "label": "It allows each token to weigh the relevance of every other token when generating a representation"
+              },
+              {
+                "value": "B",
+                "label": "It selects a single most important token and ignores the rest"
+              },
+              {
+                "value": "C",
+                "label": "It stores the model’s parameters for future use"
+              },
+              {
+                "value": "D",
+                "label": "It converts tokens into hexadecimal codes"
+              }
+            ],
+            "answer": [
+              "A"
+            ],
+            "analysis": "Attention computes a weighted sum of all tokens, letting the model focus on relevant context. The other options mischaracterize its function.",
+            "points": 12,
+            "hasAnswer": true
+          },
+          {
+            "id": "q4",
+            "type": "single",
+            "question": "Which element is considered a hallmark of a good prompt for an LLM?",
+            "options": [
+              {
+                "value": "A",
+                "label": "Vague instructions that leave room for interpretation"
+              },
+              {
+                "value": "B",
+                "label": "Clear, specific task description with necessary context"
+              },
+              {
+                "value": "C",
+                "label": "Including as many unrelated facts as possible"
+              },
+              {
+                "value": "D",
+                "label": "Using only emojis to convey the request"
+              }
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "A good prompt gives a concise, specific request and any context the model needs. Vague, noisy, or emoji‑only prompts reduce performance.",
+            "points": 10,
+            "hasAnswer": true
+          },
+          {
+            "id": "q5",
+            "type": "single",
+            "question": "What is a major risk associated with deploying large language models in real‑world applications?",
+            "options": [
+              {
+                "value": "A",
+                "label": "They always produce grammatically perfect text"
+              },
+              {
+                "value": "B",
+                "label": "They may generate biased, misleading, or harmful content"
+              },
+              {
+                "value": "C",
+                "label": "They guarantee user privacy without any safeguards"
+              },
+              {
+                "value": "D",
+                "label": "They require no computational resources to run"
+              }
+            ],
+            "answer": [
+              "B"
+            ],
+            "analysis": "LLMs can reflect biases present in training data and may output inaccurate or harmful statements. The other options are false claims.",
+            "points": 13,
+            "hasAnswer": true
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_UicFQlFF",
+          "type": "speech",
+          "text": "Alright, everyone, let’s dive into our final quiz! This is a quick check to see how well we’ve grasped the core ideas about generative AI, tokens, attention, good prompting, and the risks of real‑world deployment. Read each question carefully and pick the best answer."
+        },
+        {
+          "id": "action_4gS7SgBf",
+          "type": "speech",
+          "text": "Remember, a generative AI system creates new content—think of it like a creative assistant that writes, draws, or composes based on patterns it has learned. A token is simply the piece of text—often a word or sub‑word fragment—that the model processes as a single unit. The attention mechanism lets every token consider the importance of all the others when forming its meaning, which is why transformers are so powerful."
+        },
+        {
+          "id": "action_J84gPxD_",
+          "type": "speech",
+          "text": "When you craft a prompt for a large language model, clarity is key: give a specific task, include any necessary context, and keep it focused. And always keep an eye on risk—these models can sometimes produce biased or harmful content, so we need safeguards before deploying them in real applications."
+        },
+        {
+          "id": "action_-enI711T",
+          "type": "discussion",
+          "topic": "Reflect on one concept that felt most challenging and how you might apply a clear prompt to get better results from an LLM.",
+          "prompt": "Share your thoughts, and feel free to ask Jordan or Taylor for examples.",
+          "agentId": "gen-server-3"
+        }
+      ],
+      "createdAt": 1777542138148,
+      "updatedAt": 1777542138148
+    }
+  ],
+  "createdAt": "2026-04-30T09:42:18.152Z"
+}
