@@ -1,0 +1,20 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - img [ref=e6]
+    - generic [ref=e8]: SkillForge
+    - generic [ref=e9]: Enterprise Learning Platform
+  - generic [ref=e10]:
+    - button "Sign in with Azure Entra ID" [ref=e11]:
+      - img [ref=e12]
+      - text: Sign in with Azure Entra ID
+    - generic [ref=e21]: Or continue with
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - text: Email
+        - textbox "Email" [ref=e24]:
+          - /placeholder: admin@skillforge.com
+      - generic [ref=e25]:
+        - text: Password
+        - textbox "Password" [ref=e26]:
+          - /placeholder: Enter your password
+      - button "Sign In" [ref=e27]

@@ -69,6 +69,19 @@ next-env.d.ts
 /data
 /logs
 
+# nested upskilling platform local artifacts
+/upskilling_platform/.git
+/upskilling_platform/**/node_modules
+/upskilling_platform/**/.next
+/upskilling_platform/**/.pytest_cache
+/upskilling_platform/**/.ruff_cache
+/upskilling_platform/**/test-results
+/upskilling_platform/**/.tmp.driveupload
+/upskilling_platform/**/.tmp.drivedownload
+/upskilling_platform/**/.tmp-cert-keys
+/upskilling_platform/**/.env
+/upskilling_platform/frontend/.ai-course-studio
+
 # docs
 /docs
 # Eval results

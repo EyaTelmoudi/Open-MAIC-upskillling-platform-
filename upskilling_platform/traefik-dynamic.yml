@@ -1,0 +1,141 @@
+http:
+  middlewares:
+    cors-headers:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 3600
+        addVaryHeader: true
+        accessControlAllowOriginList:
+          - "http://localhost:3000"
+          - "http://127.0.0.1:3000"
+        accessControlExposeHeaders:
+          - "*"
+
+    learning-rewrite:
+      replacePathRegex:
+        regex: "^/api/v1/learning(/.*)$"
+        replacement: "/api/v1$1"
+
+    agents-rewrite:
+      replacePathRegex:
+        regex: "^/api/v1/agents(/.*)$"
+        replacement: "/api/v1$1"
+
+    notifications-rewrite:
+      replacePathRegex:
+        regex: "^/api/v1/notifications(/.*)$"
+        replacement: "$1"
+
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+
+  routers:
+    identity:
+      rule: "PathPrefix(`/api/v1/identity`)"
+      service: identity
+      entryPoints:
+        - web
+      middlewares:
+        - cors-headers
+
+    identity-auth:
+      rule: "PathPrefix(`/api/v1/auth`)"
+      service: identity
+      entryPoints:
+        - web
+      middlewares:
+        - cors-headers
+
+    identity-superadmin:
+      rule: "PathPrefix(`/api/v1/superadmin`)"
+      service: identity
+      entryPoints:
+        - web
+      middlewares:
+        - cors-headers
+
+    setup:
+      rule: "PathPrefix(`/setup`)"
+      service: identity
+      entryPoints:
+        - web
+      middlewares:
+        - cors-headers
+
+    tenants:
+      rule: "PathPrefix(`/api/v1/tenants`)"
+      service: identity
+      entryPoints:
+        - web
+      middlewares:
+        - cors-headers
+
+    learning:
+      rule: "PathPrefix(`/api/v1/learning`)"
+      service: learning
+      entryPoints:
+        - web
+      middlewares:
+        - cors-headers
+        - learning-rewrite
+
+    agents:
+      rule: "PathPrefix(`/api/v1/agents`)"
+      service: agents
+      entryPoints:
+        - web
+      middlewares:
+        - cors-headers
+        - agents-rewrite
+
+    notifications:
+      rule: "PathPrefix(`/api/v1/notifications`)"
+      service: notifications
+      entryPoints:
+        - web
+      middlewares:
+        - cors-headers
+        - notifications-rewrite
+
+    ping:
+      rule: "PathPrefix(`/health`)"
+      service: ping
+      entryPoints:
+        - web
+
+  services:
+    identity:
+      loadBalancer:
+        servers:
+          - url: "http://identity:8001"
+
+    learning:
+      loadBalancer:
+        servers:
+          - url: "http://learning:8002"
+
+    agents:
+      loadBalancer:
+        servers:
+          - url: "http://agents:8003"
+
+    notifications:
+      loadBalancer:
+        servers:
+          - url: "http://notifications:8004"
+
+    ping:
+      loadBalancer:
+        servers:
+          - url: "http://localhost"

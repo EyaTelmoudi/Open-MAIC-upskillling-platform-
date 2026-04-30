@@ -1,0 +1,9 @@
+email,first_name,last_name,role,department
+john.doe@example.com,John,Doe,TeamMember,Engineering
+jane.smith@example.com,Jane,Smith,Manager,Sales
+alex.martin@example.com,Alex,Martin,LearningExpert,Product
+sarah.wilson@example.com,Sarah,Wilson,TeamManager,Marketing
+mike.brown@example.com,Mike,Brown,TeamIntern,Engineering
+emily.davis@example.com,Emily,Davis,TeamMember,HR
+david.chen@example.com,David,Chen,Admin,IT
+lisa.anderson@example.com,Lisa,Anderson,TeamMember,Finance

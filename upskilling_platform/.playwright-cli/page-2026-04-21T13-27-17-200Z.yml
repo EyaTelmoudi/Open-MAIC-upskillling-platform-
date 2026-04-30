@@ -1,0 +1,55 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e6]
+        - generic [ref=e8]: SkillForge
+      - navigation [ref=e9]:
+        - generic [ref=e10]:
+          - img [ref=e74]
+          - generic [ref=e13]: Welcome
+        - generic [ref=e14]:
+          - img [ref=e15]
+          - generic [ref=e18]: Admin Account
+        - generic [ref=e19]:
+          - img [ref=e20]
+          - generic [ref=e23]: Platform Config
+        - generic [ref=e24]:
+          - img [ref=e25]
+          - generic [ref=e30]: Organization
+        - generic [ref=e31]:
+          - img [ref=e32]
+          - generic [ref=e36]: First Tenant
+        - generic [ref=e37]:
+          - img [ref=e38]
+          - generic [ref=e40]: Review & Launch
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]: Admin Account
+        - generic [ref=e46]: Step 2 of 6
+      - generic [ref=e47]:
+        - generic [ref=e76]:
+          - generic [ref=e77]:
+            - text: Email
+            - textbox "admin@skillforge.io" [ref=e78]
+          - generic [ref=e79]:
+            - text: Password
+            - textbox "••••••••" [ref=e80]
+            - paragraph [ref=e81]: Password must be at least 8 characters long.
+          - generic [ref=e82]:
+            - generic [ref=e83]:
+              - text: First Name
+              - textbox "Admin" [ref=e84]
+            - generic [ref=e85]:
+              - text: Last Name
+              - textbox "User" [ref=e86]
+        - generic [ref=e60]:
+          - button "Back" [ref=e87]:
+            - img [ref=e88]
+            - text: Back
+          - button "Next" [active] [ref=e61]:
+            - text: Next
+            - img [ref=e62]
+  - button "Open Next.js Dev Tools" [ref=e69] [cursor=pointer]:
+    - img [ref=e70]
+  - alert [ref=e73]

@@ -1,0 +1,135 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e6]
+        - generic [ref=e8]: SkillForge
+      - navigation [ref=e9]:
+        - generic [ref=e10]:
+          - img [ref=e74]
+          - generic [ref=e13]: Welcome
+        - generic [ref=e14]:
+          - img [ref=e90]
+          - generic [ref=e18]: Admin Account
+        - generic [ref=e19]:
+          - img [ref=e20]
+          - generic [ref=e23]: Platform Config
+        - generic [ref=e24]:
+          - img [ref=e25]
+          - generic [ref=e30]: Organization
+        - generic [ref=e31]:
+          - img [ref=e32]
+          - generic [ref=e36]: First Tenant
+        - generic [ref=e37]:
+          - img [ref=e38]
+          - generic [ref=e40]: Review & Launch
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]: Platform Config
+        - generic [ref=e46]: Step 3 of 6
+      - generic [ref=e47]:
+        - generic [ref=e92]:
+          - paragraph [ref=e93]: Configure the global brand identity for the entire SkillForge platform. These settings apply to all organizations and tenants.
+          - generic [ref=e94]:
+            - text: Platform Name
+            - textbox "SkillForge" [ref=e95]
+          - generic [ref=e96]:
+            - text: Logo URL
+            - textbox "https://example.com/logo.png" [ref=e97]
+          - generic [ref=e98]:
+            - text: Default Timezone
+            - combobox [ref=e99]:
+              - option "Africa/Cairo (GMT+2)"
+              - option "Africa/Lagos (GMT+1)"
+              - option "Africa/Johannesburg (GMT+2)"
+              - option "Africa/Nairobi (GMT+3)"
+              - option "Africa/Tunis (GMT+1)" [selected]
+              - option "America/Anchorage (GMT-9)"
+              - option "America/Chicago (GMT-6)"
+              - option "America/Denver (GMT-7)"
+              - option "America/Halifax (GMT-4)"
+              - option "America/Los_Angeles (GMT-8)"
+              - option "America/Mexico_City (GMT-6)"
+              - option "America/New_York (GMT-5)"
+              - option "America/Phoenix (GMT-7)"
+              - option "America/Sao_Paulo (GMT-3)"
+              - option "America/Toronto (GMT-5)"
+              - option "America/Vancouver (GMT-8)"
+              - option "Asia/Baghdad (GMT+3)"
+              - option "Asia/Bangkok (GMT+7)"
+              - option "Asia/Dhaka (GMT+6)"
+              - option "Asia/Dubai (GMT+4)"
+              - option "Asia/Ho_Chi_Minh (GMT+7)"
+              - option "Asia/Hong_Kong (GMT+8)"
+              - option "Asia/Jakarta (GMT+7)"
+              - option "Asia/Jerusalem (GMT+2)"
+              - option "Asia/Karachi (GMT+5)"
+              - option "Asia/Kolkata (GMT+5:30)"
+              - option "Asia/Kuala_Lumpur (GMT+8)"
+              - option "Asia/Manila (GMT+8)"
+              - option "Asia/Riyadh (GMT+3)"
+              - option "Asia/Seoul (GMT+9)"
+              - option "Asia/Shanghai (GMT+8)"
+              - option "Asia/Singapore (GMT+8)"
+              - option "Asia/Taipei (GMT+8)"
+              - option "Asia/Tehran (GMT+3:30)"
+              - option "Asia/Tokyo (GMT+9)"
+              - option "Europe/Amsterdam (GMT+1)"
+              - option "Europe/Athens (GMT+2)"
+              - option "Europe/Belgrade (GMT+1)"
+              - option "Europe/Berlin (GMT+1)"
+              - option "Europe/Brussels (GMT+1)"
+              - option "Europe/Bucharest (GMT+2)"
+              - option "Europe/Budapest (GMT+1)"
+              - option "Europe/Copenhagen (GMT+1)"
+              - option "Europe/Dublin (GMT+0)"
+              - option "Europe/Helsinki (GMT+2)"
+              - option "Europe/Istanbul (GMT+3)"
+              - option "Europe/Kyiv (GMT+2)"
+              - option "Europe/Lisbon (GMT+0)"
+              - option "Europe/London (GMT+0)"
+              - option "Europe/Madrid (GMT+1)"
+              - option "Europe/Moscow (GMT+3)"
+              - option "Europe/Oslo (GMT+1)"
+              - option "Europe/Paris (GMT+1)"
+              - option "Europe/Prague (GMT+1)"
+              - option "Europe/Riga (GMT+2)"
+              - option "Europe/Rome (GMT+1)"
+              - option "Europe/Stockholm (GMT+1)"
+              - option "Europe/Tallinn (GMT+2)"
+              - option "Europe/Vienna (GMT+1)"
+              - option "Europe/Vilnius (GMT+2)"
+              - option "Europe/Warsaw (GMT+1)"
+              - option "Europe/Zurich (GMT+1)"
+              - option "Australia/Adelaide (GMT+9:30)"
+              - option "Australia/Brisbane (GMT+10)"
+              - option "Australia/Darwin (GMT+9:30)"
+              - option "Australia/Melbourne (GMT+10)"
+              - option "Australia/Perth (GMT+8)"
+              - option "Australia/Sydney (GMT+10)"
+              - option "Pacific/Auckland (GMT+12)"
+              - option "Pacific/Fiji (GMT+12)"
+              - option "Pacific/Guam (GMT+10)"
+              - option "Pacific/Honolulu (GMT-10)"
+          - generic [ref=e100]:
+            - text: Platform Support Email
+            - textbox "support@skillforge.io" [ref=e101]
+        - generic [ref=e60]:
+          - button "Back" [ref=e87]:
+            - img [ref=e88]
+            - text: Back
+          - button "Next" [ref=e61]:
+            - text: Next
+            - img [ref=e102]
+  - generic [ref=e68] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e69]:
+      - img [ref=e70]
+    - generic [ref=e104]:
+      - button "Open issues overlay" [ref=e105]:
+        - generic [ref=e106]:
+          - generic [ref=e107]: "0"
+          - generic [ref=e108]: "1"
+        - generic [ref=e109]: Issue
+      - button "Collapse issues badge" [ref=e110]:
+        - img [ref=e111]
+  - alert [ref=e73]

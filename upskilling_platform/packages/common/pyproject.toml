@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "common"
+version = "0.1.0"
+description = "Shared types, models, auth utilities, and messaging for Upskilling Platform"
+requires-python = ">=3.11"
+dependencies = [
+    "sqlalchemy>=2.0",
+    "pydantic>=2.5",
+    "python-jose[cryptography]>=3.3",
+    "bcrypt>=4.0",
+    "pika>=1.3",
+    "pg8000>=1.31",
+    "minio>=7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1",
+    "black>=23.0",
+    "pg0-embedded>=0.10",
+    "psycopg2-binary>=2.9",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

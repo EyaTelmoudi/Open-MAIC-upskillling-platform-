@@ -1,0 +1,52 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e6]
+        - generic [ref=e8]: SkillForge
+      - navigation [ref=e9]:
+        - generic [ref=e10]:
+          - img [ref=e11]
+          - generic [ref=e13]: Welcome
+        - generic [ref=e14]:
+          - img [ref=e15]
+          - generic [ref=e18]: Admin Account
+        - generic [ref=e19]:
+          - img [ref=e20]
+          - generic [ref=e23]: Platform Config
+        - generic [ref=e24]:
+          - img [ref=e25]
+          - generic [ref=e30]: Organization
+        - generic [ref=e31]:
+          - img [ref=e32]
+          - generic [ref=e36]: First Tenant
+        - generic [ref=e37]:
+          - img [ref=e38]
+          - generic [ref=e40]: Review & Launch
+    - generic [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]: Welcome
+        - generic [ref=e46]: Step 1 of 6
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - paragraph [ref=e49]: Welcome to SkillForge! This wizard will help you complete the initial platform setup.
+          - list [ref=e50]:
+            - listitem [ref=e51]:
+              - img [ref=e52]
+              - text: Create Super Admin account
+            - listitem [ref=e54]:
+              - img [ref=e55]
+              - text: Configure platform settings
+            - listitem [ref=e57]:
+              - img [ref=e58]
+              - text: Create first tenant (optional)
+        - generic [ref=e60]:
+          - button "Back" [disabled]:
+            - img
+            - text: Back
+          - button "Next" [ref=e61]:
+            - text: Next
+            - img [ref=e62]
+  - button "Open Next.js Dev Tools" [ref=e69] [cursor=pointer]:
+    - img [ref=e70]
+  - alert [ref=e73]

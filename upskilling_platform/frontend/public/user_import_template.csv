@@ -1,0 +1,9 @@
+email,first_name,last_name,role,department
+import.user1@skillforge.test,John,Doe,TeamMember,Engineering
+import.user2@skillforge.test,Jane,Smith,Manager,Sales
+import.user3@skillforge.test,Alex,Martin,LearningExpert,Product
+import.user4@skillforge.test,Sarah,Wilson,TeamManager,Marketing
+import.user5@skillforge.test,Mike,Brown,TeamIntern,Engineering
+import.user6@skillforge.test,Emily,Davis,TeamMember,HR
+import.user7@skillforge.test,David,Chen,Admin,IT
+import.user8@skillforge.test,Lisa,Anderson,TeamMember,Finance

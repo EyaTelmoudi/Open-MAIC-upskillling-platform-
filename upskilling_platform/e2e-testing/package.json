@@ -1,0 +1,15 @@
+{
+  "name": "e2e-testing",
+  "version": "1.0.0",
+  "description": "E2E tests for SkillForge setup flow",
+  "scripts": {
+    "test": "playwright test",
+    "test:reset": "python ../../reset_setup.py && python ../../clear_users.py",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.41.0"
+  }
+}

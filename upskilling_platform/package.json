@@ -1,0 +1,16 @@
+{
+  "devDependencies": {
+    "pg": "^8.20.0",
+    "playwright": "^1.59.1"
+  },
+  "scripts": {
+    "test:setup": "node scripts/setup-test.js",
+    "test:setup:e2e": "node scripts/setup-test-e2e.js",
+    "cleanup": "node scripts/cleanup-db.js",
+    "cleanup:force": "node scripts/cleanup-db.js --force",
+    "check:superadmin": "node scripts/check-superadmin.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
