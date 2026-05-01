@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Layers3, Wand2 } from "lucide-react";
+import { Archive, FilePenLine, Layers3, PlaySquare, Wand2 } from "lucide-react";
 
 import { routes } from "@/app/lib/routes";
 
 const navItems = [
   {
+    key: "studio",
     href: routes.adminAiCourseStudio,
     label: "AI Course Studio",
     description: "Workspace overview",
@@ -15,25 +16,68 @@ const navItems = [
     match: (pathname: string) => pathname === routes.adminAiCourseStudio,
   },
   {
+    key: "builder",
     href: routes.adminAiCourseBuilder,
     label: "AI Course Builder",
     description: "Generate and review",
     icon: Wand2,
-    match: (pathname: string) => pathname.startsWith(routes.adminAiCourseBuilder),
+    match: (pathname: string) =>
+      pathname === routes.adminAiCourseBuilder,
+  },
+  {
+    key: "drafts",
+    href: routes.adminAiCourseDrafts,
+    label: "Generated Drafts",
+    description: "Saved draft courses",
+    icon: Archive,
+    match: (pathname: string) => pathname === routes.adminAiCourseDrafts,
   },
 ];
 
-export function AiCourseStudioNav() {
+export function AiCourseStudioNav({ currentDraftId }: { currentDraftId?: string }) {
   const pathname = usePathname();
+  const draftIdFromPath = pathname.startsWith("/admin/ai-course-studio/drafts/")
+    ? pathname.split("/")[5]
+    : pathname.startsWith("/admin/ai-course-studio/course-builder/review/")
+      ? pathname.split("/")[6]
+      : undefined;
+  const editorDraftId = currentDraftId || draftIdFromPath;
+
+  const items = [
+    ...navItems,
+    {
+      key: "editor",
+      href: editorDraftId
+        ? routes.adminAiCourseEditor(editorDraftId)
+        : routes.adminAiCourseDrafts,
+      label: "Course Editor",
+      description: editorDraftId ? "Edit generated draft" : "Choose a draft first",
+      icon: FilePenLine,
+      match: (currentPath: string) =>
+        currentPath.startsWith("/admin/ai-course-studio/drafts/") &&
+        currentPath.endsWith("/editor"),
+    },
+    {
+      key: "final-preview",
+      href: editorDraftId
+        ? routes.adminAiCourseReview(editorDraftId)
+        : routes.adminAiCourseDrafts,
+      label: "Final Course Preview",
+      description: editorDraftId ? "Animated final revision" : "Choose a draft first",
+      icon: PlaySquare,
+      match: (currentPath: string) =>
+        currentPath.startsWith("/admin/ai-course-studio/course-builder/review/"),
+    },
+  ];
 
   return (
     <nav className="rounded-3xl border border-slate-200 bg-white/95 p-3 shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
       <div className="flex flex-col gap-3 lg:flex-row">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const active = item.match(pathname);
           return (
             <Link
-              key={item.href}
+              key={item.key}
               href={item.href}
               className={`flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-4 py-3 transition ${
                 active

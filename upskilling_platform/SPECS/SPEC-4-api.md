@@ -614,6 +614,8 @@ Base URL: `http://localhost:8003`
 | POST | `/course-maker/generate` | Generate course from topic | JWT (LearningExpert+) |
 | GET | `/course-maker/status/{job_id}` | Check generation status | JWT |
 | POST | `/course-maker/review/{job_id}` | Submit human review feedback | JWT (LearningExpert+) |
+| POST | `/course-maker/{job_id}/approve` | Approve generated course and persist official draft in PostgreSQL/MinIO | JWT (LearningExpert+) |
+| POST | `/course-maker/{job_id}/sync-memory` | Sync approved course knowledge into Hindsight course memory bank | JWT (LearningExpert+) |
 
 ### Content Librarian Agent Endpoints
 
@@ -641,6 +643,13 @@ Base URL: `http://localhost:8003`
 | GET | `/memory/recall` | Search memories | JWT |
 | POST | `/memory/reflect` | Trigger reflection on memories | JWT |
 | GET | `/memory/stats` | Get memory statistics | JWT |
+
+### Planned Course Storage and Memory Rule
+
+- Official course records returned to the platform UI are sourced from PostgreSQL.
+- Course files and generated assets are stored in MinIO and referenced from PostgreSQL rows.
+- Hindsight stores course memory banks for semantic recall, expert feedback history, approved edit summaries, and reflective insights.
+- Hindsight is not the authoritative store for published course structure or learner-facing publishing state.
 
 ---
 

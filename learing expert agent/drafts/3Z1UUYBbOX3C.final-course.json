@@ -6,7 +6,7 @@
     "languageDirective": "Deliver the entire course in clear English. Use simple, beginner‑friendly terminology and brief explanations for technical terms such as \"token\" or \"transformer\". All narration notes should be teacher‑friendly, ready to be read aloud during the presentation.",
     "style": "interactive",
     "createdAt": 1777541401977,
-    "updatedAt": 1777543620003,
+    "updatedAt": 1777557874435,
     "generatedAgentConfigs": [
       {
         "id": "gen-server-0",
@@ -99,7 +99,7 @@
               "top": 50,
               "width": 880,
               "height": 70,
-              "content": "<p>Course Overview</p>",
+              "content": "<p>Course Overview 1</p>",
               "defaultFontName": "Microsoft YaHei",
               "defaultColor": "#333333",
               "rotate": 0
@@ -132,7 +132,7 @@
         {
           "id": "action_GlbUkhQ5",
           "type": "speech",
-          "text": "Good morning, everyone! I’m Dr. Maya Patel, and today we’ll start our journey into Generative AI and Large Language Models."
+          "text": "Good morning, aya ! I’m Dr. Maya Patel, and today we’ll start our journey into Generative AI and Large Language Models."
         },
         {
           "id": "action_1Im7kjbA",
@@ -1902,5 +1902,5 @@
       "updatedAt": 1777542138148
     }
   ],
-  "generatedAt": "2026-04-30T10:07:00.003Z"
+  "generatedAt": "2026-04-30T14:04:34.435Z"
 }

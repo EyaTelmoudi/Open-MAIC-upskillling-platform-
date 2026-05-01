@@ -14,11 +14,18 @@ from sqlalchemy import text
 
 from common.database import engine
 from common.database import SessionLocal
-from common.models import Base, CertificateVerificationAudit, Skill, SkillEdge
+from common.models import (
+    AICourseDraft,
+    Base,
+    CertificateVerificationAudit,
+    Skill,
+    SkillEdge,
+)
 from common.storage import ensure_buckets
 
 from services.learning.routers import (
     courses,
+    ai_course_drafts,
     enrollment,
     lessons,
     modules,
@@ -55,6 +62,7 @@ app.add_middleware(
 
 # Register routers
 app.include_router(courses.router, prefix="/api/v1")
+app.include_router(ai_course_drafts.router, prefix="/api/v1")
 app.include_router(modules.router, prefix="/api/v1")
 app.include_router(lessons.router, prefix="/api/v1")
 app.include_router(enrollment.router, prefix="/api/v1")
@@ -80,6 +88,7 @@ async def initialize_storage() -> None:
     Base.metadata.create_all(
         bind=engine,
         tables=[
+            AICourseDraft.__table__,
             Skill.__table__,
             SkillEdge.__table__,
             CertificateVerificationAudit.__table__,

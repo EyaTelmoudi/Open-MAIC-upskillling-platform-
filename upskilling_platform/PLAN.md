@@ -24,9 +24,9 @@
 | Messaging | RabbitMQ (AMQP) | All inter-service events + real-time flow |
 | Real-time | Socket.io server + RabbitMQ consumer | Live UI updates |
 | Agent Orchestration | AGNO | Agent execution, workflows, tool calling, scheduling, monitoring |
-| Memory | Hindsight (vectorize-io/hindsight) | Agent long-term memory (Retain, Recall, Reflect) |
-| Database | PostgreSQL + pg0 | Main DB (users, courses, events) + memory |
-| File Storage | MinIO (S3-compatible) | Course videos, PDFs, slides, images, quiz media |
+| Memory | Hindsight (vectorize-io/hindsight) | Agent long-term memory and semantic course knowledge (Retain, Recall, Reflect) |
+| Database | PostgreSQL + pg0 | Main source of truth: users, courses, lessons, quizzes, events, publishing state |
+| File Storage | MinIO (S3-compatible) | Official course assets: videos, PDFs, slides, images, quiz media |
 | Auth | Azure Entra ID (OIDC/OAuth2) for enterprise users + Local email/password for admin | Enterprise SSO + Admin access |
 | Deployment | Docker, Kubernetes, GitHub Actions, Azure Cloud | CI/CD + hosting |
 
@@ -208,6 +208,30 @@ aiosmtplib>=3.0.0
 | Hindsight | Agent memory (retain, recall, reflect) | Sprint 4 |
 | AGNO | Agent runtime, orchestration, workflows | Sprint 4 |
 | GROQ | LLM API (with demo mode fallback) | Sprint 4 |
+
+---
+
+## Storage Responsibility Split
+
+The platform uses a deliberate split between authoritative storage and AI memory:
+
+- **PostgreSQL + MinIO = source of truth**
+  - PostgreSQL stores official course structure, modules, lessons, quizzes, publishing states, and workflow metadata.
+  - MinIO stores the official files and generated assets associated with those courses.
+- **Hindsight = memory and semantic retrieval layer**
+  - Hindsight stores searchable course knowledge, expert feedback history, generation decisions, summaries, and reusable insights for AI agents.
+  - Hindsight is not the primary system of record for published courses.
+
+### AI Course Generation Storage Flow
+
+When a Learning Expert approves an AI-generated course:
+
+1. The official course draft/final version is saved into PostgreSQL.
+2. Course files and generated media are saved into MinIO.
+3. A Hindsight memory bank is created or updated for that course.
+4. The Hindsight bank stores summaries, learning objectives, quiz concepts, expert-approved edits, and generation/reflection notes.
+
+This allows the platform to keep reliable operational data in PostgreSQL/MinIO while still enabling AI agents to recall and reason over course knowledge later.
 
 ---
 

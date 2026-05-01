@@ -121,6 +121,46 @@ class Course(Base):
     certificates = relationship("Certificate", back_populates="course")
 
 
+class AICourseDraft(Base):
+    """Persistent AI-generated course draft stored in PostgreSQL."""
+
+    __tablename__ = "ai_course_drafts"
+    __table_args__ = (
+        Index("ix_ai_course_drafts_author_id", "author_id"),
+        Index("ix_ai_course_drafts_tenant_id", "tenant_id"),
+        Index("ix_ai_course_drafts_status", "status"),
+        Index("ix_ai_course_drafts_review_status", "review_status"),
+        UniqueConstraint("external_draft_id", name="uq_ai_course_drafts_external_draft_id"),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    external_draft_id = Column(String(100), nullable=False)
+    submission_id = Column(String(255), nullable=True)
+    classroom_id = Column(String(100), nullable=True)
+    title = Column(String(255), nullable=False)
+    status = Column(String(30), nullable=False, default="draft")
+    review_status = Column(String(30), nullable=False, default="pending_review")
+    prompt = Column(Text, nullable=True)
+    source_pdf_name = Column(String(255), nullable=True)
+    output_dir = Column(Text, nullable=True)
+    output_dir_relative = Column(Text, nullable=True)
+    stage_data = Column(JSONB, nullable=True)
+    draft_payload = Column(JSONB, nullable=False)
+    final_course_payload = Column(JSONB, nullable=True)
+    final_course_path = Column(Text, nullable=True)
+    platform_course_id = Column(UUID(as_uuid=True), ForeignKey("courses.id"), nullable=True)
+    approved_by = Column(String(255), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+    author_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=True)
+
+    platform_course = relationship("Course")
+
+
 class CourseReview(Base):
     """Course review model."""
 

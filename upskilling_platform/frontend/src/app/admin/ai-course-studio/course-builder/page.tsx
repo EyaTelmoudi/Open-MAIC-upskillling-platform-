@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
   FileText,
+  FolderOpen,
   Loader2,
   Sparkles,
 } from "lucide-react";
@@ -178,8 +179,36 @@ function plainTextPreview(block: EditableBlock) {
   }
 }
 
+const builderWorkflowSteps = [
+  {
+    step: "1",
+    title: "Prepare the source",
+    description:
+      "Upload the PDF and define the learning goals.",
+    className: "border-emerald-100 bg-white/90",
+    badgeClassName: "bg-emerald-100 text-emerald-700",
+  },
+  {
+    step: "2",
+    title: "Generate the draft",
+    description:
+      "Launch generation and track progress live.",
+    className: "border-sky-100 bg-sky-50/80",
+    badgeClassName: "bg-sky-100 text-sky-700",
+  },
+  {
+    step: "3",
+    title: "Continue the workflow",
+    description:
+      "Open the draft in the editor, revise it, and send it to final review.",
+    className: "border-amber-100 bg-amber-50/80",
+    badgeClassName: "bg-amber-100 text-amber-700",
+  },
+];
+
 export default function AiCourseBuilderPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isLoading } = useAuth();
 
   const [prompt, setPrompt] = useState("");
@@ -249,6 +278,17 @@ export default function AiCourseBuilderPage() {
       setError(loadError instanceof Error ? loadError.message : "Failed to load drafts");
     });
   }, []);
+
+  useEffect(() => {
+    const requestedDraftId = searchParams.get("draftId");
+    if (!requestedDraftId) {
+      return;
+    }
+
+    void loadDraft(requestedDraftId).catch((loadError) => {
+      setError(loadError instanceof Error ? loadError.message : "Failed to load draft");
+    });
+  }, [searchParams]);
 
   const updateScene = (updater: (scene: EditableSceneDraft) => EditableSceneDraft) => {
     setDraft((current) => {
@@ -408,7 +448,7 @@ export default function AiCourseBuilderPage() {
     setProgress({
       step: "queued",
       progress: 0,
-      message: "Waiting for OpenMAIC to accept the generation request.",
+      message: "Waiting for the course generator agent to accept the generation request.",
     });
     setResult(null);
     setDraft(null);
@@ -450,7 +490,7 @@ export default function AiCourseBuilderPage() {
           const trimmed = line.trim();
           if (!trimmed) continue;
 
-          const eventData = JSON.parse(trimmed) as
+          let eventData:
             | {
                 type: "progress";
                 step: string;
@@ -461,6 +501,27 @@ export default function AiCourseBuilderPage() {
               }
             | { type: "done"; data: GenerationResponse & { success: boolean } }
             | { type: "error"; error: string };
+
+          try {
+            eventData = JSON.parse(trimmed) as
+              | {
+                  type: "progress";
+                  step: string;
+                  progress: number;
+                  message: string;
+                  scenesGenerated?: number;
+                  totalScenes?: number;
+                }
+              | { type: "done"; data: GenerationResponse & { success: boolean } }
+              | { type: "error"; error: string };
+          } catch {
+            if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) {
+              throw new Error(
+                "The platform received an HTML error page instead of generation data. Reload the page and try again.",
+              );
+            }
+            throw new Error("The platform received an invalid generation stream response.");
+          }
 
           if (eventData.type === "progress") {
             setProgress({
@@ -475,7 +536,7 @@ export default function AiCourseBuilderPage() {
             setProgress({
               step: "completed",
               progress: 100,
-              message: "OpenMAIC finished the course draft successfully.",
+              message: "The course generator agent finished the course draft successfully.",
             });
             setResult(eventData.data);
             await loadDraft(eventData.data.draftId);
@@ -508,688 +569,375 @@ export default function AiCourseBuilderPage() {
       <div className="space-y-6">
         <AiCourseStudioNav />
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Native LearningExpert workflow inside your platform
+        <section className="overflow-hidden rounded-3xl border border-[#2A5B4A] bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.22),_transparent_32%),radial-gradient(circle_at_76%_18%,_rgba(59,130,246,0.2),_transparent_26%),linear-gradient(135deg,_#102E2D_0%,_#132A3A_48%,_#0F172A_100%)] p-6 text-white shadow-[0_26px_70px_rgba(0,0,0,0.28)] sm:p-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">
+            <Sparkles className="h-3.5 w-3.5" />
+            Learning Expert Only
+          </div>
+          <div className="mt-5 space-y-6">
+            <div className="max-w-4xl">
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                AI Course Builder
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-slate-200 sm:text-base">
+                AI Course Builder helps learning experts upload source material, launch generation,
+                and move drafts into review without leaving the platform.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3 text-xs font-medium text-emerald-100">
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
+                  AI-assisted course generation
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
+                  Live generation tracking
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
+                  Platform draft persistence
+                </span>
+              </div>
             </div>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-950">AI Course Builder</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Upload a PDF, write the expert brief, watch OpenMAIC generate the draft live, then
-              edit slides, quizzes, and interactive instructions without leaving the platform.
-            </p>
-          </div>
-        </div>
 
-        <div className="grid gap-6 xl:grid-cols-[0.96fr_1.04fr]">
-          <div className="space-y-6">
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle>Course inputs</CardTitle>
-                <CardDescription>
-                  Send both the source PDF and your learning expert prompt to OpenMAIC.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form className="space-y-5" onSubmit={handleGenerate}>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-900" htmlFor="course-pdf">
-                      PDF source file
-                    </label>
-                    <Input
-                      id="course-pdf"
-                      type="file"
-                      accept="application/pdf"
-                      onChange={(event) => setPdfFile(event.target.files?.[0] ?? null)}
-                    />
+            <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur-sm">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-100">
+                    Workflow steps
                   </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-900" htmlFor="course-prompt">
-                      Learning expert prompt
-                    </label>
-                    <Textarea
-                      id="course-prompt"
-                      value={prompt}
-                      onChange={(event) => setPrompt(event.target.value)}
-                      className="min-h-[180px]"
-                      placeholder="Example: Build a practical beginner course on Generative AI and LLMs from this PDF. Use clear English, add quizzes after each major concept, and prepare teacher-friendly narration."
-                    />
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className="flex items-center justify-between rounded-2xl border border-border bg-slate-50 px-4 py-3 text-sm">
-                      <span>Enable web search</span>
-                      <input
-                        type="checkbox"
-                        checked={enableWebSearch}
-                        onChange={(event) => setEnableWebSearch(event.target.checked)}
-                      />
-                    </label>
-                    <label className="flex items-center justify-between rounded-2xl border border-border bg-slate-50 px-4 py-3 text-sm">
-                      <span>Generate images</span>
-                      <input
-                        type="checkbox"
-                        checked={enableImageGeneration}
-                        onChange={(event) => setEnableImageGeneration(event.target.checked)}
-                      />
-                    </label>
-                    <label className="flex items-center justify-between rounded-2xl border border-border bg-slate-50 px-4 py-3 text-sm">
-                      <span>Generate videos</span>
-                      <input
-                        type="checkbox"
-                        checked={enableVideoGeneration}
-                        onChange={(event) => setEnableVideoGeneration(event.target.checked)}
-                      />
-                    </label>
-                    <label className="flex items-center justify-between rounded-2xl border border-border bg-slate-50 px-4 py-3 text-sm">
-                      <span>Generate TTS audio</span>
-                      <input
-                        type="checkbox"
-                        checked={enableTTS}
-                        onChange={(event) => setEnableTTS(event.target.checked)}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-900" htmlFor="agent-mode">
-                      Agent mode
-                    </label>
-                    <select
-                      id="agent-mode"
-                      value={agentMode}
-                      onChange={(event) =>
-                        setAgentMode(event.target.value === "generate" ? "generate" : "default")
-                      }
-                      className="flex h-10 w-full rounded-[10px] border border-border bg-card px-3 py-2 text-sm text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  <div className="mt-1 text-sm text-slate-300">From source to review</div>
+                </div>
+                <div className="hidden h-px flex-1 bg-white/10 lg:block" />
+              </div>
+              <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                {builderWorkflowSteps.map((item) => (
+                  <div
+                    key={item.step}
+                    className={`rounded-3xl border p-5 shadow-sm transition ${item.className}`}
+                  >
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-2xl text-sm font-semibold ${item.badgeClassName}`}
                     >
-                      <option value="default">Use default classroom agents</option>
-                      <option value="generate">Generate custom agents</option>
-                    </select>
-                  </div>
-
-                  <Button type="submit" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Generating
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="h-4 w-4" />
-                        Generate Draft Course
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            <Card className="border-slate-800 bg-slate-950 text-white shadow-sm">
-              <CardHeader>
-                <CardTitle>OpenMAIC run status</CardTitle>
-                <CardDescription className="text-slate-300">
-                  Watch the generation pipeline live so you know whether OpenMAIC is still working
-                  or has failed.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {error ? (
-                  <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-                    {error}
-                  </div>
-                ) : null}
-
-                {progress ? (
-                  <div className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-5">
-                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.16em] text-slate-300">
-                      <span>{progress.step.replace(/_/g, " ")}</span>
-                      <span>{progress.progress}%</span>
+                      {item.step}
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full bg-sky-400 transition-all duration-500"
-                        style={{ width: `${Math.max(4, progress.progress)}%` }}
-                      />
+                    <div className="mt-4 min-w-0">
+                      <div className="text-sm font-semibold text-slate-950">{item.title}</div>
+                      <p className="mt-2 text-sm leading-6 text-slate-700">{item.description}</p>
                     </div>
-                    <p className="text-sm leading-6 text-slate-100">{progress.message}</p>
-                    {typeof progress.scenesGenerated === "number" ? (
-                      <p className="text-xs uppercase tracking-[0.14em] text-slate-300">
-                        Scenes generated: {progress.scenesGenerated}
-                        {typeof progress.totalScenes === "number"
-                          ? ` / ${progress.totalScenes}`
-                          : ""}
-                      </p>
-                    ) : null}
                   </div>
-                ) : (
-                  <div className="rounded-3xl border border-dashed border-white/15 bg-white/5 px-5 py-6 text-sm text-slate-300">
-                    No active run. Start a generation request or load an existing draft below.
-                  </div>
-                )}
-
-                {result ? (
-                  <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/10 p-5">
-                    <div className="flex items-center gap-2 text-sm font-medium text-emerald-200">
-                      <CheckCircle2 className="h-4 w-4" />
-                      OpenMAIC draft created
-                    </div>
-                    <p className="mt-2 text-sm text-emerald-50">
-                      {result.stage.name || "Generated course"} with {result.scenesCount} scenes.
-                    </p>
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm">
-              <CardHeader>
-                <CardTitle>Saved drafts</CardTitle>
-                <CardDescription>
-                  Reload an existing OpenMAIC draft into the editor.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {drafts.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border bg-slate-50 px-4 py-5 text-sm text-slate-500">
-                    No drafts saved yet.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {drafts.map((item) => (
-                      <button
-                        key={item.draftId}
-                        type="button"
-                        onClick={() => void loadDraft(item.draftId).catch((loadError) => {
-                          setError(
-                            loadError instanceof Error
-                              ? loadError.message
-                              : "Failed to load draft",
-                          );
-                        })}
-                        className="w-full rounded-2xl border border-border bg-white px-4 py-4 text-left transition hover:border-primary/40 hover:bg-slate-50"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="font-medium text-slate-950">{item.title}</div>
-                            <div className="mt-1 text-xs text-slate-500">
-                              {item.scenesCount} scenes • {item.approvedScenesCount} approved
-                            </div>
-                          </div>
-                          <Badge variant={statusVariant(item.status)}>{item.status}</Badge>
-                        </div>
-                        <div className="mt-3 text-xs text-slate-500">
-                          Updated {formatDate(item.updatedAt)}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            </div>
           </div>
+        </section>
 
-          <div className="space-y-6">
-            <Card className="shadow-sm">
-              <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <CardTitle>Editable content section</CardTitle>
-                    <CardDescription>
-                      Review generated slides, quizzes, and interactive scenes in your platform and
-                      edit them before approval.
-                    </CardDescription>
+        <div className="space-y-6">
+          <Card className="border-emerald-200 bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.14),_transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,253,250,0.96))] text-slate-950 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500 text-sm font-semibold text-white shadow-sm">
+                  1
+                </div>
+                <div>
+                  <CardTitle>Course inputs</CardTitle>
+                  <CardDescription>
+                    Send both the source PDF and your learning expert prompt to the course generator
+                    agent.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-5" onSubmit={handleGenerate}>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-900" htmlFor="course-pdf">
+                    PDF source file
+                  </label>
+                  <label
+                    htmlFor="course-pdf"
+                    className="block cursor-pointer rounded-3xl border border-emerald-200 bg-[linear-gradient(180deg,rgba(236,253,245,0.95),rgba(255,255,255,0.98))] p-5 transition hover:border-emerald-300 hover:bg-emerald-50/90"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-sm">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-950">
+                          {pdfFile ? "PDF selected" : "Choose a PDF to generate the course"}
+                        </div>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          {pdfFile
+                            ? pdfFile.name
+                            : "Click here to browse your files and upload the source document."}
+                        </p>
+                        <div className="mt-3 inline-flex items-center rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-medium text-emerald-700">
+                          {pdfFile ? "Change file" : "Browse PDF"}
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                  <Input
+                    id="course-pdf"
+                    type="file"
+                    accept="application/pdf"
+                    className="sr-only"
+                    onChange={(event) => setPdfFile(event.target.files?.[0] ?? null)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-900" htmlFor="course-prompt">
+                    Learning expert prompt
+                  </label>
+                  <Textarea
+                    id="course-prompt"
+                    value={prompt}
+                    onChange={(event) => setPrompt(event.target.value)}
+                    className="min-h-[180px] bg-white text-slate-900 placeholder:text-slate-400"
+                    placeholder="Example: Build a practical beginner course on Generative AI and LLMs from this PDF. Use clear English, add quizzes after each major concept, and prepare teacher-friendly narration."
+                  />
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-slate-800">
+                    <span>Enable web search</span>
+                    <input
+                      type="checkbox"
+                      checked={enableWebSearch}
+                      onChange={(event) => setEnableWebSearch(event.target.checked)}
+                    />
+                  </label>
+                  <label className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-slate-800">
+                    <span>Generate images</span>
+                    <input
+                      type="checkbox"
+                      checked={enableImageGeneration}
+                      onChange={(event) => setEnableImageGeneration(event.target.checked)}
+                    />
+                  </label>
+                  <label className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-slate-800">
+                    <span>Generate videos</span>
+                    <input
+                      type="checkbox"
+                      checked={enableVideoGeneration}
+                      onChange={(event) => setEnableVideoGeneration(event.target.checked)}
+                    />
+                  </label>
+                  <label className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-slate-800">
+                    <span>Generate TTS audio</span>
+                    <input
+                      type="checkbox"
+                      checked={enableTTS}
+                      onChange={(event) => setEnableTTS(event.target.checked)}
+                    />
+                  </label>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-900" htmlFor="agent-mode">
+                    Agent mode
+                  </label>
+                  <select
+                    id="agent-mode"
+                    value={agentMode}
+                    onChange={(event) =>
+                      setAgentMode(event.target.value === "generate" ? "generate" : "default")
+                    }
+                    className="flex h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="default">Use default classroom agents</option>
+                    <option value="generate">Generate custom agents</option>
+                  </select>
+                </div>
+
+                <Button type="submit" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4" />
+                      Generate Draft Course
+                    </>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="border-sky-200 bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.16),_transparent_30%),linear-gradient(180deg,rgba(248,252,255,1),rgba(239,246,255,0.98))] text-slate-950 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500 text-sm font-semibold text-white shadow-sm">
+                  2
+                </div>
+                <div>
+                  <CardTitle className="text-slate-950">Course generation status</CardTitle>
+                  <CardDescription className="text-slate-600">
+                    Watch the generation pipeline live so you know whether the course generator agent
+                    is still working or has failed.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {error ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </div>
+              ) : null}
+
+              {progress ? (
+                <div className="space-y-4 rounded-3xl border border-sky-100 bg-white/90 p-5 shadow-sm">
+                  <div className="flex items-center justify-between text-xs uppercase tracking-[0.16em] text-slate-500">
+                    <span>{progress.step.replace(/_/g, " ")}</span>
+                    <span>{progress.progress}%</span>
                   </div>
-                  {draft ? (
-                    <Badge variant={statusVariant(draft.status)}>{draft.status}</Badge>
+                  <div className="h-2 overflow-hidden rounded-full bg-sky-100">
+                    <div
+                      className="h-full rounded-full bg-sky-500 transition-all duration-500"
+                      style={{ width: `${Math.max(4, progress.progress)}%` }}
+                    />
+                  </div>
+                  <p className="text-sm leading-6 text-slate-700">{progress.message}</p>
+                  {typeof progress.scenesGenerated === "number" ? (
+                    <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                      Scenes generated: {progress.scenesGenerated}
+                      {typeof progress.totalScenes === "number" ? ` / ${progress.totalScenes}` : ""}
+                    </p>
                   ) : null}
                 </div>
-              </CardHeader>
-              <CardContent>
-                {!draft ? (
-                  <div className="rounded-3xl border border-dashed border-border bg-slate-50 px-5 py-10 text-sm text-slate-500">
-                    Generate a course or load a saved draft to start editing.
+              ) : (
+                <div className="rounded-3xl border border-dashed border-sky-200 bg-sky-50/80 px-5 py-6 text-sm text-slate-600">
+                  No active run. Start a generation request or load an existing draft below.
+                </div>
+              )}
+
+              {result ? (
+                <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+                  <div className="flex items-center gap-2 text-sm font-medium text-emerald-700">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Course draft created
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="flex flex-wrap items-start justify-between gap-4 rounded-3xl border border-border bg-slate-50 p-5">
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-950">
-                          {draft.stage.name || "Generated course draft"}
-                        </h3>
-                        <p className="mt-2 text-sm text-slate-600">
-                          Draft status: {draft.status}. Approved scenes: {approvedScenesCount}/
-                          {draft.editableScenes.length}
-                        </p>
-                        {finalPath ? (
-                          <p className="mt-2 text-xs text-slate-500">
-                            Final course saved to {finalPath}
-                          </p>
-                        ) : null}
+                  <p className="mt-2 text-sm text-emerald-700">
+                    {result.stage.name || "Generated course"} with {result.scenesCount} scenes.
+                  </p>
+                </div>
+              ) : null}
+
+              <Button
+                variant="outline"
+                className="border-sky-200 bg-white/90 text-slate-800 hover:bg-sky-50 hover:text-slate-900"
+                onClick={() => router.push(routes.adminAiCourseDrafts)}
+              >
+                <FolderOpen className="h-4 w-4" />
+                Open generated drafts
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-violet-200 bg-[radial-gradient(circle_at_top_right,_rgba(167,139,250,0.22),_transparent_30%),linear-gradient(180deg,rgba(250,245,255,0.98),rgba(245,243,255,0.98))] text-slate-950 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500 text-sm font-semibold text-white shadow-sm">
+                    3
+                  </div>
+                  <div>
+                    <CardTitle>Current draft workspace</CardTitle>
+                    <CardDescription>
+                      The latest generated course appears here with direct actions to continue the
+                      workflow.
+                    </CardDescription>
+                  </div>
+                </div>
+                {draft ? <Badge variant={statusVariant(draft.status)}>{draft.status}</Badge> : null}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!draft ? (
+                <div className="rounded-3xl border border-dashed border-violet-200 bg-violet-50/85 px-5 py-10 text-sm text-slate-600">
+                  Generate a course first, or open the drafts library to continue working on an
+                  existing draft.
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="rounded-3xl border border-violet-100 bg-white/90 p-5 shadow-sm">
+                    <h3 className="text-lg font-semibold text-slate-950">
+                      {draft.stage.name || "Generated course draft"}
+                    </h3>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-violet-100 bg-violet-50/80 px-4 py-3">
+                        <div className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                          Draft status
+                        </div>
+                        <div className="mt-1 text-sm font-medium text-slate-900">{draft.status}</div>
                       </div>
-                      <div className="flex flex-wrap gap-3">
-                        <Button variant="outline" onClick={() => void saveDraftChanges()} disabled={saving}>
-                          {saving ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Saving
-                            </>
-                          ) : (
-                            "Save draft"
-                          )}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => void approveLesson(draft.status !== "approved")}
-                        >
-                          {draft.status === "approved" ? "Unapprove lesson" : "Approve lesson"}
-                        </Button>
-                        <Button onClick={() => void finalizeCourse()} disabled={finalizing}>
-                          {finalizing ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Finalizing
-                            </>
-                          ) : (
-                            "Generate final course"
-                          )}
-                        </Button>
+                      <div className="rounded-2xl border border-violet-100 bg-violet-50/80 px-4 py-3">
+                        <div className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                          Approved scenes
+                        </div>
+                        <div className="mt-1 text-sm font-medium text-slate-900">
+                          {approvedScenesCount}/{draft.editableScenes.length}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-violet-100 bg-violet-50/80 px-4 py-3">
+                        <div className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                          Updated
+                        </div>
+                        <div className="mt-1 text-sm font-medium text-slate-900">
+                          {formatDate(draft.updatedAt)}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-violet-100 bg-violet-50/80 px-4 py-3">
+                        <div className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                          Submission ID
+                        </div>
+                        <div className="mt-1 break-all text-sm font-medium text-slate-900">
+                          {draft.submissionId}
+                        </div>
                       </div>
                     </div>
-
-                    <div className="grid gap-6 xl:grid-cols-[0.4fr_0.6fr]">
-                      <aside className="space-y-3">
-                        {draft.editableScenes.map((scene) => (
-                          <button
-                            key={scene.sceneId}
-                            type="button"
-                            onClick={() => setSelectedSceneId(scene.sceneId)}
-                            className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
-                              selectedSceneId === scene.sceneId
-                                ? "border-primary bg-primary/5"
-                                : "border-border bg-white hover:bg-slate-50"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="text-xs uppercase tracking-[0.14em] text-slate-500">
-                                {scene.type}
-                              </div>
-                              <Badge variant={statusVariant(scene.status)}>{scene.status}</Badge>
-                            </div>
-                            <div className="mt-2 font-medium text-slate-950">
-                              {scene.order}. {scene.title}
-                            </div>
-                          </button>
-                        ))}
-                      </aside>
-
-                      <div>
-                        {selectedScene ? (
-                          <div className="space-y-6">
-                            <Card className="bg-slate-50">
-                              <CardContent className="p-6">
-                                <div className="flex flex-wrap items-start justify-between gap-4">
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-xs uppercase tracking-[0.16em] text-primary">
-                                      {selectedScene.type}
-                                    </div>
-                                    <Input
-                                      value={selectedScene.title}
-                                      onChange={(event) =>
-                                        updateScene((scene) => ({
-                                          ...scene,
-                                          title: event.target.value,
-                                        }))
-                                      }
-                                      className="mt-3 h-12 text-lg font-semibold"
-                                    />
-                                  </div>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() =>
-                                      void approveScene(selectedScene.status !== "approved")
-                                    }
-                                  >
-                                    {selectedScene.status === "approved"
-                                      ? "Unapprove scene"
-                                      : "Approve scene"}
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-
-                            <div className="grid gap-6 2xl:grid-cols-[0.98fr_1.02fr]">
-                              <div className="space-y-4">
-                                {selectedScene.blocks.map((block, blockIndex) => (
-                                  <Card key={block.id}>
-                                    <CardContent className="p-5">
-                                      {block.type === "slide_text" ? (
-                                        <div className="space-y-3">
-                                          <div className="text-sm font-semibold text-slate-900">
-                                            {block.label}
-                                          </div>
-                                          <Textarea
-                                            value={block.plainText}
-                                            className="min-h-[140px]"
-                                            onChange={(event) =>
-                                              updateScene((scene) => ({
-                                                ...scene,
-                                                blocks: scene.blocks.map((candidate) =>
-                                                  candidate.id === block.id
-                                                    ? {
-                                                        ...candidate,
-                                                        plainText: event.target.value,
-                                                      }
-                                                    : candidate,
-                                                ),
-                                              }))
-                                            }
-                                          />
-                                        </div>
-                                      ) : null}
-
-                                      {block.type === "script" ? (
-                                        <div className="space-y-3">
-                                          <div className="text-sm font-semibold text-slate-900">
-                                            Teacher script {blockIndex + 1}
-                                          </div>
-                                          <Textarea
-                                            value={block.text}
-                                            className="min-h-[120px]"
-                                            onChange={(event) =>
-                                              updateScene((scene) => ({
-                                                ...scene,
-                                                blocks: scene.blocks.map((candidate) =>
-                                                  candidate.id === block.id
-                                                    ? { ...candidate, text: event.target.value }
-                                                    : candidate,
-                                                ),
-                                              }))
-                                            }
-                                          />
-                                        </div>
-                                      ) : null}
-
-                                      {block.type === "quiz_question" ? (
-                                        <div className="space-y-4">
-                                          <div className="text-sm font-semibold text-slate-900">
-                                            Quiz question {blockIndex + 1}
-                                          </div>
-                                          <Textarea
-                                            value={block.question}
-                                            className="min-h-[100px]"
-                                            onChange={(event) =>
-                                              updateScene((scene) => ({
-                                                ...scene,
-                                                blocks: scene.blocks.map((candidate) =>
-                                                  candidate.id === block.id
-                                                    ? { ...candidate, question: event.target.value }
-                                                    : candidate,
-                                                ),
-                                              }))
-                                            }
-                                          />
-                                          <div className="grid gap-3">
-                                            {block.options.map((option, optionIndex) => (
-                                              <div
-                                                key={`${block.id}_${option.value}`}
-                                                className="rounded-2xl border border-border bg-slate-50 p-3"
-                                              >
-                                                <div className="mb-2 text-xs uppercase tracking-[0.14em] text-slate-500">
-                                                  Option {option.value}
-                                                </div>
-                                                <Input
-                                                  value={option.label}
-                                                  onChange={(event) =>
-                                                    updateScene((scene) => ({
-                                                      ...scene,
-                                                      blocks: scene.blocks.map((candidate) =>
-                                                        candidate.id === block.id &&
-                                                        candidate.type === "quiz_question"
-                                                          ? {
-                                                              ...candidate,
-                                                              options: candidate.options.map(
-                                                                (item, idx) =>
-                                                                  idx === optionIndex
-                                                                    ? {
-                                                                        ...item,
-                                                                        label:
-                                                                          event.target.value,
-                                                                      }
-                                                                    : item,
-                                                              ),
-                                                            }
-                                                          : candidate,
-                                                      ),
-                                                    }))
-                                                  }
-                                                />
-                                              </div>
-                                            ))}
-                                          </div>
-                                          <div className="space-y-2">
-                                            <label className="text-xs uppercase tracking-[0.14em] text-slate-500">
-                                              Correct answer values
-                                            </label>
-                                            <Input
-                                              value={block.correctAnswer.join(",")}
-                                              onChange={(event) =>
-                                                updateScene((scene) => ({
-                                                  ...scene,
-                                                  blocks: scene.blocks.map((candidate) =>
-                                                    candidate.id === block.id
-                                                      ? {
-                                                          ...candidate,
-                                                          correctAnswer: event.target.value
-                                                            .split(",")
-                                                            .map((value) => value.trim())
-                                                            .filter(Boolean),
-                                                        }
-                                                      : candidate,
-                                                  ),
-                                                }))
-                                              }
-                                            />
-                                          </div>
-                                          <div className="space-y-2">
-                                            <label className="text-xs uppercase tracking-[0.14em] text-slate-500">
-                                              Explanation
-                                            </label>
-                                            <Textarea
-                                              value={block.explanation}
-                                              className="min-h-[100px]"
-                                              onChange={(event) =>
-                                                updateScene((scene) => ({
-                                                  ...scene,
-                                                  blocks: scene.blocks.map((candidate) =>
-                                                    candidate.id === block.id
-                                                      ? {
-                                                          ...candidate,
-                                                          explanation: event.target.value,
-                                                        }
-                                                      : candidate,
-                                                  ),
-                                                }))
-                                              }
-                                            />
-                                          </div>
-                                        </div>
-                                      ) : null}
-
-                                      {block.type === "interactive_instruction" ? (
-                                        <div className="space-y-3">
-                                          <div className="text-sm font-semibold text-slate-900">
-                                            Interactive instructions
-                                          </div>
-                                          <Textarea
-                                            value={block.text}
-                                            className="min-h-[140px]"
-                                            onChange={(event) =>
-                                              updateScene((scene) => ({
-                                                ...scene,
-                                                blocks: scene.blocks.map((candidate) =>
-                                                  candidate.id === block.id
-                                                    ? { ...candidate, text: event.target.value }
-                                                    : candidate,
-                                                ),
-                                              }))
-                                            }
-                                          />
-                                        </div>
-                                      ) : null}
-                                    </CardContent>
-                                  </Card>
-                                ))}
-                              </div>
-
-                              <div className="space-y-4">
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle>Platform preview</CardTitle>
-                                    <CardDescription>
-                                      This is how the generated content is exposed inside your own
-                                      platform page instead of the OpenMAIC classroom template.
-                                    </CardDescription>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <div className="rounded-3xl border border-border bg-slate-50 p-5">
-                                      <h3 className="text-xl font-semibold text-slate-950">
-                                        {selectedScene.title}
-                                      </h3>
-                                      <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
-                                        {selectedScene.blocks
-                                          .filter(
-                                            (block) =>
-                                              block.type === "slide_text" ||
-                                              block.type === "interactive_instruction",
-                                          )
-                                          .map((block) => (
-                                            <div
-                                              key={`preview_${block.id}`}
-                                              className="rounded-2xl border border-border bg-white p-4"
-                                            >
-                                              <div className="text-xs uppercase tracking-[0.14em] text-slate-500">
-                                                {block.type}
-                                              </div>
-                                              <p className="mt-2 whitespace-pre-wrap">
-                                                {plainTextPreview(block)}
-                                              </p>
-                                            </div>
-                                          ))}
-
-                                        {selectedScene.type === "quiz" ? (
-                                          <div className="space-y-3">
-                                            {selectedScene.blocks
-                                              .filter(
-                                                (
-                                                  block,
-                                                ): block is EditableQuizQuestionBlock =>
-                                                  block.type === "quiz_question",
-                                              )
-                                              .map((question, index) => (
-                                                <div
-                                                  key={`quiz_preview_${question.id}`}
-                                                  className="rounded-2xl border border-border bg-white p-4"
-                                                >
-                                                  <div className="text-xs uppercase tracking-[0.14em] text-slate-500">
-                                                    Question {index + 1}
-                                                  </div>
-                                                  <p className="mt-2 font-medium text-slate-900">
-                                                    {question.question}
-                                                  </p>
-                                                  <ul className="mt-3 space-y-2">
-                                                    {question.options.map((option) => (
-                                                      <li key={option.value}>
-                                                        {option.value}. {option.label}
-                                                      </li>
-                                                    ))}
-                                                  </ul>
-                                                  <p className="mt-3 text-xs text-slate-500">
-                                                    Correct answer:{" "}
-                                                    {question.correctAnswer.join(", ") || "-"}
-                                                  </p>
-                                                </div>
-                                              ))}
-                                          </div>
-                                        ) : null}
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle>Teacher script preview</CardTitle>
-                                    <CardDescription>
-                                      Narration segments that can later drive voice or lesson-video
-                                      rendering.
-                                    </CardDescription>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <div className="space-y-3">
-                                      {selectedScene.blocks
-                                        .filter(
-                                          (block): block is EditableScriptBlock =>
-                                            block.type === "script",
-                                        )
-                                        .map((block, index) => (
-                                          <div
-                                            key={`script_preview_${block.id}`}
-                                            className="rounded-2xl border border-border bg-slate-50 p-4 text-sm leading-6 text-slate-700"
-                                          >
-                                            <div className="mb-2 text-xs uppercase tracking-[0.14em] text-slate-500">
-                                              Speech {index + 1}
-                                            </div>
-                                            {block.text}
-                                          </div>
-                                        ))}
-                                      {selectedScene.blocks.every(
-                                        (block) => block.type !== "script",
-                                      ) ? (
-                                        <div className="rounded-2xl border border-dashed border-border bg-slate-50 px-4 py-5 text-sm text-slate-500">
-                                          No teacher script blocks in this scene.
-                                        </div>
-                                      ) : null}
-                                    </div>
-                                  </CardContent>
-                                </Card>
-
-                                {selectedScene.type === "interactive" &&
-                                selectedScene.readonlyHtml ? (
-                                  <Card>
-                                    <CardHeader>
-                                      <CardTitle>Raw interactive HTML</CardTitle>
-                                      <CardDescription>
-                                        V1 keeps generated interactive HTML read-only while the
-                                        instruction text stays editable.
-                                      </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                      <Textarea
-                                        readOnly
-                                        value={selectedScene.readonlyHtml}
-                                        className="min-h-[260px] text-xs leading-5"
-                                      />
-                                    </CardContent>
-                                  </Card>
-                                ) : null}
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="rounded-3xl border border-dashed border-border bg-slate-50 px-5 py-10 text-sm text-slate-500">
-                            Select a generated scene to review and edit it.
-                          </div>
-                        )}
+                    {finalPath ? (
+                      <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                        Final course saved to {finalPath}
                       </div>
-                    </div>
+                    ) : null}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Button
+                      variant="outline"
+                      className="border-violet-200 bg-white/90 text-slate-800 hover:bg-violet-50 hover:text-slate-900"
+                      onClick={() => router.push(routes.adminAiCourseEditor(draft.draftId))}
+                    >
+                      Open in Editor
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-violet-200 bg-white/90 text-slate-800 hover:bg-violet-50 hover:text-slate-900"
+                      onClick={() => router.push(routes.adminAiCourseDrafts)}
+                    >
+                      Open Draft Library
+                    </Button>
+                    <Button
+                      className="bg-slate-950 text-white hover:bg-slate-800 sm:col-span-2"
+                      onClick={() => void finalizeCourse()}
+                      disabled={finalizing}
+                    >
+                      {finalizing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Finalizing
+                        </>
+                      ) : (
+                        "Generate final course"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </AdminShell>

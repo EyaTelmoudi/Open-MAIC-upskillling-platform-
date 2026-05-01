@@ -174,21 +174,23 @@ export default function AiCourseReviewPage() {
   return (
     <AdminShell>
       <div className="space-y-6">
-        <AiCourseStudioNav />
+        <AiCourseStudioNav currentDraftId={draftId} />
 
+        <section className="overflow-hidden rounded-3xl border border-[#2A5B4A] bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.22),_transparent_32%),radial-gradient(circle_at_76%_18%,_rgba(59,130,246,0.18),_transparent_26%),linear-gradient(135deg,_#102E2D_0%,_#132A3A_48%,_#0F172A_100%)] p-6 text-white shadow-[0_26px_70px_rgba(0,0,0,0.22)]">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <ShieldCheck className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-2 text-sm text-emerald-100">
+              <ShieldCheck className="h-4 w-4 text-emerald-300" />
               LearningExpert-only animated revision step
             </div>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-950">Final Course Review</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+            <h2 className="mt-2 text-2xl font-semibold text-white">Final Course Review</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-200">
               Review the fully animated OpenMAIC course in your platform workspace, then save it as
               a draft that can be published later for learners.
             </p>
           </div>
         </div>
+        </section>
 
         {pageError ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -196,63 +198,38 @@ export default function AiCourseReviewPage() {
           </div>
         ) : null}
 
-        <div className="grid gap-6 xl:grid-cols-[0.36fr_0.64fr]">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Revision status</CardTitle>
-                <CardDescription>
-                  The finalized course stays in a protected review state until you save it as a
-                  platform draft.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loadingPage ? (
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading final review workspace
+        <div className="space-y-6">
+          <Card className="border border-emerald-200 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.99),rgba(236,253,245,0.96))] text-slate-900 shadow-[0_18px_40px_rgba(15,23,42,0.10)]">
+            <CardContent className="pt-6">
+              {loadingPage ? (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading final review workspace
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-slate-950">
+                      {course?.stage.name || draft?.stage.name || "Finalized course"}
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      Approved scenes: {approvedScenesCount}/{draft?.editableScenes.length ?? 0}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Finalized by OpenMAIC: {formatDate(draft?.updatedAt)}
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-slate-50 p-4">
-                      <div className="text-sm font-medium text-slate-950">
-                        {course?.stage.name || draft?.stage.name || "Finalized course"}
-                      </div>
-                      <div className="mt-2 text-sm text-slate-600">
-                        Approved scenes: {approvedScenesCount}/{draft?.editableScenes.length ?? 0}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-border bg-white p-4">
-                      <div>
-                        <div className="text-xs uppercase tracking-[0.14em] text-slate-500">
-                          Platform review state
-                        </div>
-                        <div className="mt-2">
-                          <Badge
-                            variant={
-                              reviewRecord?.status === "draft_saved" ? "default" : "outline"
-                            }
-                          >
-                            {reviewRecord?.status === "draft_saved"
-                              ? "draft saved"
-                              : "pending review"}
-                          </Badge>
-                        </div>
-                      </div>
-                      {reviewRecord?.status === "draft_saved" ? (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                      ) : null}
-                    </div>
-                    <div className="rounded-2xl border border-border bg-white p-4 text-sm text-slate-600">
-                      <div>Finalized by OpenMAIC: {formatDate(draft?.updatedAt)}</div>
-                      <div className="mt-2">
-                        Draft saved for future publishing: {formatDate(reviewRecord?.approvedAt)}
-                      </div>
-                      <div className="mt-2">
-                        Approved by: {reviewRecord?.approvedBy || "-"}
-                      </div>
-                    </div>
-                    <Button onClick={() => void saveAsPlatformDraft()} disabled={savingDraft}>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Badge
+                      variant={reviewRecord?.status === "draft_saved" ? "default" : "outline"}
+                    >
+                      {reviewRecord?.status === "draft_saved" ? "draft saved" : "pending review"}
+                    </Badge>
+                    <Button
+                      onClick={() => void saveAsPlatformDraft()}
+                      disabled={savingDraft}
+                      className="text-white"
+                    >
                       {savingDraft ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -266,20 +243,20 @@ export default function AiCourseReviewPage() {
                       )}
                     </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-          <Card className="overflow-hidden">
-            <CardHeader>
-              <CardTitle>Animated course preview</CardTitle>
-              <CardDescription>
+          <Card className="overflow-hidden border border-sky-200 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.14),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.99),rgba(239,246,255,0.97))] text-slate-900 shadow-[0_18px_40px_rgba(15,23,42,0.10)]">
+            <CardHeader className="border-b border-sky-200 bg-[linear-gradient(135deg,rgba(14,165,233,0.16),rgba(16,185,129,0.12))]">
+              <CardTitle className="text-slate-950">Animated course preview</CardTitle>
+              <CardDescription className="text-slate-600">
                 Native platform review of the finalized OpenMAIC course, without iframe or CSP
                 dependency.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-8">
               {loadingPage ? (
                 <div className="flex min-h-[720px] items-center justify-center rounded-3xl border border-dashed border-border bg-slate-50 text-sm text-slate-500">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

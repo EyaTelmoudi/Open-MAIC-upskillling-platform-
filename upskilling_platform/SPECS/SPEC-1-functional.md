@@ -818,11 +818,13 @@ This document outlines all functional requirements for the platform, organized b
   - AGNO agent workflow: curriculum_designer → content_writer → multimedia_planner → quiz_generator → qa_reviewer → persist
   - Triggered by manual API call OR skill_gap.detected RabbitMQ event
   - Hindsight `recall()` checks existing content to avoid duplication before generating
-  - Hindsight `retain()` stores all generated course content and instructor feedback
-  - Hindsight `reflect()` on learner performance per generated content to improve quality
+  - Hindsight `retain()` stores searchable summaries, learning objectives, approved edits, instructor feedback, and generation notes for each course draft
+  - Hindsight `reflect()` analyzes expert feedback and later learner performance to improve future generated content
   - GROQ Llama 3.3 70B for structured output generation
-  - Generated content stored in MinIO (videos, PDFs, slides, images)
-  - MinIO file URLs returned for frontend rendering
+  - After learning-expert approval, official course metadata, modules, lessons, quizzes, and publishing state are persisted in PostgreSQL
+  - Generated files and media assets are stored in MinIO (videos, PDFs, slides, images, thumbnails, downloadable resources)
+  - MinIO file URLs returned for frontend rendering, while PostgreSQL remains the authoritative source for course structure
+  - A Hindsight memory bank is created or updated per approved course so agents can later recall course knowledge, prior expert decisions, and generation history
   - Emits course.created to RabbitMQ exchange
 
 ### FR-017: Content Librarian AI
@@ -835,6 +837,7 @@ This document outlines all functional requirements for the platform, organized b
   - Hindsight `recall()` powers semantic search across all learning content (replaces manual vector search)
   - Hindsight `retain()` stores all content metadata and tagging decisions
   - Hindsight `reflect()` detects content gaps and quality issues at scale
+  - Official platform content still lives in PostgreSQL and MinIO; Hindsight is the semantic retrieval and memory layer over that authoritative content
   - Automatic tagging and categorization of content
   - Detect duplicate or outdated content
   - Curate and maintain learning paths

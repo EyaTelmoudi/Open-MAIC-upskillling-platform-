@@ -1,0 +1,16 @@
+{
+  "requirement": "Build a beginner-friendly course about HTML from this PDF.\r\n\r\n  Requirements:\r\n  - Target audience: complete beginners with no web\r\n  development background\r\n  - Language: clear English\r\n  - Tone: simple, practical, encouraging, and teacher-\r\n  friendly\r\n  - Course objective: help learners understand the basics of\r\n  HTML and create a simple web page on their own\r\n  - Structure: create short progressive lessons from\r\n  introduction to practice\r\n  - Include quizzes after each major concept\r\n  - Include teacher narration/scripts for each lesson\r\n  - Include at least one interactive or practical scene\r\n  where the learner identifies HTML tags or reads a small\r\n  HTML example\r\n  - Emphasize:\r\n    - HTML document structure\r\n    - headings and paragraphs\r\n    - links and images\r\n    - lists\r\n    - tables\r\n    - forms\r\n    - semantic HTML\r\n    - good practices\r\n  - End with a final review quiz\r\n  - Keep the content practical and easy to follow",
+  "options": {
+    "enableWebSearch": true,
+    "enableImageGeneration": true,
+    "enableVideoGeneration": true,
+    "enableTTS": true,
+    "agentMode": "generate"
+  },
+  "pdf": {
+    "fileName": "Introduction to HTML.pdf",
+    "size": 45701,
+    "type": "application/pdf"
+  },
+  "createdAt": "2026-04-30T15:28:12.774Z"
+}

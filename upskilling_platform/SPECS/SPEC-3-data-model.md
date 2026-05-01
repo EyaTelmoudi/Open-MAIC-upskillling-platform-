@@ -257,6 +257,7 @@ Team (1) ──────< TeamGoal >─────────
 | authorId | UUID | FK → User | Course creator |
 | createdAt | DateTime | not null | Creation timestamp |
 | updatedAt | DateTime | not null | Last update timestamp |
+| memoryBankId | String | nullable | Hindsight bank ID associated with this course for semantic recall |
 
 **Relationships:**
 - Many-to-One: Tenant
@@ -295,6 +296,8 @@ Team (1) ──────< TeamGoal >─────────
 **Relationships:**
 - Many-to-One: Module
 - One-to-Many: UserProgress
+
+**Storage Rule:** Official lesson structure and publishable lesson data live in PostgreSQL. Large files and generated assets referenced by lessons live in MinIO. Hindsight may store semantic knowledge about the lesson, but not the authoritative lesson row itself.
 
 ---
 
@@ -698,6 +701,55 @@ The certificate model must support RSA-based verification in addition to the exi
 - Many-to-One: User
 
 **Note:** Vector storage is managed internally by Hindsight (retain/recall/reflect). No manual pgvector embeddings needed.
+
+---
+
+### 5.3b CourseMemoryBank (NEW)
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | UUID | PK | Unique identifier |
+| tenantId | UUID | FK → Tenant, not null | Owning tenant |
+| courseId | UUID | FK → Course, not null | Linked official course |
+| bankId | String | unique, not null | Hindsight memory bank ID |
+| status | Enum | not null | active, archived |
+| createdAt | DateTime | not null | Creation timestamp |
+| updatedAt | DateTime | not null | Last sync/update timestamp |
+
+**Purpose:** Links the official PostgreSQL course record to its Hindsight semantic memory bank.
+
+---
+
+### 5.3c CourseMemorySyncLog (NEW)
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | UUID | PK | Unique identifier |
+| courseId | UUID | FK → Course | Related course |
+| bankId | String | not null | Hindsight bank target |
+| syncType | Enum | not null | initial_retain, update_retain, reflection_snapshot |
+| payloadSummary | JSON | nullable | Summary of what was retained |
+| triggeredById | UUID | FK → User, nullable | Learning Expert or system actor |
+| createdAt | DateTime | not null | Sync timestamp |
+
+**Purpose:** Audits what official course knowledge was retained into Hindsight and when.
+
+---
+
+### 5.3d CourseGenerationRun (NEW)
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | UUID | PK | Unique identifier |
+| tenantId | UUID | FK → Tenant, not null | Tenant scope |
+| courseId | UUID | FK → Course, nullable | Linked official course once persisted |
+| sourceType | Enum | not null | pdf, brief, mixed |
+| sourceFilePath | String | nullable | MinIO path or uploaded source reference |
+| prompt | Text | not null | Learning Expert prompt/brief |
+| finalDraftPath | String | nullable | Path to exported finalized package during transition phase |
+| status | Enum | not null | pending, generated, approved, persisted, published |
+| createdById | UUID | FK → User | Learning Expert |
+| createdAt | DateTime | not null | Creation timestamp |
+| updatedAt | DateTime | not null | Last update timestamp |
+
+**Purpose:** Tracks the lifecycle from AI generation to official PostgreSQL persistence.
 
 ---
 

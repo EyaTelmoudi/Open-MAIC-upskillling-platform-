@@ -1,0 +1,11 @@
+{
+  "text": "Introduction to HTML HTML stands for HyperText Markup Language. It is the standard language used to structure content on the web. HTML defines headings, paragraphs, links, images, lists, tables, forms, and page sections. 1. Basic HTML document structure Every HTML page usually contains: - <!DOCTYPE html> - <html> - <head> - <title> - <body> Example: <!DOCTYPE html> <html> <head> <title>My First Page</title> </head> <body> <h1>Hello World</h1> <p>This is my first HTML page.</p> </body> </html> 2. Headings and paragraphs HTML provides headings from h1 to h6. - <h1> is the main heading - <p> defines a paragraph 3. Links and images - <a> creates a hyperlink - <img> displays an image Example: <a href=\"https://example.com\">Visit Example</a> <img src=\"photo.jpg\" alt=\"Sample photo\"> 4. Lists HTML supports: - ordered lists with <ol> - unordered lists with <ul> - list items with <li> 5. Tables Tables are created with: - <table> - <tr> - <th> - <td> 6. Forms Forms collect user input. Common form elements: - <form> - <input> - <label> - <textarea> - <button> 7. Semantic HTML Semantic tags improve structure and accessibility. Examples: - <header> - <nav> - <main> - <section> - <article> - <footer> 8. Good practices - Use meaningful headings - Add alt text to images - Keep structure clean - Use semantic elements when possible - Indent code for readability Conclusion HTML is the foundation of web development. Understanding document structure, text elements, links, lists, tables, forms, and semantic tags helps beginners create clear and accessible web pages.",
+  "imagesCount": 0,
+  "metadata": {
+    "pageCount": 2,
+    "parser": "unpdf",
+    "imageMapping": {},
+    "pdfImages": [],
+    "processingTime": 118
+  }
+}

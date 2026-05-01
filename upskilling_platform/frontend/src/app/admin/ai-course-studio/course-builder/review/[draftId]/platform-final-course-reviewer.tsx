@@ -300,57 +300,48 @@ export function PlatformFinalCourseReviewer({ course }: { course: ReviewerFinali
   const speechBlocks = (selectedScene.actions || []).filter(
     (action): action is SpeechAction => action.type === "speech",
   );
+  const playbackControls = (
+    <div className="flex flex-wrap gap-3">
+      <button
+        type="button"
+        onClick={handlePrevious}
+        className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+      >
+        <SkipBack className="mr-2 inline h-4 w-4" />
+        Previous
+      </button>
+      <button
+        type="button"
+        onClick={handlePlayPause}
+        className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+      >
+        {playbackState === "playing" ? (
+          <>
+            <Pause className="mr-2 inline h-4 w-4" />
+            Pause
+          </>
+        ) : (
+          <>
+            <Play className="mr-2 inline h-4 w-4" />
+            {playbackState === "paused" ? "Resume" : "Play full lesson"}
+          </>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={handleNext}
+        className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+      >
+        Next
+        <SkipForward className="ml-2 inline h-4 w-4" />
+      </button>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[28px] border border-slate-200 bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_48%,#0ea5e9_100%)] p-6 text-white shadow-[0_20px_60px_rgba(15,23,42,0.18)]">
-        <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100">
-          Final animated review
-        </div>
-        <h3 className="mt-2 text-3xl font-semibold">{course.stage.name || "Generated course"}</h3>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-100/85">
-          Native platform preview of the finalized OpenMAIC output, with lesson playback and teacher
-          narration for LearningExpert review.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={handlePrevious}
-            className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/15"
-          >
-            <SkipBack className="mr-2 inline h-4 w-4" />
-            Previous
-          </button>
-          <button
-            type="button"
-            onClick={handlePlayPause}
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-slate-100"
-          >
-            {playbackState === "playing" ? (
-              <>
-                <Pause className="mr-2 inline h-4 w-4" />
-                Pause
-              </>
-            ) : (
-              <>
-                <Play className="mr-2 inline h-4 w-4" />
-                {playbackState === "paused" ? "Resume" : "Play full lesson"}
-              </>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={handleNext}
-            className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/15"
-          >
-            Next
-            <SkipForward className="ml-2 inline h-4 w-4" />
-          </button>
-        </div>
-      </section>
-
-      <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="grid gap-8 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
+        <aside className="rounded-3xl border border-emerald-200 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.16),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.99),rgba(240,253,250,0.96))] p-4 shadow-[0_14px_36px_rgba(15,23,42,0.10)]">
           <div className="mb-3 text-sm font-semibold text-slate-950">Course lessons</div>
           <div className="space-y-2">
             {orderedScenes.map((scene) => (
@@ -360,25 +351,18 @@ export function PlatformFinalCourseReviewer({ course }: { course: ReviewerFinali
                 onClick={() => handleSelectScene(scene.id)}
                 className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                   scene.id === selectedScene.id
-                    ? "border-sky-300 bg-sky-50"
+                    ? "border-emerald-400 bg-[linear-gradient(135deg,rgba(16,185,129,0.22),rgba(59,130,246,0.14))] shadow-[0_12px_28px_rgba(16,185,129,0.18)]"
                     : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                 }`}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-700">
-                    {scene.type}
-                  </span>
-                  <span className="text-xs text-slate-400">{scene.order}</span>
-                </div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">{scene.title}</div>
-                <div className="mt-1 text-xs leading-5 text-slate-500">{sceneSummary(scene)}</div>
+                <div className="text-sm font-semibold text-slate-900">{scene.title}</div>
               </button>
             ))}
           </div>
         </aside>
 
-        <main className="space-y-6">
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <main className="space-y-8">
+          <section className="rounded-3xl border border-sky-200 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.18),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.99),rgba(239,246,255,0.96))] p-6 shadow-[0_14px_36px_rgba(15,23,42,0.10)]">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
               Current lesson
             </div>
@@ -396,17 +380,18 @@ export function PlatformFinalCourseReviewer({ course }: { course: ReviewerFinali
             </div>
           </section>
 
-          {isSlideContent(selectedScene.content) ? (
-            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-              <div className="border-b border-slate-200 px-6 py-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
-                  Animated slide
-                </div>
-                <div className="mt-1 text-sm text-slate-500">
-                  Slide blocks are highlighted progressively while the narration plays.
-                </div>
+          {isInteractiveContent(selectedScene.content) ? (
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+              <div className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+                Lesson playback
               </div>
-              <div className="bg-slate-100 px-5 py-5">
+              {playbackControls}
+            </section>
+          ) : null}
+
+          {isSlideContent(selectedScene.content) ? (
+            <section className="overflow-hidden rounded-3xl border border-sky-200 bg-white text-slate-900 shadow-[0_14px_36px_rgba(15,23,42,0.10)]">
+              <div className="bg-[linear-gradient(180deg,rgba(224,242,254,0.58),rgba(236,253,245,0.38),rgba(248,250,252,0.96))] px-5 py-5">
                 <div className="mx-auto flex aspect-[16/9] w-full max-w-5xl flex-col justify-center gap-4 rounded-[24px] border border-slate-200 bg-white p-10 shadow-sm">
                   {slideBlocks.map((block: { id: string; html: string; text: string }, index: number) => {
                     const isActive = highlightedBlockIndex === index;
@@ -417,7 +402,7 @@ export function PlatformFinalCourseReviewer({ course }: { course: ReviewerFinali
                         key={block.id}
                         className={`rounded-3xl border px-5 py-4 transition ${
                           isActive
-                            ? "border-sky-300 bg-sky-50 shadow-[0_12px_30px_rgba(14,165,233,0.16)]"
+                            ? "border-sky-400 bg-[linear-gradient(135deg,rgba(14,165,233,0.20),rgba(16,185,129,0.16))] shadow-[0_12px_30px_rgba(14,165,233,0.20)]"
                             : "border-slate-200 bg-slate-50"
                         } ${isVisible ? "opacity-100" : "opacity-30"}`}
                       >
@@ -430,13 +415,16 @@ export function PlatformFinalCourseReviewer({ course }: { course: ReviewerFinali
                   })}
                 </div>
               </div>
-              <div className="border-t border-slate-200 bg-slate-950 px-6 py-4 text-slate-100">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
+              <div className="border-t border-slate-200 bg-slate-50 px-6 py-4 text-slate-900">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
                   <Volume2 className="h-4 w-4" />
                   Live narration
                 </div>
-                <div className="mt-3 min-h-16 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm leading-7 text-slate-200">
+                <div className="mt-3 min-h-16 rounded-2xl border border-sky-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(239,246,255,0.92))] px-4 py-3 text-sm leading-7 text-slate-700">
                   {activeSpeech || "Press play to review the slide animation and narration."}
+                </div>
+                <div className="mt-4 border-t border-slate-200 pt-4">
+                  {playbackControls}
                 </div>
               </div>
             </section>
@@ -447,9 +435,9 @@ export function PlatformFinalCourseReviewer({ course }: { course: ReviewerFinali
               {selectedScene.content.questions.map((question: QuizContent["questions"][number], index: number) => (
                 <section
                   key={question.id}
-                  className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+                  className="rounded-3xl border border-amber-200 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.16),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.99),rgba(255,251,235,0.95))] p-6 shadow-[0_14px_36px_rgba(15,23,42,0.10)]"
                 >
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
                     Question {index + 1}
                   </div>
                   <h5 className="mt-2 text-lg font-semibold text-slate-950">{question.question}</h5>
@@ -461,7 +449,7 @@ export function PlatformFinalCourseReviewer({ course }: { course: ReviewerFinali
                           key={option.value}
                           className={`rounded-2xl border px-4 py-3 text-sm ${
                             isCorrect
-                              ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                              ? "border-emerald-300 bg-[linear-gradient(135deg,rgba(16,185,129,0.18),rgba(110,231,183,0.12))] text-emerald-900"
                               : "border-slate-200 bg-slate-50 text-slate-700"
                           }`}
                         >
@@ -471,7 +459,7 @@ export function PlatformFinalCourseReviewer({ course }: { course: ReviewerFinali
                     })}
                   </div>
                   {question.analysis ? (
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                    <div className="mt-4 rounded-2xl border border-amber-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(254,249,195,0.72))] px-4 py-3 text-sm text-slate-700">
                       <span className="font-semibold text-slate-900">Explanation:</span>{" "}
                       {question.analysis}
                     </div>
@@ -482,8 +470,8 @@ export function PlatformFinalCourseReviewer({ course }: { course: ReviewerFinali
           ) : null}
 
           {isInteractiveContent(selectedScene.content) ? (
-            <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-              <div className="border-b border-slate-200 px-6 py-4">
+            <section className="overflow-hidden rounded-3xl border border-violet-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.10)]">
+              <div className="border-b border-violet-200 bg-[linear-gradient(135deg,rgba(14,165,233,0.16),rgba(168,85,247,0.14))] px-6 py-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
                   Interactive lesson
                 </div>
@@ -506,15 +494,15 @@ export function PlatformFinalCourseReviewer({ course }: { course: ReviewerFinali
             </section>
           ) : null}
 
-          {speechBlocks.length > 0 ? (
-            <section className="rounded-3xl border border-slate-200 bg-slate-950 p-6 text-slate-100 shadow-sm">
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">
+          {speechBlocks.length > 0 && !isQuizContent(selectedScene.content) ? (
+            <section className="rounded-3xl border border-emerald-200 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.99),rgba(240,253,250,0.96))] p-6 text-slate-900 shadow-[0_14px_36px_rgba(15,23,42,0.10)]">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
                 Teacher script
               </div>
-              <div className="mt-4 space-y-3 text-sm leading-7 text-slate-200">
+              <div className="mt-4 space-y-3 text-sm leading-7 text-slate-700">
                 {speechBlocks.map((speech, index) => (
-                  <p key={speech.id}>
-                    <span className="mr-2 rounded-full border border-slate-700 px-2 py-0.5 text-[11px] font-semibold text-slate-300">
+                  <p key={speech.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <span className="mr-2 rounded-full border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600">
                       {index + 1}
                     </span>
                     {speech.text}

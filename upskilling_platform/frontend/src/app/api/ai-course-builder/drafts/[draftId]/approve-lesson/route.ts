@@ -1,4 +1,5 @@
 import { buildOpenMAICUrl } from "@/app/lib/openmaic-proxy";
+import { safeUpsertAiCourseDraft } from "@/app/lib/safe-ai-course-db";
 
 export async function POST(
   request: Request,
@@ -16,6 +17,9 @@ export async function POST(
       }
     );
     const data = await upstream.json();
+    if (upstream.ok && data?.success && data?.draft) {
+      await safeUpsertAiCourseDraft(request, { draft: data.draft });
+    }
     return Response.json(data, { status: upstream.status });
   } catch (error) {
     return Response.json(

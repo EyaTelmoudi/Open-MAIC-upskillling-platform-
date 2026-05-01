@@ -22,6 +22,9 @@ export const routes = {
   adminUserDetail: (id: string) => `/admin/users/${id}`,
   adminAiCourseStudio: "/admin/ai-course-studio",
   adminAiCourseBuilder: "/admin/ai-course-studio/course-builder",
+  adminAiCourseDrafts: "/admin/ai-course-studio/drafts",
+  adminAiCourseEditor: (draftId: string) =>
+    `/admin/ai-course-studio/drafts/${draftId}/editor`,
   adminAiCourseReview: (draftId: string) =>
     `/admin/ai-course-studio/course-builder/review/${draftId}`,
   adminCourses: "/admin/courses",

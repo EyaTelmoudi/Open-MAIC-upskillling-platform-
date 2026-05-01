@@ -619,7 +619,7 @@ This project now adopts an RSA-based certificate validity system:
 - 6 AI Agents: Chat Coach, Recommendation, Gamification, Course Maker, Content Librarian, Skill Gap Analyzer
 - Agent orchestration via AGNO (execution, workflows, tool calling, scheduling, monitoring)
 - Agent memory management (Hindsight: retain, recall, reflect)
-- Course content generation and storage (MinIO)
+- Course content generation plus memory synchronization
 - Inter-agent communication via RabbitMQ + AGNO team workflows
 
 **Aggregates:**
@@ -734,6 +734,8 @@ This project now adopts an RSA-based certificate validity system:
 - Agent memory storage (retain, recall, reflect)
 - Per-agent, per-scope memory banks (per-user, per-course, global)
 - Replaces entire RAG pipeline — no pgvector, no manual chunking, no embedding pipeline
+- Stores semantic course knowledge, expert feedback history, generation decisions, and reusable insights
+- Is not the source of truth for official published course records
 
 ### MinIO (File Storage)
 - S3-compatible object storage
@@ -743,6 +745,29 @@ This project now adopts an RSA-based certificate validity system:
 - Quiz media
 - User avatars
 - Agents retrieve file URLs from MinIO to inject into context
+
+### Authoritative Course Storage Rule
+
+- **PostgreSQL + MinIO are authoritative**
+  - PostgreSQL stores official course structure, modules, lessons, quizzes, publishing states, approval states, and generation workflow metadata.
+  - MinIO stores official uploaded sources and generated course assets.
+- **Hindsight is assistive memory**
+  - Hindsight stores searchable knowledge about a course, not the official transactional course record.
+
+### AI Course Generation Persistence Flow
+
+When a Learning Expert approves an AI-generated course:
+
+1. The approved course draft/final version is saved into PostgreSQL.
+2. Media and source files are saved into MinIO.
+3. A Hindsight course memory bank is created or updated.
+4. The Hindsight bank receives:
+   - course summaries
+   - learning objectives
+   - quiz concepts
+   - expert-approved edits
+   - generation and reflection notes
+5. Later agents use Hindsight to recall this course knowledge for coaching, recommendation, content reuse, and future generation improvement.
 
 ---
 
