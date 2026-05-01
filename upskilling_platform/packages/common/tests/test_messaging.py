@@ -38,9 +38,11 @@ class TestQueues:
     def test_all_queues_defined(self):
         expected_queues = {
             "auth.notifications",
+            "auth.onboarding",
             "learning.progress",
             "learning.enrollment",
             "learning.gamification",
+            "learning.notifications",
             "agents.tasks",
             "agents.recall",
             "notif.email",

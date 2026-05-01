@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
@@ -24,6 +24,7 @@ import { Input } from "@/app/components/ui/Input";
 import { Textarea } from "@/app/components/ui/Textarea";
 import { useAuth } from "@/app/context/AuthContext";
 import { routes } from "@/app/lib/routes";
+import { formatDateForUser } from "@/app/lib/user-date-format";
 import { AiCourseStudioNav } from "../ai-course-studio-nav";
 
 type DraftStatus = "draft" | "approved" | "finalized";
@@ -142,6 +143,19 @@ type ProgressState = {
   totalScenes?: number;
 };
 
+type ActiveGenerationRun = {
+  runId: string;
+  active: boolean;
+  status: "running" | "completed" | "failed" | "cancelled";
+  sourcePdfName: string;
+  promptPreview: string;
+  startedAt: string;
+  updatedAt: string;
+  progress: ProgressState | null;
+  result?: GenerationResponse | null;
+  error?: string | null;
+};
+
 type FinalizeResponse = {
   success?: boolean;
   error?: string;
@@ -149,12 +163,8 @@ type FinalizeResponse = {
   finalCoursePathRelative: string;
 };
 
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return date.toLocaleString();
+function formatDate(value: string, timezone?: string | null) {
+  return formatDateForUser(value, timezone);
 }
 
 function statusVariant(status: DraftStatus | SceneDraftStatus) {
@@ -214,6 +224,7 @@ export default function AiCourseBuilderPage() {
   const [prompt, setPrompt] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const [saving, setSaving] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -228,6 +239,9 @@ export default function AiCourseBuilderPage() {
   const [enableTTS, setEnableTTS] = useState(false);
   const [agentMode, setAgentMode] = useState<"default" | "generate">("default");
   const [finalPath, setFinalPath] = useState<string | null>(null);
+  const [activeRun, setActiveRun] = useState<ActiveGenerationRun | null>(null);
+  const generationAbortRef = useRef<AbortController | null>(null);
+  const cancelRequestedRef = useRef(false);
 
   useEffect(() => {
     if (!isLoading && user?.role !== "LearningExpert") {
@@ -289,6 +303,59 @@ export default function AiCourseBuilderPage() {
       setError(loadError instanceof Error ? loadError.message : "Failed to load draft");
     });
   }, [searchParams]);
+
+  const loadActiveRun = async () => {
+    const response = await fetch("/api/ai-course-builder/active-run", { cache: "no-store" });
+    const data = (await response.json()) as {
+      success?: boolean;
+      run?: ActiveGenerationRun | null;
+      error?: string;
+    };
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || "Failed to load active generation run");
+    }
+    setActiveRun(data.run || null);
+
+    if (data.run?.active && data.run.progress) {
+      setLoading(true);
+      setProgress(data.run.progress);
+    } else if (data.run?.status === "completed") {
+      setLoading(false);
+      setProgress(data.run.progress || null);
+      if (data.run.result) {
+        setResult(data.run.result);
+      }
+    } else if (data.run?.status === "failed") {
+      setLoading(false);
+      setProgress(data.run.progress || null);
+      if (data.run.error) {
+        setError(data.run.error);
+      }
+    } else if (data.run?.status === "cancelled") {
+      setLoading(false);
+      setProgress(data.run.progress || null);
+      setError(null);
+    } else {
+      setLoading(false);
+      setProgress(null);
+    }
+  };
+
+  useEffect(() => {
+    void loadActiveRun().catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (!activeRun?.active) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void loadActiveRun().catch(() => undefined);
+    }, 3000);
+
+    return () => window.clearInterval(interval);
+  }, [activeRun?.active]);
 
   const updateScene = (updater: (scene: EditableSceneDraft) => EditableSceneDraft) => {
     setDraft((current) => {
@@ -453,6 +520,7 @@ export default function AiCourseBuilderPage() {
     setResult(null);
     setDraft(null);
     setFinalPath(null);
+    cancelRequestedRef.current = false;
 
     try {
       const formData = new FormData();
@@ -464,9 +532,13 @@ export default function AiCourseBuilderPage() {
       formData.append("enableTTS", String(enableTTS));
       formData.append("agentMode", agentMode);
 
+      const controller = new AbortController();
+      generationAbortRef.current = controller;
+
       const response = await fetch("/api/ai-course-builder/generate", {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
 
       if (!response.body) {
@@ -547,16 +619,64 @@ export default function AiCourseBuilderPage() {
         }
       }
 
-      if (!response.ok && !doneReceived) {
+      if (!response.ok && !doneReceived && !cancelRequestedRef.current) {
         throw new Error("Generation failed before completion.");
       }
     } catch (generateError) {
+      if (
+        cancelRequestedRef.current &&
+        generateError instanceof DOMException &&
+        generateError.name === "AbortError"
+      ) {
+        setError(null);
+        return;
+      }
       setError(
         generateError instanceof Error ? generateError.message : "Failed to generate course",
       );
       setProgress(null);
     } finally {
+      generationAbortRef.current = null;
       setLoading(false);
+    }
+  };
+
+  const handleCancelGeneration = async () => {
+    setCanceling(true);
+    setError(null);
+    cancelRequestedRef.current = true;
+    generationAbortRef.current?.abort();
+
+    try {
+      const response = await fetch("/api/ai-course-builder/cancel", {
+        method: "POST",
+      });
+      const data = (await response.json()) as {
+        success?: boolean;
+        cancelled?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to cancel the active generation run.");
+      }
+
+      setActiveRun(null);
+      setLoading(false);
+      setProgress(null);
+      setResult(null);
+      setDraft(null);
+      setFinalPath(null);
+      await loadActiveRun().catch(() => undefined);
+    } catch (cancelError) {
+      cancelRequestedRef.current = false;
+      setError(
+        cancelError instanceof Error
+          ? cancelError.message
+          : "Failed to cancel the active generation run.",
+      );
+    } finally {
+      setCanceling(false);
     }
   };
 
@@ -760,6 +880,24 @@ export default function AiCourseBuilderPage() {
                     </>
                   )}
                 </Button>
+                {(loading || activeRun?.active) ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800"
+                    disabled={canceling}
+                    onClick={() => void handleCancelGeneration()}
+                  >
+                    {canceling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Stopping
+                      </>
+                    ) : (
+                      "Stop generation"
+                    )}
+                  </Button>
+                ) : null}
               </form>
             </CardContent>
           </Card>
@@ -885,7 +1023,7 @@ export default function AiCourseBuilderPage() {
                           Updated
                         </div>
                         <div className="mt-1 text-sm font-medium text-slate-900">
-                          {formatDate(draft.updatedAt)}
+                          {formatDate(draft.updatedAt, user?.timezone)}
                         </div>
                       </div>
                       <div className="rounded-2xl border border-violet-100 bg-violet-50/80 px-4 py-3">

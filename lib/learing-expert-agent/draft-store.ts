@@ -362,6 +362,22 @@ export async function saveDraft(draft: LearningExpertDraft): Promise<LearningExp
   return nextDraft;
 }
 
+export async function deleteDraft(draftId: string): Promise<boolean> {
+  const draft = await readDraft(draftId);
+  if (!draft) {
+    return false;
+  }
+
+  await fs.rm(draftPath(draftId), { force: true }).catch(() => undefined);
+  await fs.rm(finalCoursePath(draftId), { force: true }).catch(() => undefined);
+
+  if (draft.outputDir) {
+    await fs.rm(draft.outputDir, { recursive: true, force: true }).catch(() => undefined);
+  }
+
+  return true;
+}
+
 export async function listDraftSummaries(): Promise<DraftSummary[]> {
   await ensureDraftsDir();
   const entries = await fs.readdir(DRAFTS_DIR);

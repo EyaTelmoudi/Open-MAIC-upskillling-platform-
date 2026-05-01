@@ -1,9 +1,12 @@
 import { buildOpenMAICUrl } from "@/app/lib/openmaic-proxy";
+import { runCourseRefinementAgentAction } from "@/app/lib/course-maker-agent";
+import { assemblePublishedCourseForMemory } from "@/app/lib/course-memory-agent";
 import {
   safeGetAiCourseDraft,
   safeSaveAiCourseAsPlatformDraft,
   safeUpsertAiCourseDraft,
 } from "@/app/lib/safe-ai-course-db";
+import { toUtcIsoString } from "@/app/lib/ai-course-db";
 
 function buildPendingReviewRecord(draftId: string) {
   const now = new Date().toISOString();
@@ -65,9 +68,9 @@ export async function GET(
           draftId: record.external_draft_id,
           status: record.review_status,
           approvedBy: record.approved_by || undefined,
-          approvedAt: record.approved_at || undefined,
-          createdAt: record.created_at,
-          updatedAt: record.updated_at,
+          approvedAt: toUtcIsoString(record.approved_at),
+          createdAt: toUtcIsoString(record.created_at),
+          updatedAt: toUtcIsoString(record.updated_at),
           platformCourseId: record.platform_course_id,
         },
       },
@@ -108,6 +111,20 @@ export async function POST(
       );
     }
 
+    console.log(
+      `[Agno Course Refinement Agent] Starting action "save_as_platform_course" for draft ${draftId}.`,
+    );
+    await runCourseRefinementAgentAction({
+      action: "save_as_platform_course",
+      draftId,
+      title: record.title,
+      scenesCount: Array.isArray(record.draft_payload?.editableScenes)
+        ? record.draft_payload.editableScenes.length
+        : null,
+      source: "final_review",
+      status: record.status,
+    }).catch(() => null);
+
     const saved = await safeSaveAiCourseAsPlatformDraft(
       request,
       draftId,
@@ -124,6 +141,45 @@ export async function POST(
       );
     }
 
+    console.log(
+      `[Agno Course Refinement Agent] Official platform course draft saved for AI draft ${draftId}. Platform course ID: ${saved.platform_course_id}.`,
+    );
+    await runCourseRefinementAgentAction({
+      action: "confirm_platform_course_saved",
+      draftId,
+      title: saved.title,
+      scenesCount: Array.isArray(saved.draft_payload?.editableScenes)
+        ? saved.draft_payload.editableScenes.length
+        : null,
+      source: "postgresql",
+      status: saved.status,
+      platformCourseId: saved.platform_course_id,
+    }).catch(() => null);
+    if (saved.platform_course_id) {
+      console.log(
+        `[Agno Course Memory Agent] Starting action "assemble_published_course" for course ${saved.platform_course_id} after final approval of draft ${draftId}.`,
+      );
+      try {
+        await assemblePublishedCourseForMemory(
+          request,
+          saved.platform_course_id,
+          saved.tenant_id,
+        );
+        console.log(
+          `[Agno Course Memory Agent] Finished action "assemble_published_course" for course ${saved.platform_course_id} after final approval of draft ${draftId}.`,
+        );
+      } catch (memoryError) {
+        console.error(
+          `[Agno Course Memory Agent] Retain workflow failed for course ${saved.platform_course_id} after final approval of draft ${draftId}: ${
+            memoryError instanceof Error ? memoryError.message : "Unknown error"
+          }`,
+        );
+      }
+    }
+    console.log(
+      `[Agno Course Refinement Agent] Finished action "save_as_platform_course" for draft ${draftId}.`,
+    );
+
     return Response.json(
       {
         success: true,
@@ -131,9 +187,9 @@ export async function POST(
           draftId: saved.external_draft_id,
           status: saved.review_status,
           approvedBy: saved.approved_by || undefined,
-          approvedAt: saved.approved_at || undefined,
-          createdAt: saved.created_at,
-          updatedAt: saved.updated_at,
+          approvedAt: toUtcIsoString(saved.approved_at),
+          createdAt: toUtcIsoString(saved.created_at),
+          updatedAt: toUtcIsoString(saved.updated_at),
           platformCourseId: saved.platform_course_id,
         },
       },

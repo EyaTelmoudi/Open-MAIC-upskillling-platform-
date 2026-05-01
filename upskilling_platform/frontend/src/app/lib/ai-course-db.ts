@@ -47,9 +47,9 @@ type DraftDbRow = {
   final_course_path: string | null;
   platform_course_id: string | null;
   approved_by: string | null;
-  approved_at: string | null;
-  created_at: string;
-  updated_at: string;
+  approved_at: Date | string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
   author_id: string | null;
   tenant_id: string | null;
 };
@@ -102,16 +102,39 @@ async function ensureTables() {
         platform_course_id UUID,
         approved_by VARCHAR(255),
         approved_at TIMESTAMP,
-        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+        updated_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
         author_id UUID,
         tenant_id UUID
       )
+    `);
+    await client.query(`
+      ALTER TABLE ai_course_drafts
+      ALTER COLUMN created_at SET DEFAULT (NOW() AT TIME ZONE 'UTC'),
+      ALTER COLUMN updated_at SET DEFAULT (NOW() AT TIME ZONE 'UTC')
     `);
   } finally {
     client.release();
   }
   tableReady = true;
+}
+
+export function toUtcIsoString(value: Date | string | null | undefined) {
+  if (!value) return undefined;
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value === "string") {
+    const normalized = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value) ? value : `${value}Z`;
+    const parsed = new Date(normalized);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
+  }
+
+  return String(value);
 }
 
 function decodeJwtPayload(token: string | null) {
@@ -151,9 +174,9 @@ function extractPendingReviewRecord(row: DraftDbRow) {
     draftId: row.external_draft_id,
     status: row.review_status,
     approvedBy: row.approved_by || undefined,
-    approvedAt: row.approved_at || undefined,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    approvedAt: toUtcIsoString(row.approved_at),
+    createdAt: toUtcIsoString(row.created_at),
+    updatedAt: toUtcIsoString(row.updated_at),
     platformCourseId: row.platform_course_id,
   };
 }
@@ -203,7 +226,7 @@ export async function upsertAiCourseDraft(
         updated_at
       )
       VALUES (
-        $1,$2,$3,$4,$5,$6,COALESCE($7,'pending_review'),$8,$9,$10,$11,$12::jsonb,$13::jsonb,$14::jsonb,$15,$16,$17,NOW(),NOW()
+        $1,$2,$3,$4,$5,$6,COALESCE($7,'pending_review'),$8,$9,$10,$11,$12::jsonb,$13::jsonb,$14::jsonb,$15,$16,$17,(NOW() AT TIME ZONE 'UTC'),(NOW() AT TIME ZONE 'UTC')
       )
       ON CONFLICT (external_draft_id)
       DO UPDATE SET
@@ -222,7 +245,7 @@ export async function upsertAiCourseDraft(
         final_course_path = COALESCE(EXCLUDED.final_course_path, ai_course_drafts.final_course_path),
         author_id = COALESCE(EXCLUDED.author_id, ai_course_drafts.author_id),
         tenant_id = COALESCE(EXCLUDED.tenant_id, ai_course_drafts.tenant_id),
-        updated_at = NOW()
+        updated_at = (NOW() AT TIME ZONE 'UTC')
       RETURNING *
       `,
       [
@@ -262,8 +285,8 @@ export async function listAiCourseDrafts() {
     classroomId: row.classroom_id,
     outputDirRelative: row.output_dir_relative,
     title: row.title,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: toUtcIsoString(row.created_at),
+    updatedAt: toUtcIsoString(row.updated_at),
     status: row.status,
     scenesCount: (row.draft_payload?.editableScenes || []).length,
     approvedScenesCount: approvedScenesCount(row.draft_payload),
@@ -276,6 +299,15 @@ export async function getAiCourseDraft(draftId: string) {
   await ensureTables();
   const result = await getPool().query<DraftDbRow>(
     `SELECT * FROM ai_course_drafts WHERE external_draft_id = $1 LIMIT 1`,
+    [draftId],
+  );
+  return result.rows[0] || null;
+}
+
+export async function deleteAiCourseDraft(draftId: string) {
+  await ensureTables();
+  const result = await getPool().query<DraftDbRow>(
+    `DELETE FROM ai_course_drafts WHERE external_draft_id = $1 RETURNING *`,
     [draftId],
   );
   return result.rows[0] || null;
@@ -338,7 +370,7 @@ export async function saveAiCourseAsPlatformDraft(
             is_published = FALSE,
             author_id = COALESCE($7, author_id),
             tenant_id = COALESCE($8, tenant_id),
-            updated_at = NOW()
+            updated_at = (NOW() AT TIME ZONE 'UTC')
         WHERE id = $1
         `,
         [
@@ -360,7 +392,7 @@ export async function saveAiCourseAsPlatformDraft(
           id, title, description, thumbnail, category, difficulty, duration,
           xp_reward, rating, is_published, author_id, tenant_id, created_at, updated_at
         )
-        VALUES ($1,$2,$3,NULL,$4,$5,$6,100,NULL,FALSE,$7,$8,NOW(),NOW())
+        VALUES ($1,$2,$3,NULL,$4,$5,$6,100,NULL,FALSE,$7,$8,(NOW() AT TIME ZONE 'UTC'),(NOW() AT TIME ZONE 'UTC'))
         `,
         [
           courseId,
@@ -379,7 +411,7 @@ export async function saveAiCourseAsPlatformDraft(
     await client.query(
       `
       INSERT INTO modules (id, course_id, title, description, "order", created_at)
-      VALUES ($1,$2,$3,$4,$5,NOW())
+      VALUES ($1,$2,$3,$4,$5,(NOW() AT TIME ZONE 'UTC'))
       `,
       [
         moduleId,
@@ -397,7 +429,7 @@ export async function saveAiCourseAsPlatformDraft(
         INSERT INTO lessons (
           id, module_id, title, content, video_url, content_type, duration, "order", assessment_id, created_at
         )
-        VALUES ($1,$2,$3,$4,NULL,$5,$6,$7,NULL,NOW())
+        VALUES ($1,$2,$3,$4,NULL,$5,$6,$7,NULL,(NOW() AT TIME ZONE 'UTC'))
         `,
         [
           randomUUID(),
@@ -417,9 +449,9 @@ export async function saveAiCourseAsPlatformDraft(
       UPDATE ai_course_drafts
       SET review_status = 'draft_saved',
           approved_by = $2,
-          approved_at = NOW(),
+          approved_at = (NOW() AT TIME ZONE 'UTC'),
           platform_course_id = $3,
-          updated_at = NOW()
+          updated_at = (NOW() AT TIME ZONE 'UTC')
       WHERE external_draft_id = $1
       RETURNING *
       `,

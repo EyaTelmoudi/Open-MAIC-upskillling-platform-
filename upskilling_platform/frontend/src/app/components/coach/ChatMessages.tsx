@@ -8,7 +8,7 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: string;
-  sources?: { title: string; lesson: string }[];
+  sources?: { title: string; lesson: string; snippet?: string }[];
   suggestedQuestions?: string[];
 }
 
@@ -112,13 +112,20 @@ export function ChatMessages({ messages, isTyping }: ChatMessagesProps) {
                     {message.sources.map((source, i) => (
                       <div
                         key={i}
-                        className="flex items-center gap-2 text-xs text-text-secondary"
+                        className="rounded-lg bg-background/70 p-2 text-xs text-text-secondary"
                       >
-                        <FileText className="h-3 w-3" />
-                        <span>{source.lesson}</span>
-                        <span className="text-text-secondary/60">
-                          - {source.title}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-3 w-3" />
+                          <span className="font-medium">{source.title}</span>
+                          <span className="text-text-secondary/60">
+                            - {source.lesson}
+                          </span>
+                        </div>
+                        {source.snippet && (
+                          <p className="mt-1 line-clamp-3 text-text-secondary/80">
+                            {source.snippet}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>

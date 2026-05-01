@@ -346,13 +346,6 @@ export default function AiCourseDraftEditorPage() {
                           </>
                         )}
                       </Button>
-                      <Button
-                        variant="outline"
-                        className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
-                        onClick={() => void approveLesson(draft.status !== "approved")}
-                      >
-                        {draft.status === "approved" ? "Unapprove lesson" : "Approve lesson"}
-                      </Button>
                       <Button onClick={() => void finalizeCourse()} disabled={finalizing}>
                         {finalizing ? (
                           <>

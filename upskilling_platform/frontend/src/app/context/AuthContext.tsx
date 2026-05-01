@@ -34,6 +34,7 @@ interface User {
   skills: string[];
   created_at: string;
   updated_at: string;
+  timezone?: string | null;
   tenant_id: string | null;
   tenant_name: string | null;
   tenant_slug: string | null;

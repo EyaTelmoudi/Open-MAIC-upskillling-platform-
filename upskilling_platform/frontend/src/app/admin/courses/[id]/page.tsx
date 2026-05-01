@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { AdminShell } from "@/app/components/layout/AdminShell";
+import { AiCourseModulePlayer } from "@/app/components/admin/AiCourseModulePlayer";
 import { Button } from "@/app/components/ui/Button";
 import { Input } from "@/app/components/ui/Input";
 import {
@@ -90,11 +91,92 @@ const categoryOptions = [
 
 const difficultyOptions = ["Beginner", "Intermediate", "Advanced"];
 
+type ParsedAiScenePreview = {
+  type: string;
+  title: string;
+  teacherParoles: string[];
+  visibleTexts: string[];
+  interactiveDescription: string | null;
+};
+
 function stripHtml(value?: string | null) {
   if (!value) {
     return "";
   }
   return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function decodeHtmlEntities(value: string) {
+  if (typeof window === "undefined") {
+    return value
+      .replaceAll("&amp;", "&")
+      .replaceAll("&lt;", "<")
+      .replaceAll("&gt;", ">")
+      .replaceAll("&quot;", '"')
+      .replaceAll("&#39;", "'");
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.innerHTML = value;
+  return textarea.value;
+}
+
+function parseAiScenePreview(content?: string | null): ParsedAiScenePreview | null {
+  if (!content) {
+    return null;
+  }
+
+  const trimmed = content.trim();
+  if (!trimmed.startsWith("{")) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      type?: string;
+      title?: string;
+      actions?: Array<{ type?: string; text?: string; content?: string }>;
+      content?: {
+        type?: string;
+        html?: string;
+        canvas?: {
+          elements?: Array<{ type?: string; content?: string }>;
+        };
+      };
+    };
+
+    const teacherParoles = (parsed.actions || [])
+      .filter((action) => action.type === "speech")
+      .map((action) => decodeHtmlEntities(stripHtml(action.text || action.content || "")))
+      .filter(Boolean);
+
+    const visibleTexts = ((parsed.content?.canvas?.elements || []) as Array<{
+      type?: string;
+      content?: string;
+    }>)
+      .filter((element) => element.type === "text")
+      .map((element) => decodeHtmlEntities(stripHtml(element.content || "")))
+      .filter(Boolean);
+
+    const interactiveDescription =
+      parsed.content?.type === "interactive" && parsed.content?.html
+        ? decodeHtmlEntities(stripHtml(parsed.content.html)).slice(0, 900)
+        : null;
+
+    return {
+      type: String(parsed.type || parsed.content?.type || "lesson"),
+      title: decodeHtmlEntities(stripHtml(parsed.title || "")),
+      teacherParoles,
+      visibleTexts,
+      interactiveDescription,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function isAiSceneLesson(content?: string | null) {
+  return parseAiScenePreview(content) !== null;
 }
 
 function escapeHtml(value: string) {
@@ -631,6 +713,16 @@ export default function AdminCourseDetailPage() {
                       <div className="rounded-2xl border border-dashed border-border bg-background px-4 py-5 text-sm text-text-secondary">
                         No lessons defined for this module yet.
                       </div>
+                    ) : !isEditMode &&
+                      module.lessons.some((lesson) => isAiSceneLesson(lesson.content)) ? (
+                      <AiCourseModulePlayer
+                        lessons={module.lessons.map((lesson) => ({
+                          id: lesson.id,
+                          title: lesson.title,
+                          duration: lesson.duration,
+                          content: lesson.content,
+                        }))}
+                      />
                     ) : (
                       module.lessons.map((lesson, lessonIndex) => (
                         <div
@@ -786,11 +878,81 @@ export default function AdminCourseDetailPage() {
                               <div className="mt-3 rounded-xl border border-border bg-card px-4 py-3">
                                 <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-text-secondary">
                                   <FileText className="h-4 w-4" />
-                                  Lesson Content
+                                  Lesson Preview
                                 </div>
-                                <p className="mt-2 text-sm leading-6 text-text-secondary">
-                                  {stripHtml(lesson.content) || "No lesson summary or resources text available."}
-                                </p>
+                                {(() => {
+                                  const aiPreview = parseAiScenePreview(lesson.content);
+
+                                  if (aiPreview) {
+                                    return (
+                                      <div className="mt-3 space-y-4 text-sm text-text-secondary">
+                                        {aiPreview.title && (
+                                          <div>
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                                              Scene Title
+                                            </p>
+                                            <p className="mt-1 text-sm font-medium text-text-primary">
+                                              {aiPreview.title}
+                                            </p>
+                                          </div>
+                                        )}
+
+                                        {aiPreview.visibleTexts.length > 0 && (
+                                          <div>
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                                              On-Screen Content
+                                            </p>
+                                            <ul className="mt-2 space-y-2">
+                                              {aiPreview.visibleTexts.map((text, index) => (
+                                                <li
+                                                  key={`${lesson.id}-visible-${index}`}
+                                                  className="rounded-lg bg-background px-3 py-2 leading-6"
+                                                >
+                                                  {text}
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        )}
+
+                                        {aiPreview.teacherParoles.length > 0 && (
+                                          <div>
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                                              Teacher Explanations
+                                            </p>
+                                            <ul className="mt-2 space-y-2">
+                                              {aiPreview.teacherParoles.map((text, index) => (
+                                                <li
+                                                  key={`${lesson.id}-speech-${index}`}
+                                                  className="rounded-lg border border-border bg-background px-3 py-2 leading-6"
+                                                >
+                                                  {text}
+                                                </li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        )}
+
+                                        {aiPreview.interactiveDescription && (
+                                          <div>
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                                              Interactive Activity
+                                            </p>
+                                            <p className="mt-2 rounded-lg bg-background px-3 py-2 leading-6">
+                                              {aiPreview.interactiveDescription}
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  }
+
+                                  return (
+                                    <p className="mt-2 text-sm leading-6 text-text-secondary">
+                                      {stripHtml(lesson.content) || "No lesson summary or resources text available."}
+                                    </p>
+                                  );
+                                })()}
                               </div>
                             </>
                           )}

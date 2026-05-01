@@ -75,7 +75,28 @@ export default function SuperAdminCoursesPage() {
           item.id === course.id ? { ...item, is_published: updated.is_published } : item
         )
       );
-      setSuccess(updated.is_published ? "Course published successfully." : "Course moved back to draft.");
+      if (updated.is_published) {
+        const memoryResponse = await fetch("/api/course-memory-agent/published-course", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ courseId: course.id }),
+        });
+        const memoryData = (await memoryResponse.json().catch(() => null)) as
+          | { success?: boolean; error?: string }
+          | null;
+
+        if (!memoryResponse.ok || !memoryData?.success) {
+          throw new Error(
+            memoryData?.error ||
+              "Course published, but the Course Memory Agent failed to assemble the course payload.",
+          );
+        }
+      }
+      setSuccess(
+        updated.is_published
+          ? "Course published successfully. The Course Memory Agent assembled the course content."
+          : "Course moved back to draft."
+      );
     } catch (err: any) {
       setError(err?.message || "Failed to update publish state.");
     } finally {

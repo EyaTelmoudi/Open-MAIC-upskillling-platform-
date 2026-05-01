@@ -1,0 +1,16 @@
+[project]
+name = "chat-coach-agent"
+version = "0.1.0"
+description = "Separate AgentOS service for the Chat Coach agent that queries Hindsight course memory."
+requires-python = ">=3.11"
+dependencies = [
+  "agno>=2.6.4",
+  "fastapi>=0.136.1",
+  "httpx>=0.28.1",
+  "pydantic>=2.11.0",
+  "uvicorn>=0.30.6",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

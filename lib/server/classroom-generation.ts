@@ -161,10 +161,13 @@ export async function generateClassroom(
   options: {
     baseUrl: string;
     onProgress?: (progress: ClassroomGenerationProgress) => Promise<void> | void;
+    throwIfCancelled?: () => void;
   },
 ): Promise<GenerateClassroomResult> {
   const { requirement, pdfContent } = input;
+  const ensureActive = () => options.throwIfCancelled?.();
 
+  ensureActive();
   await options.onProgress?.({
     step: 'initializing',
     progress: 5,
@@ -190,6 +193,7 @@ export async function generateClassroom(
   }
 
   const aiCall: AICallFn = async (systemPrompt, userPrompt, _images) => {
+    ensureActive();
     const result = await callLLM(
       {
         model: languageModel,
@@ -201,10 +205,12 @@ export async function generateClassroom(
       },
       'generate-classroom',
     );
+    ensureActive();
     return result.text;
   };
 
   const searchQueryAiCall: AICallFn = async (systemPrompt, userPrompt, _images) => {
+    ensureActive();
     const result = await callLLM(
       {
         model: languageModel,
@@ -216,6 +222,7 @@ export async function generateClassroom(
       },
       'web-search-query-rewrite',
     );
+    ensureActive();
     return result.text;
   };
 
@@ -224,6 +231,7 @@ export async function generateClassroom(
   };
   const pdfText = pdfContent?.text || undefined;
 
+  ensureActive();
   await options.onProgress?.({
     step: 'researching',
     progress: 10,
@@ -262,6 +270,7 @@ export async function generateClassroom(
     }
   }
 
+  ensureActive();
   await options.onProgress?.({
     step: 'generating_outlines',
     progress: 15,
@@ -269,6 +278,7 @@ export async function generateClassroom(
     scenesGenerated: 0,
   });
 
+  ensureActive();
   const outlinesResult = await generateSceneOutlinesFromRequirements(
     requirements,
     pdfText,
@@ -283,6 +293,7 @@ export async function generateClassroom(
     },
   );
 
+  ensureActive();
   if (!outlinesResult.success || !outlinesResult.data) {
     log.error('Failed to generate outlines:', outlinesResult.error);
     throw new Error(outlinesResult.error || 'Failed to generate scene outlines');
@@ -291,6 +302,7 @@ export async function generateClassroom(
   const { languageDirective, outlines } = outlinesResult.data;
   log.info(`Generated ${outlines.length} scene outlines (languageDirective: ${languageDirective})`);
 
+  ensureActive();
   await options.onProgress?.({
     step: 'generating_outlines',
     progress: 30,
@@ -303,6 +315,7 @@ export async function generateClassroom(
   let agents: AgentInfo[];
   const agentMode = input.agentMode || 'default';
   if (agentMode === 'generate') {
+    ensureActive();
     log.info('Generating custom agent profiles via LLM...');
     try {
       agents = await generateAgentProfiles(requirement, languageDirective, aiCall);
@@ -351,9 +364,11 @@ export async function generateClassroom(
   let generatedScenes = 0;
 
   for (const [index, outline] of outlines.entries()) {
+    ensureActive();
     const safeOutline = applyOutlineFallbacks(outline, true);
     const progressStart = 30 + Math.floor((index / Math.max(outlines.length, 1)) * 60);
 
+    ensureActive();
     await options.onProgress?.({
       step: 'generating_scenes',
       progress: Math.max(progressStart, 31),
@@ -362,18 +377,21 @@ export async function generateClassroom(
       totalScenes: outlines.length,
     });
 
+    ensureActive();
     const content = await generateSceneContent(safeOutline, aiCall, { agents, languageDirective });
     if (!content) {
       log.warn(`Skipping scene "${safeOutline.title}" — content generation failed`);
       continue;
     }
 
+    ensureActive();
     const actions = await generateSceneActions(safeOutline, content, aiCall, {
       agents,
       languageDirective,
     });
     log.info(`Scene "${safeOutline.title}": ${actions.length} actions`);
 
+    ensureActive();
     const sceneId = createSceneWithActions(safeOutline, content, actions, api);
     if (!sceneId) {
       log.warn(`Skipping scene "${safeOutline.title}" — scene creation failed`);
@@ -382,6 +400,7 @@ export async function generateClassroom(
 
     generatedScenes += 1;
     const progressEnd = 30 + Math.floor(((index + 1) / Math.max(outlines.length, 1)) * 60);
+    ensureActive();
     await options.onProgress?.({
       step: 'generating_scenes',
       progress: Math.min(progressEnd, 90),
@@ -400,6 +419,7 @@ export async function generateClassroom(
 
   // Phase: Media generation (after all scenes generated)
   if (input.enableImageGeneration || input.enableVideoGeneration) {
+    ensureActive();
     await options.onProgress?.({
       step: 'generating_media',
       progress: 90,
@@ -409,7 +429,9 @@ export async function generateClassroom(
     });
 
     try {
+      ensureActive();
       const mediaMap = await generateMediaForClassroom(outlines, stageId, options.baseUrl);
+      ensureActive();
       replaceMediaPlaceholders(scenes, mediaMap);
       log.info(`Media generation complete: ${Object.keys(mediaMap).length} files`);
     } catch (err) {
@@ -419,6 +441,7 @@ export async function generateClassroom(
 
   // Phase: TTS generation
   if (input.enableTTS) {
+    ensureActive();
     await options.onProgress?.({
       step: 'generating_tts',
       progress: 94,
@@ -428,13 +451,16 @@ export async function generateClassroom(
     });
 
     try {
+      ensureActive();
       await generateTTSForClassroom(scenes, stageId, options.baseUrl);
+      ensureActive();
       log.info('TTS generation complete');
     } catch (err) {
       log.warn('TTS generation phase failed, continuing:', err);
     }
   }
 
+  ensureActive();
   await options.onProgress?.({
     step: 'persisting',
     progress: 98,
@@ -443,6 +469,7 @@ export async function generateClassroom(
     totalScenes: outlines.length,
   });
 
+  ensureActive();
   const persisted = await persistClassroom(
     {
       id: stageId,
@@ -454,6 +481,7 @@ export async function generateClassroom(
 
   log.info(`Classroom persisted: ${persisted.id}, URL: ${persisted.url}`);
 
+  ensureActive();
   await options.onProgress?.({
     step: 'completed',
     progress: 100,

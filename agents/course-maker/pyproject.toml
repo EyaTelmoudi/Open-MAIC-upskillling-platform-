@@ -1,0 +1,22 @@
+[project]
+name = "course-maker-agent"
+version = "0.1.0"
+description = "Step-by-step Agno course maker integration for OpenMAIC."
+requires-python = ">=3.11"
+dependencies = [
+  "agno>=2.6.4",
+  "fastapi>=0.136.1",
+  "httpx>=0.28.1",
+  "uvicorn>=0.30.6",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]

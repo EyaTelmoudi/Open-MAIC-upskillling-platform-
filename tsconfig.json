@@ -36,6 +36,8 @@
     "packages/*/src",
     "openclaw",
     "e2e",
-    "upskilling_platform"
+    "upskilling_platform",
+    "hindsight",
+    "agents"
   ]
 }

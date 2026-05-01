@@ -71,7 +71,13 @@ function CelebrationBurstIcon({
   return <Sparkles className={className} />;
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  fullBleed = false,
+}: {
+  children: React.ReactNode;
+  fullBleed?: boolean;
+}) {
   const pathname = usePathname();
   const [isCompactSidebar, setIsCompactSidebar] = useState(false);
   const [currentStreak, setCurrentStreak] = useState(0);
@@ -90,6 +96,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       subtitle: string;
     }>
   >([]);
+  const [courseMemoryNotice, setCourseMemoryNotice] = useState<{
+    kind: "success" | "error";
+    title: string;
+    message: string;
+  } | null>(null);
   const { user, logout } = useAuth();
   const profileHref = routes.profile;
   const displayName = user
@@ -277,6 +288,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setCelebrationQueue(remaining);
   }, [celebrationModal, celebrationQueue]);
 
+  useEffect(() => {
+    if (!courseMemoryNotice) {
+      return;
+    }
+
+    const timer = setTimeout(() => setCourseMemoryNotice(null), 9000);
+    return () => clearTimeout(timer);
+  }, [courseMemoryNotice]);
+
   useGamificationRealtime(user?.id, Boolean(user), (event, payload) => {
     if (pathname.startsWith("/learn/")) {
       return;
@@ -343,6 +363,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       if (Number.isFinite(awardedAmount)) {
         setTotalXp((current) => current + awardedAmount);
       }
+      return;
+    }
+
+    if (event === "course_memory.completed") {
+      const courseId = typeof payload.courseId === "string" ? payload.courseId : "unknown";
+      setCourseMemoryNotice({
+        kind: "success",
+        title: "Course memory saved",
+        message: `Hindsight finished processing course ${courseId}.`,
+      });
+      return;
+    }
+
+    if (event === "course_memory.failed") {
+      const errorMessage =
+        typeof payload.error === "string" && payload.error.trim().length > 0
+          ? payload.error
+          : "Unknown error";
+      setCourseMemoryNotice({
+        kind: "error",
+        title: "Course memory failed",
+        message: `Hindsight could not finish processing the course: ${errorMessage}.`,
+      });
     }
   });
 
@@ -531,7 +574,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex min-h-[calc(100vh-76px)]">
           <Sidebar isCompact={isCompactSidebar} />
           <main className="min-w-0 flex-1 overflow-x-hidden">
-            <div className="mx-auto max-w-[1440px] p-4 sm:p-6">
+            <div className={fullBleed ? "h-full" : "mx-auto max-w-[1440px] p-4 sm:p-6"}>
             {goalReminder && (
               <div
                 className={`mb-4 flex flex-col gap-3 rounded-3xl border px-4 py-4 shadow-sm sm:flex-row sm:items-start sm:justify-between ${
@@ -644,6 +687,41 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+      {courseMemoryNotice && (
+        <div className="pointer-events-none fixed bottom-5 right-5 z-[140] max-w-sm">
+          <div
+            className={`pointer-events-auto rounded-3xl border px-4 py-4 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-md ${
+              courseMemoryNotice.kind === "success"
+                ? "border-emerald-200 bg-[linear-gradient(135deg,rgba(236,253,245,0.95),rgba(209,250,229,0.92))]"
+                : "border-rose-200 bg-[linear-gradient(135deg,rgba(255,241,242,0.96),rgba(255,228,230,0.92))]"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-white ${
+                  courseMemoryNotice.kind === "success"
+                    ? "bg-[linear-gradient(135deg,#059669_0%,#10b981_100%)]"
+                    : "bg-[linear-gradient(135deg,#e11d48_0%,#fb7185_100%)]"
+                }`}
+              >
+                <BellRing className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-text-primary">{courseMemoryNotice.title}</p>
+                <p className="mt-1 text-sm text-text-secondary">{courseMemoryNotice.message}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCourseMemoryNotice(null)}
+                className="rounded-full p-1 text-text-secondary transition-colors hover:bg-white/70 hover:text-text-primary"
+                aria-label="Dismiss notification"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}

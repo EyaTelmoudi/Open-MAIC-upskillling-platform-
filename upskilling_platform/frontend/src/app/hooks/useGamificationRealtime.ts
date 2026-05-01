@@ -4,22 +4,26 @@ import { useEffect, useRef } from "react";
 
 import { NOTIFICATIONS_URL } from "@/app/lib/api";
 
-type GamificationEvent =
+type LearningRealtimeEvent =
   | "xp.gained"
   | "level.up"
   | "badge.earned"
-  | "streak.update";
+  | "streak.update"
+  | "course_memory.completed"
+  | "course_memory.failed";
 
-type GamificationPayload = {
-  event: GamificationEvent;
+type LearningRealtimePayload = {
+  event: LearningRealtimeEvent;
   [key: string]: unknown;
 };
 
-const GAMIFICATION_EVENTS = new Set<GamificationEvent>([
+const SUPPORTED_EVENTS = new Set<LearningRealtimeEvent>([
   "xp.gained",
   "level.up",
   "badge.earned",
   "streak.update",
+  "course_memory.completed",
+  "course_memory.failed",
 ]);
 
 function buildNotificationsWebSocketUrl(userId: string, token: string): string[] {
@@ -30,7 +34,7 @@ function buildNotificationsWebSocketUrl(userId: string, token: string): string[]
 export function useGamificationRealtime(
   userId: string | undefined,
   enabled: boolean,
-  onEvent: (event: GamificationEvent, payload: GamificationPayload) => void,
+  onEvent: (event: LearningRealtimeEvent, payload: LearningRealtimePayload) => void,
 ) {
   const onEventRef = useRef(onEvent);
 
@@ -65,7 +69,7 @@ export function useGamificationRealtime(
       socket.onmessage = (messageEvent) => {
         try {
           const payload = JSON.parse(messageEvent.data);
-          if (GAMIFICATION_EVENTS.has(payload.event)) {
+          if (SUPPORTED_EVENTS.has(payload.event)) {
             onEventRef.current(payload.event, payload);
           }
         } catch (error) {

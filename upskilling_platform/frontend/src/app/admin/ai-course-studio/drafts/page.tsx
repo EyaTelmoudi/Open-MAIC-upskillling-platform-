@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/app/components/ui/Card";
 import { useAuth } from "@/app/context/AuthContext";
+import { formatDateForUser } from "@/app/lib/user-date-format";
 import { routes } from "@/app/lib/routes";
 import { AiCourseStudioNav } from "../ai-course-studio-nav";
 
@@ -34,10 +35,8 @@ type DraftSummary = {
   approvedScenesCount: number;
 };
 
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+function formatDate(value: string, timezone?: string | null) {
+  return formatDateForUser(value, timezone);
 }
 
 function statusVariant(status: DraftStatus) {
@@ -216,7 +215,7 @@ export default function AiCourseDraftsPage() {
                         <div className="space-y-2 text-sm text-slate-600">
                           <div>
                             <span className="font-medium text-slate-800">Updated:</span>{" "}
-                            {formatDate(draft.updatedAt)}
+                            {formatDate(draft.updatedAt, user?.timezone)}
                           </div>
                           <div className="break-all text-xs leading-6 text-slate-500">
                             <span className="font-semibold uppercase tracking-[0.12em] text-slate-400">
@@ -232,7 +231,7 @@ export default function AiCourseDraftsPage() {
                           href={routes.adminAiCourseEditor(draft.draftId)}
                         >
                           <Button className="bg-primary text-white hover:bg-primary-light">
-                            Open in Builder
+                            Open in Editor
                           </Button>
                         </Link>
                         {draft.status === "finalized" ? (

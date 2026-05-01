@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play, SkipBack, SkipForward, Volume2 } from "lucide-react";
+import { formatDateForUser } from "@/app/lib/user-date-format";
 
 type SpeechAction = {
   id: string;
@@ -113,7 +114,13 @@ function speechDuration(text: string) {
   return Math.min(9000, Math.max(2200, words * 260));
 }
 
-export function PlatformFinalCourseReviewer({ course }: { course: ReviewerFinalizedCourse }) {
+export function PlatformFinalCourseReviewer({
+  course,
+  timezone,
+}: {
+  course: ReviewerFinalizedCourse;
+  timezone?: string | null;
+}) {
   const orderedScenes = useMemo(
     () => course.scenes.slice().sort((a, b) => a.order - b.order),
     [course.scenes],
@@ -375,7 +382,7 @@ export function PlatformFinalCourseReviewer({ course }: { course: ReviewerFinali
                 Lesson {selectedSceneIndex + 1} / {orderedScenes.length}
               </span>
               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-                Generated {new Date(course.generatedAt).toLocaleString()}
+                Generated {formatDateForUser(course.generatedAt, timezone)}
               </span>
             </div>
           </section>

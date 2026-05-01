@@ -1,6 +1,6 @@
 import { createLogger } from '@/lib/logger';
 import { apiSuccess } from '@/lib/server/api-response';
-import { plainTextToHtml, readDraft, saveDraft } from '@/lib/learing-expert-agent/draft-store';
+import { deleteDraft, plainTextToHtml, readDraft, saveDraft } from '@/lib/learing-expert-agent/draft-store';
 import type { LearningExpertDraft } from '@/lib/learing-expert-agent/types';
 
 const log = createLogger('LearningExpertDraftAPI');
@@ -56,6 +56,26 @@ export async function PUT(
     return apiSuccess({ draft: savedDraft });
   } catch (error) {
     log.error('Failed to save learning expert draft:', error);
+    return Response.json(
+      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ draftId: string }> },
+) {
+  try {
+    const { draftId } = await params;
+    const deleted = await deleteDraft(draftId);
+    if (!deleted) {
+      return Response.json({ success: false, error: 'Draft not found' }, { status: 404 });
+    }
+    return apiSuccess({ deleted: true, draftId });
+  } catch (error) {
+    log.error('Failed to delete learning expert draft:', error);
     return Response.json(
       { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },

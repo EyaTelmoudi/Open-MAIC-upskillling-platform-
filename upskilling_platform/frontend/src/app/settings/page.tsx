@@ -271,6 +271,16 @@ export default function SettingsPage() {
     emailDigest: boolean;
   }>(() => loadSavedPreferences());
 
+  useEffect(() => {
+    if (!user?.timezone) {
+      return;
+    }
+
+    setPreferences((current) =>
+      current.timezone === user.timezone ? current : { ...current, timezone: user.timezone || current.timezone }
+    );
+  }, [user?.timezone]);
+
   /* Platform Admin */
   const [platformData, setPlatformData] = useState({
     platformName: "SkillForge",
@@ -330,16 +340,27 @@ export default function SettingsPage() {
 
   /* ── Save Preferences ── */
   const handleSavePreferences = useCallback(() => {
-    localStorage.setItem(
-      "sf_preferences",
-      JSON.stringify({
-        ...preferences,
-        themeVersion: THEME_PREF_VERSION,
-      })
-    );
-    setSuccess("App preferences saved!");
-    setTimeout(() => setSuccess(""), 3000);
-  }, [preferences]);
+    const persist = async () => {
+      localStorage.setItem(
+        "sf_preferences",
+        JSON.stringify({
+          ...preferences,
+          themeVersion: THEME_PREF_VERSION,
+        })
+      );
+
+      if (user?.timezone !== preferences.timezone) {
+        await updateProfile({ timezone: preferences.timezone });
+      }
+
+      setSuccess("App preferences saved!");
+      setTimeout(() => setSuccess(""), 3000);
+    };
+
+    void persist().catch((err) => {
+      setError(err instanceof Error ? err.message : "Failed to save app preferences");
+    });
+  }, [preferences, updateProfile, user?.timezone]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -16,6 +16,7 @@ import {
 } from "@/app/components/ui/Card";
 import { useAuth } from "@/app/context/AuthContext";
 import { routes } from "@/app/lib/routes";
+import { formatDateForUser } from "@/app/lib/user-date-format";
 import { AiCourseStudioNav } from "../../../ai-course-studio-nav";
 import {
   PlatformFinalCourseReviewer,
@@ -45,11 +46,8 @@ type ReviewRecord = {
   updatedAt: string;
 };
 
-function formatDate(value?: string) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+function formatDate(value?: string, timezone?: string | null) {
+  return formatDateForUser(value, timezone);
 }
 
 export default function AiCourseReviewPage() {
@@ -216,7 +214,7 @@ export default function AiCourseReviewPage() {
                       Approved scenes: {approvedScenesCount}/{draft?.editableScenes.length ?? 0}
                     </div>
                     <div className="text-xs text-slate-500">
-                      Finalized by OpenMAIC: {formatDate(draft?.updatedAt)}
+                      Finalized by OpenMAIC: {formatDate(draft?.updatedAt, user?.timezone)}
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
@@ -238,7 +236,7 @@ export default function AiCourseReviewPage() {
                       ) : (
                         <>
                           <Save className="h-4 w-4" />
-                          Final Approval: Save As Platform Draft
+                          Final Approval: Save Course to Platform
                         </>
                       )}
                     </Button>
@@ -263,7 +261,7 @@ export default function AiCourseReviewPage() {
                   Preparing animated review preview
                 </div>
               ) : course ? (
-                <PlatformFinalCourseReviewer course={course} />
+                <PlatformFinalCourseReviewer course={course} timezone={user?.timezone} />
               ) : (
                 <div className="rounded-3xl border border-dashed border-border bg-slate-50 px-5 py-10 text-sm text-slate-500">
                   No finalized course preview is available yet.

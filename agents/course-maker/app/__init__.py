@@ -1,0 +1,1 @@
+"""Course Maker agent package."""

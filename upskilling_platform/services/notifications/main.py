@@ -37,6 +37,8 @@ SERVICE_PORT = os.getenv("NOTIFICATIONS_SERVICE_PORT", "8004")
 RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 REALTIME_QUEUE = "learning.gamification"
 REALTIME_ROUTING_KEY = "learning.gamification"
+LEARNING_NOTIFICATION_QUEUE = "learning.notifications"
+LEARNING_NOTIFICATION_ROUTING_KEY = "learning.notifications"
 
 
 class RealtimeConnectionManager:
@@ -173,7 +175,14 @@ def handle_auth_event(message: dict[str, Any]) -> None:
 def handle_learning_event(message: dict[str, Any]) -> None:
     """Handle learning-domain realtime events."""
     event_type = message.get("event")
-    if event_type in {"xp.gained", "level.up", "badge.earned", "streak.update"}:
+    if event_type in {
+        "xp.gained",
+        "level.up",
+        "badge.earned",
+        "streak.update",
+        "course_memory.completed",
+        "course_memory.failed",
+    }:
         publish_realtime_notification(message)
 
 
@@ -245,6 +254,7 @@ def consume_messages():
         channel.queue_declare(queue="auth.admin-invitations", durable=True)
         channel.queue_declare(queue="identity.suspensions", durable=True)
         channel.queue_declare(queue=REALTIME_QUEUE, durable=True)
+        channel.queue_declare(queue=LEARNING_NOTIFICATION_QUEUE, durable=True)
 
         # Bind queues to exchanges
         channel.exchange_declare(exchange="identity.exchange", exchange_type="topic", durable=True)
@@ -254,6 +264,11 @@ def consume_messages():
             exchange="learning.exchange",
             queue=REALTIME_QUEUE,
             routing_key=REALTIME_ROUTING_KEY,
+        )
+        channel.queue_bind(
+            exchange="learning.exchange",
+            queue=LEARNING_NOTIFICATION_QUEUE,
+            routing_key=LEARNING_NOTIFICATION_ROUTING_KEY,
         )
 
         def callback(ch, method, properties, body):
@@ -271,7 +286,7 @@ def consume_messages():
                     handle_auth_event(message)
                 elif method.routing_key == "tenant.suspended":
                     handle_auth_event(message)
-                elif method.routing_key == REALTIME_ROUTING_KEY:
+                elif method.routing_key in {REALTIME_ROUTING_KEY, LEARNING_NOTIFICATION_ROUTING_KEY}:
                     handle_learning_event(message)
 
                 ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -301,6 +316,11 @@ def consume_messages():
         )
         channel.basic_consume(
             queue=REALTIME_QUEUE,
+            on_message_callback=callback,
+            auto_ack=False,
+        )
+        channel.basic_consume(
+            queue=LEARNING_NOTIFICATION_QUEUE,
             on_message_callback=callback,
             auto_ack=False,
         )

@@ -50,3 +50,13 @@ export async function safeSaveAiCourseAsPlatformDraft(
   if (!db) return null;
   return db.saveAiCourseAsPlatformDraft(request, draftId, approvedBy);
 }
+
+export async function safeDeleteAiCourseDraft(draftId: string) {
+  const db = await loadAiCourseDb();
+  if (!db) return null;
+  try {
+    return await db.deleteAiCourseDraft(draftId);
+  } catch {
+    return null;
+  }
+}

@@ -1,123 +1,132 @@
 "use client";
 
 import { useState } from "react";
-import { Sidebar } from "@/app/components/layout/Sidebar";
+import { AppShell } from "@/app/components/layout/AppShell";
 import { ChatMessages, type Message } from "@/app/components/coach/ChatMessages";
 import { ChatInput } from "@/app/components/coach/ChatInput";
 import { ConversationList } from "@/app/components/coach/ConversationList";
 import { Sparkles } from "lucide-react";
+import { useAuth } from "@/app/context/AuthContext";
 
-const mockConversations = [
-  {
-    id: "1",
-    title: "JavaScript Async",
-    preview: "How do async/await work?",
-    lastMessage: "2 hours ago",
-    unread: true,
-  },
-  {
-    id: "2",
-    title: "Python Basics",
-    preview: "Understanding lists and dicts",
-    lastMessage: "Yesterday",
-    unread: false,
-  },
-  {
-    id: "3",
-    title: "React Hooks",
-    preview: "When to use useMemo?",
-    lastMessage: "3 days ago",
-    unread: false,
-  },
-];
+const COURSE_MEMORY_DEMO_COURSE_ID = "30e2a552-f281-496e-99b8-cbab2fbff07b";
 
-const mockMessages: Message[] = [
+const starterMessages: Message[] = [
   {
     id: "1",
     role: "assistant",
-    content: "Hello! I'm your AI Learning Coach. I can help you understand concepts, answer questions about your courses, and guide you through your learning journey. What would you like to learn about today?",
+    content:
+      "Hello! I'm your AI Learning Coach. Ask me a question about your retained course knowledge and I will query Hindsight for the answer and supporting evidence.",
     timestamp: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: "2",
-    role: "user",
-    content: "Can you explain how async/await works in JavaScript? I'm having trouble understanding when to use it.",
-    timestamp: new Date(Date.now() - 3500000).toISOString(),
-  },
-  {
-    id: "3",
-    role: "assistant",
-    content: "Great question! Async/await is a way to handle asynchronous operations in JavaScript that makes your code more readable and easier to follow.\n\n**Here's the key concept:**\n\nThink of async/await like ordering food at a restaurant. When you place an order, the kitchen starts cooking (async operation), but you don't just stand there waiting - you can do other things. When your food is ready, the server brings it to you (await).\n\n**Key points to remember:**\n\n1. **async** - Declares a function that returns a Promise\n2. **await** - Pauses execution until the Promise resolves\n3. It makes asynchronous code look synchronous\n\nWould you like me to show you a practical example?",
-    timestamp: new Date(Date.now() - 3400000).toISOString(),
-    sources: [
-      { title: "JavaScript Fundamentals", lesson: "Async Programming" },
-    ],
-  },
-  {
-    id: "4",
-    role: "user",
-    content: "Yes, please show me an example with error handling.",
-    timestamp: new Date(Date.now() - 3300000).toISOString(),
-  },
-  {
-    id: "5",
-    role: "assistant",
-    content: "Here's a practical example with proper error handling using try/catch:\n\n```javascript\nasync function fetchUserData(userId) {\n  try {\n    const response = await fetch(`/api/users/${userId}`);\n    \n    if (!response.ok) {\n      throw new Error(`HTTP error! status: ${response.status}`);\n    }\n    \n    const data = await response.json();\n    return data;\n  } catch (error) {\n    console.error('Failed to fetch user:', error);\n    throw error;\n  }\n}\n```\n\n**Bloom's Taxonomy Insight:** You're moving from 'Understanding' to 'Applying' - great progress! The pattern above is a common real-world scenario you'll encounter frequently.\n\nDo you want to practice this with a quiz?",
-    timestamp: new Date(Date.now() - 3200000).toISOString(),
-    suggestedQuestions: [
-      "What's the difference between .then() and async/await?",
-      "Can you show me Promise.all()?",
-    ],
   },
 ];
 
 export default function CoachPage() {
-  const [messages, setMessages] = useState(mockMessages);
-  const [conversations] = useState(mockConversations);
+  const { tenantId } = useAuth();
+  const [messages, setMessages] = useState(starterMessages);
+  const [conversations] = useState([
+    {
+      id: "1",
+      title: "HTML Course Coach",
+      preview: "Ask about the retained HTML course",
+      lastMessage: "Now",
+      unread: false,
+    },
+  ]);
   const [activeConversation, setActiveConversation] = useState("1");
   const [isTyping, setIsTyping] = useState(false);
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = async (content: string) => {
     const newUserMessage = {
-      id: String(messages.length + 1),
+      id: crypto.randomUUID(),
       role: "user" as const,
       content,
       timestamp: new Date().toISOString(),
     };
-    setMessages([...messages, newUserMessage]);
+    setMessages((prev) => [...prev, newUserMessage]);
 
     setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
+    try {
+      const response = await fetch("/api/chat-coach-agent/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tenantId,
+          courseId: COURSE_MEMORY_DEMO_COURSE_ID,
+          question: content,
+        }),
+      });
+
+      const body = (await response.json().catch(() => null)) as
+        | {
+            success?: boolean;
+            result?: {
+              answer?: string;
+              basedOn?: {
+                memories?: Array<{
+                  text?: string;
+                  type?: string;
+                }>;
+              };
+              supportingMemories?: Array<{
+                text?: string;
+                type?: string;
+              }>;
+            };
+            error?: string;
+          }
+        | null;
+
+      if (!response.ok || !body?.success || !body.result) {
+        throw new Error(body?.error || "The AI Coach could not answer your question.");
+      }
+
       const aiResponse = {
-        id: String(messages.length + 2),
+        id: crypto.randomUUID(),
         role: "assistant" as const,
-        content: "Thank you for your question! This is a demo response - in Sprint 4, this will connect to the actual AI agent API. The AI Coach will provide personalized tutoring based on your learning context and progress.",
+        content: body.result.answer || "I could not generate an answer.",
         timestamp: new Date().toISOString(),
+        sources: (body.result.supportingMemories || body.result.basedOn?.memories || []).slice(0, 3).map((memory, index) => ({
+          title: `Hindsight memory ${index + 1}`,
+          lesson: memory.type || "observation",
+          snippet: memory.text || "",
+        })),
       };
       setMessages((prev) => [...prev, aiResponse]);
-    }, 1500);
+    } catch (error) {
+      const aiErrorResponse = {
+        id: crypto.randomUUID(),
+        role: "assistant" as const,
+        content:
+          error instanceof Error
+            ? error.message
+            : "The AI Coach could not answer your question right now.",
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, aiErrorResponse]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const suggestedQuestions = [
-    "Explain closures in JavaScript",
-    "How does CSS Grid work?",
-    "What are React hooks?",
-    "Help me with Python dictionaries",
+    "Why is the alt attribute important for images?",
+    "What does the course say about the src attribute?",
+    "Which HTML element should be used for navigation links?",
+    "Why are semantic HTML tags important for accessibility and SEO?",
   ];
 
   return (
-    <div className="flex min-h-screen scroll-smooth bg-background">
-      <Sidebar isCompact={false} />
-
-      <main className="flex min-h-screen flex-1 overflow-x-hidden">
+    <AppShell fullBleed>
+      <div className="flex h-[calc(100vh-76px)] min-h-0 overflow-hidden">
         <ConversationList
           conversations={conversations}
           activeId={activeConversation}
           onSelect={setActiveConversation}
         />
 
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col border border-border bg-card">
           <header className="flex items-center gap-3 border-b border-border bg-card px-6 py-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
               <Sparkles className="h-5 w-5 text-primary" />
@@ -127,7 +136,7 @@ export default function CoachPage() {
                 AI Learning Coach
               </h1>
               <p className="text-sm text-text-secondary">
-                Powered by Bloom's Taxonomy
+                Powered by AgnoOS and Hindsight
               </p>
             </div>
           </header>
@@ -158,7 +167,7 @@ export default function CoachPage() {
 
           <ChatInput onSend={handleSendMessage} disabled={isTyping} />
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

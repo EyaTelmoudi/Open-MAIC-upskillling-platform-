@@ -45,6 +45,8 @@ type AdminCourse = Course & {
   created_at?: string;
 };
 
+type CourseOrigin = "all" | "traditional" | "ai";
+
 type ModuleDraft = {
   id: string;
   title: string;
@@ -112,6 +114,21 @@ const difficultyColors: Record<string, { bg: string; text: string }> = {
   Intermediate: { bg: "bg-amber-500/10", text: "text-amber-500" },
   Advanced: { bg: "bg-red-500/10", text: "text-red-500" },
 };
+
+function getCourseOrigin(course: Pick<Course, "category" | "description">): Exclude<CourseOrigin, "all"> {
+  const category = (course.category || "").trim().toLowerCase();
+  const description = (course.description || "").trim().toLowerCase();
+
+  if (
+    category === "ai generated" ||
+    description.includes("ai-generated course draft") ||
+    description.includes("openmaic")
+  ) {
+    return "ai";
+  }
+
+  return "traditional";
+}
 
 function createEmptyModule(index: number): ModuleDraft {
   return {
@@ -294,6 +311,7 @@ export default function AdminCoursesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [originFilter, setOriginFilter] = useState<CourseOrigin>("all");
   const [formData, setFormData] = useState(emptyForm);
   const [modules, setModules] = useState<ModuleDraft[]>([createEmptyModule(0)]);
 
@@ -302,6 +320,13 @@ export default function AdminCoursesPage() {
 
   const filteredCourses = useMemo(() => {
     return courses.filter((course) => {
+      const matchesOrigin =
+        originFilter === "all" ? true : getCourseOrigin(course) === originFilter;
+
+      if (!matchesOrigin) {
+        return false;
+      }
+
       if (!search) {
         return true;
       }
@@ -312,7 +337,24 @@ export default function AdminCoursesPage() {
         course.category.toLowerCase().includes(needle)
       );
     });
-  }, [courses, search]);
+  }, [courses, originFilter, search]);
+
+  const courseCounts = useMemo(() => {
+    let ai = 0;
+    let traditional = 0;
+    for (const course of courses) {
+      if (getCourseOrigin(course) === "ai") {
+        ai += 1;
+      } else {
+        traditional += 1;
+      }
+    }
+    return {
+      all: courses.length,
+      ai,
+      traditional,
+    };
+  }, [courses]);
 
   async function loadCourses() {
     try {
@@ -453,12 +495,29 @@ export default function AdminCoursesPage() {
           ...finalCourse,
           is_published: published.is_published,
         };
+        if (published.is_published) {
+          const memoryResponse = await fetch("/api/course-memory-agent/published-course", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ courseId: createdCourse.id }),
+          });
+          const memoryData = (await memoryResponse.json().catch(() => null)) as
+            | { success?: boolean; error?: string }
+            | null;
+
+          if (!memoryResponse.ok || !memoryData?.success) {
+            throw new Error(
+              memoryData?.error ||
+                "Course published, but the Course Memory Agent failed to assemble the course payload.",
+            );
+          }
+        }
       }
 
       setCourses((current) => [finalCourse, ...current]);
       setSuccess(
         formData.is_published
-          ? "Course created and published successfully."
+          ? "Course created and published successfully. The Course Memory Agent assembled the course content."
           : "Course created successfully."
       );
       setShowCreateModal(false);
@@ -505,9 +564,26 @@ export default function AdminCoursesPage() {
             : item
         )
       );
+      if (updated.is_published) {
+        const memoryResponse = await fetch("/api/course-memory-agent/published-course", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ courseId: course.id }),
+        });
+        const memoryData = (await memoryResponse.json().catch(() => null)) as
+          | { success?: boolean; error?: string }
+          | null;
+
+        if (!memoryResponse.ok || !memoryData?.success) {
+          throw new Error(
+            memoryData?.error ||
+              "Course published, but the Course Memory Agent failed to assemble the course payload.",
+          );
+        }
+      }
       setSuccess(
         updated.is_published
-          ? "Course published successfully."
+          ? "Course published successfully. The Course Memory Agent assembled the course content."
           : "Course moved back to draft."
       );
     } catch (err) {
@@ -727,14 +803,51 @@ export default function AdminCoursesPage() {
         )}
 
         <div className="rounded-2xl border border-slate-200/80 bg-white/88 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-          <div className="relative w-[320px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search courses..."
-              className="border-slate-200 bg-white text-slate-900 placeholder:text-slate-500 pl-10"
-            />
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-slate-950">
+                Course Management Workspace
+              </h2>
+              <p className="text-sm text-slate-600">
+                Traditional courses and AI-generated courses remain available together in the same workspace.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 lg:items-end">
+              <div className="relative w-full lg:w-[320px]">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search courses..."
+                  className="border-slate-200 bg-white pl-10 text-slate-900 placeholder:text-slate-500"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: "all" as const, label: "All Courses", count: courseCounts.all },
+                  { value: "traditional" as const, label: "Traditional", count: courseCounts.traditional },
+                  { value: "ai" as const, label: "AI Generated", count: courseCounts.ai },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setOriginFilter(option.value)}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
+                      originFilter === option.value
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-primary/40 hover:text-primary"
+                    }`}
+                  >
+                    <span>{option.label}</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                      {option.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -791,9 +904,20 @@ export default function AdminCoursesPage() {
                           <BookOpen className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium text-slate-950">
-                            {course.title}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-slate-950">
+                              {course.title}
+                            </p>
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                getCourseOrigin(course) === "ai"
+                                  ? "bg-cyan-500/10 text-cyan-700"
+                                  : "bg-slate-200/80 text-slate-700"
+                              }`}
+                            >
+                              {getCourseOrigin(course) === "ai" ? "AI Generated" : "Traditional"}
+                            </span>
+                          </div>
                           <p className="line-clamp-1 text-xs text-slate-600">
                             {course.description || "No description provided"}
                           </p>
@@ -887,7 +1011,7 @@ export default function AdminCoursesPage() {
 
           {!isLoading && filteredCourses.length === 0 && (
             <div className="px-4 py-8 text-center text-slate-600">
-              No courses found
+              No courses found for the selected filter.
             </div>
           )}
         </div>

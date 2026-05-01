@@ -10,6 +10,10 @@ export const AGENTS_URL =
 export const NOTIFICATIONS_URL =
   process.env.NEXT_PUBLIC_NOTIFICATIONS_URL || "http://localhost:8004";
 
+function isBrowser() {
+  return typeof window !== "undefined";
+}
+
 function resolveBaseUrl(path: string): string {
   if (
     path.startsWith("/api/v1/auth") ||
@@ -24,6 +28,9 @@ function resolveBaseUrl(path: string): string {
   }
 
   if (path.startsWith("/api/v1/learning")) {
+    if (isBrowser()) {
+      return "";
+    }
     return LEARNING_URL;
   }
 
@@ -39,6 +46,14 @@ function resolveBaseUrl(path: string): string {
 }
 
 function normalizeServicePath(path: string): string {
+  if (isBrowser() && path.startsWith("/api/v1/learning/")) {
+    return path.replace("/api/v1/learning", "/api/learning");
+  }
+
+  if (isBrowser() && path === "/api/v1/learning") {
+    return "/api/learning";
+  }
+
   if (path.startsWith("/api/v1/learning/")) {
     return path.replace("/api/v1/learning", "/api/v1");
   }
@@ -92,7 +107,8 @@ class ApiClient {
       return path;
     }
     const normalizedPath = normalizeServicePath(path);
-    return `${resolveBaseUrl(path) || this.baseUrl}${normalizedPath}`;
+    const resolvedBaseUrl = resolveBaseUrl(path);
+    return `${resolvedBaseUrl}${normalizedPath}`;
   }
 
   private getHeaders(): HeadersInit {

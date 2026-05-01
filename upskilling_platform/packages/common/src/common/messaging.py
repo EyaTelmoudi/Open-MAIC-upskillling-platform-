@@ -32,6 +32,10 @@ QUEUES = {
         "exchange": "learning",
         "routing_key": "learning.gamification",
     },
+    "learning.notifications": {
+        "exchange": "learning",
+        "routing_key": "learning.notifications",
+    },
     "agents.tasks": {"exchange": "agents", "routing_key": "agents.tasks"},
     "agents.recall": {"exchange": "agents", "routing_key": "agents.recall"},
     "notif.email": {"exchange": "notifications", "routing_key": "notif.email"},
