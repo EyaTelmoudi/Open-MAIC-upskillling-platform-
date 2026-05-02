@@ -13,6 +13,7 @@ from services.learning.utils.media import normalize_media_reference, resolve_med
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
 security = HTTPBearer()
+DRAFT_VIEW_ROLES = {"LearningExpert", "Admin", "SuperAdmin"}
 
 
 def get_current_user(
@@ -41,6 +42,10 @@ def _get_user_from_payload(payload: dict, db: Session) -> User:
     return user
 
 
+def _can_view_unpublished_course(user: User) -> bool:
+    return user.role in DRAFT_VIEW_ROLES
+
+
 def _validate_course_access_by_module(
     module_id: UUID, user: User, db: Session
 ) -> Course:
@@ -56,6 +61,8 @@ def _validate_course_access_by_module(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied: course belongs to another tenant"
         )
+    if not course.is_published and not _can_view_unpublished_course(user):
+        raise HTTPException(status_code=404, detail="Course not found")
     return course
 
 

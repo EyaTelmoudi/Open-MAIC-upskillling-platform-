@@ -304,6 +304,65 @@ export async function getAiCourseDraft(draftId: string) {
   return result.rows[0] || null;
 }
 
+export async function getAiCourseDraftByPlatformCourseId(
+  request: Request,
+  platformCourseId: string,
+  title?: string | null,
+) {
+  await ensureTables();
+  const jwt = decodeJwtPayload(getTokenFromRequest(request));
+  const client = await getPool().connect();
+  try {
+    let result = await client.query<DraftDbRow>(
+      `
+      SELECT *
+      FROM ai_course_drafts
+      WHERE platform_course_id = $1
+        AND ($2::uuid IS NULL OR tenant_id = $2::uuid)
+      ORDER BY updated_at DESC
+      LIMIT 1
+      `,
+      [platformCourseId, jwt?.tenantId || null],
+    );
+
+    let record = result.rows[0] || null;
+
+    if (!record && title) {
+      result = await client.query<DraftDbRow>(
+        `
+        SELECT *
+        FROM ai_course_drafts
+        WHERE LOWER(title) = LOWER($1)
+          AND ($2::uuid IS NULL OR tenant_id = $2::uuid)
+        ORDER BY updated_at DESC
+        LIMIT 1
+        `,
+        [title, jwt?.tenantId || null],
+      );
+
+      record = result.rows[0] || null;
+
+      if (record && !record.platform_course_id) {
+        const updated = await client.query<DraftDbRow>(
+          `
+          UPDATE ai_course_drafts
+          SET platform_course_id = $2,
+              updated_at = (NOW() AT TIME ZONE 'UTC')
+          WHERE id = $1
+          RETURNING *
+          `,
+          [record.id, platformCourseId],
+        );
+        record = updated.rows[0] || record;
+      }
+    }
+
+    return record;
+  } finally {
+    client.release();
+  }
+}
+
 export async function deleteAiCourseDraft(draftId: string) {
   await ensureTables();
   const result = await getPool().query<DraftDbRow>(

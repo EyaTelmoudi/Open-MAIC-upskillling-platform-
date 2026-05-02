@@ -1,0 +1,16 @@
+{
+  "requirement": "do me a html course",
+  "options": {
+    "enableWebSearch": true,
+    "enableImageGeneration": false,
+    "enableVideoGeneration": true,
+    "enableTTS": true,
+    "agentMode": "default"
+  },
+  "pdf": {
+    "fileName": "Introduction to HTML.pdf",
+    "size": 45701,
+    "type": "application/pdf"
+  },
+  "createdAt": "2026-05-01T10:03:38.090Z"
+}

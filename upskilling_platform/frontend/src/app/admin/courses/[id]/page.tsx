@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
+  CheckCircle,
   Clock3,
   Edit,
+  Eye,
   FileText,
   FileVideo,
   Layers3,
@@ -20,11 +22,14 @@ import {
 } from "lucide-react";
 
 import { AdminShell } from "@/app/components/layout/AdminShell";
+import { CourseManagementNav } from "@/app/admin/courses/course-management-nav";
 import { AiCourseModulePlayer } from "@/app/components/admin/AiCourseModulePlayer";
-import { Button } from "@/app/components/ui/Button";
+import { Button, buttonVariants } from "@/app/components/ui/Button";
 import { Input } from "@/app/components/ui/Input";
 import {
   getCourseById,
+  LEARNING_URL,
+  toggleCoursePublish,
   updateCourseById,
   updateCourseModule,
   updateModuleLesson,
@@ -78,6 +83,11 @@ const difficultyStyles: Record<string, string> = {
   Advanced: "bg-red-500/10 text-red-600",
 };
 
+const statusStyles: Record<"published" | "draft", string> = {
+  published: "bg-green-500/10 text-green-600",
+  draft: "bg-amber-500/10 text-amber-600",
+};
+
 const categoryOptions = [
   "Technology",
   "Business",
@@ -119,6 +129,48 @@ function decodeHtmlEntities(value: string) {
   const textarea = document.createElement("textarea");
   textarea.innerHTML = value;
   return textarea.value;
+}
+
+function extractLooseMatches(source: string, pattern: RegExp) {
+  return Array.from(source.matchAll(pattern))
+    .map((match) => decodeHtmlEntities(stripHtml(match[1] || "")))
+    .filter(Boolean);
+}
+
+function parseLooseAiScenePreview(content: string): ParsedAiScenePreview | null {
+  const sceneType =
+    content.match(/"content"\s*:\s*\{\s*"type"\s*:\s*"([^"]+)"/)?.[1] ||
+    content.match(/"type"\s*:\s*"([^"]+)"/)?.[1] ||
+    "lesson";
+
+  const teacherParoles = extractLooseMatches(
+    content,
+    /"text"\s*:\s*"([\s\S]*?)"\s*,\s*"type"\s*:\s*"speech"/g
+  );
+
+  const visibleTexts = extractLooseMatches(
+    content,
+    /"content"\s*:\s*"([\s\S]*?)"\s*,\s*"defaultColor"/g
+  );
+
+  const interactiveDescriptionMatch = content.match(
+    /"html"\s*:\s*"([\s\S]*?)"\s*,\s*"type"\s*:\s*"interactive"/
+  );
+  const interactiveDescription = interactiveDescriptionMatch
+    ? decodeHtmlEntities(stripHtml(interactiveDescriptionMatch[1])).slice(0, 900)
+    : null;
+
+  if (teacherParoles.length === 0 && visibleTexts.length === 0 && !interactiveDescription && !content.includes('"questions"')) {
+    return null;
+  }
+
+  return {
+    type: sceneType,
+    title: "",
+    teacherParoles,
+    visibleTexts,
+    interactiveDescription,
+  };
 }
 
 function parseAiScenePreview(content?: string | null): ParsedAiScenePreview | null {
@@ -171,12 +223,24 @@ function parseAiScenePreview(content?: string | null): ParsedAiScenePreview | nu
       interactiveDescription,
     };
   } catch {
-    return null;
+    return parseLooseAiScenePreview(trimmed);
   }
 }
 
 function isAiSceneLesson(content?: string | null) {
   return parseAiScenePreview(content) !== null;
+}
+
+function moduleHasAiLessons(
+  module: { lessons: Array<{ content?: string | null }> }
+) {
+  return module.lessons.some((lesson) => isAiSceneLesson(lesson.content));
+}
+
+function isAiGeneratedCourse(course: Pick<EditableCourse | CourseDetailResponse, "category" | "description">) {
+  const category = String(course.category || "").toLowerCase();
+  const description = String(course.description || "").toLowerCase();
+  return category.includes("ai") || description.includes("ai-generated");
 }
 
 function escapeHtml(value: string) {
@@ -239,6 +303,148 @@ function extractLessonEditorData(content: string | null | undefined): {
   return { summary, resources };
 }
 
+function getLessonPreviewData(content: string | null | undefined): {
+  summary: string;
+  resources: ResourceLink[];
+} {
+  if (!content) {
+    return { summary: "", resources: [] };
+  }
+
+  if (typeof window === "undefined") {
+    return {
+      summary: stripHtml(content),
+      resources: [],
+    };
+  }
+
+  return extractLessonEditorData(content);
+}
+
+function dedupeResources(resources: ResourceLink[]) {
+  const seen = new Set<string>();
+  return resources.filter((resource) => {
+    const key = `${resource.title}::${resource.url}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function encodeObjectPath(objectName: string) {
+  return objectName
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+}
+
+function buildProxyMediaUrl(bucket: string, objectName: string) {
+  return `${LEARNING_URL}/api/v1/content/media/${bucket}/${encodeObjectPath(objectName)}`;
+}
+
+function normalizeResourceUrl(url: string) {
+  if (!url) {
+    return url;
+  }
+
+  if (url.startsWith("minio://")) {
+    const remainder = url.slice("minio://".length);
+    const slashIndex = remainder.indexOf("/");
+    if (slashIndex > 0) {
+      const bucket = remainder.slice(0, slashIndex);
+      const objectName = remainder.slice(slashIndex + 1);
+      return buildProxyMediaUrl(bucket, objectName);
+    }
+    return url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    const pathParts = parsed.pathname.split("/").filter(Boolean);
+    const mediaMarker = ["api", "v1", "content", "media"];
+
+    if (pathParts.length >= 6 && mediaMarker.every((part, index) => pathParts[index] === part)) {
+      return url;
+    }
+
+    if (pathParts.length >= 2) {
+      const [bucket, ...rest] = pathParts;
+      if (
+        ["course-videos", "course-pdfs", "course-slides", "course-images", "course-files"].includes(bucket)
+      ) {
+        return buildProxyMediaUrl(bucket, rest.join("/"));
+      }
+    }
+  } catch {
+    return url;
+  }
+
+  return url;
+}
+
+function getResourceExtension(resource: ResourceLink) {
+  const raw = `${resource.title} ${resource.url}`.toLowerCase();
+  const match = raw.match(/\.([a-z0-9]+)(?:$|[?#\s])/);
+  return match?.[1] || "";
+}
+
+function getResourceKind(resource: ResourceLink) {
+  const extension = getResourceExtension(resource);
+
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(extension)) {
+    return "image";
+  }
+
+  if (extension === "pdf") {
+    return "pdf";
+  }
+
+  if (["mp4", "webm", "ogg", "mov"].includes(extension)) {
+    return "video";
+  }
+
+  if (["mp3", "wav", "m4a"].includes(extension)) {
+    return "audio";
+  }
+
+  return "file";
+}
+
+function getResourceFilename(value: string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const normalized = value.startsWith("minio://") ? value.slice("minio://".length) : value;
+    const pathname = normalized.startsWith("http://") || normalized.startsWith("https://")
+      ? new URL(normalized).pathname
+      : normalized;
+    const parts = pathname.split("/").filter(Boolean);
+    return decodeURIComponent(parts[parts.length - 1] || "").toLowerCase();
+  } catch {
+    const parts = value.split("/").filter(Boolean);
+    return decodeURIComponent(parts[parts.length - 1] || "").toLowerCase();
+  }
+}
+
+function isDuplicateOfMainVideo(resource: ResourceLink, videoUrl: string | null) {
+  if (!videoUrl) {
+    return false;
+  }
+
+  const resourceFile = getResourceFilename(resource.url || resource.title);
+  const resourceTitle = getResourceFilename(resource.title);
+  const videoFile = getResourceFilename(videoUrl);
+
+  return Boolean(
+    videoFile &&
+      (resourceFile === videoFile || resourceTitle === videoFile)
+  );
+}
+
 function SelectedFilesList({
   files,
   emptyLabel,
@@ -247,11 +453,11 @@ function SelectedFilesList({
   emptyLabel: string;
 }) {
   if (files.length === 0) {
-    return <p className="mt-2 text-xs text-text-secondary">{emptyLabel}</p>;
+    return <p className="mt-2 text-xs text-slate-500">{emptyLabel}</p>;
   }
 
   return (
-    <ul className="mt-2 space-y-1 text-xs text-text-secondary">
+    <ul className="mt-2 space-y-1 text-xs text-slate-500">
       {files.map((file) => (
         <li key={`${file.name}-${file.size}`}>{file.name}</li>
       ))}
@@ -261,12 +467,15 @@ function SelectedFilesList({
 
 export default function AdminCourseDetailPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const courseId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const startInEditMode = searchParams.get("edit") === "1";
 
   const [course, setCourse] = useState<CourseDetailResponse | null>(null);
   const [editingCourse, setEditingCourse] = useState<EditableCourse | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -324,6 +533,12 @@ export default function AdminCourseDetailPage() {
   useEffect(() => {
     loadCourse();
   }, [courseId]);
+
+  useEffect(() => {
+    if (startInEditMode && course && editingCourse) {
+      setIsEditMode(true);
+    }
+  }, [course, editingCourse, startInEditMode]);
 
   const updateEditingCourse = (changes: Partial<EditableCourse>) => {
     setEditingCourse((current) => (current ? { ...current, ...changes } : current));
@@ -434,28 +649,107 @@ export default function AdminCourseDetailPage() {
     }
   }
 
+  async function handleTogglePublish() {
+    if (!course) {
+      return;
+    }
+
+    setIsPublishing(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const updated = await toggleCoursePublish(course.id);
+
+      if (updated.is_published) {
+        const memoryResponse = await fetch("/api/course-memory-agent/published-course", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ courseId: course.id }),
+        });
+        const memoryData = (await memoryResponse.json().catch(() => null)) as
+          | { success?: boolean; error?: string }
+          | null;
+
+        if (!memoryResponse.ok || !memoryData?.success) {
+          throw new Error(
+            memoryData?.error ||
+              "Course published, but the Course Memory Agent failed to assemble the course payload."
+          );
+        }
+      }
+
+      setCourse((current) => (current ? { ...current, is_published: updated.is_published } : current));
+      setEditingCourse((current) =>
+        current ? { ...current, is_published: updated.is_published } : current
+      );
+      setSuccess(
+        updated.is_published
+          ? "Course is now visible to everyone on the platform."
+          : "Course moved back to draft."
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to change course visibility."
+      );
+    } finally {
+      setIsPublishing(false);
+    }
+  }
+
   return (
     <AdminShell>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <Link
-              href={routes.adminCourses}
-              className="mb-3 inline-flex items-center gap-2 text-sm text-text-secondary transition-colors hover:text-text-primary"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to courses
-            </Link>
-            <h1 className="text-2xl font-bold text-text-primary">Course Details</h1>
-            <p className="mt-1 text-sm text-text-secondary">
-              Review and modify the full structure, modules, and lessons of the selected course.
-            </p>
-          </div>
+        <CourseManagementNav
+          currentCourseId={courseId}
+        />
 
-          {!loading && course && (
-            <div className="flex flex-wrap gap-3">
+        {loading ? (
+          <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-slate-200 bg-white/95 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+            <div className="inline-flex items-center gap-2 text-slate-600">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading course details...
+            </div>
+          </div>
+        ) : error ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        ) : course && editingCourse ? (
+          <>
+            {(() => {
+              const aiCourse = isAiGeneratedCourse(course);
+
+              return (
+                <>
+            {success && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {success}
+              </div>
+            )}
+
+            <div className="flex flex-wrap justify-end gap-3">
               {isEditMode ? (
                 <>
+                  <Button
+                    variant="outline"
+                    onClick={handleTogglePublish}
+                    disabled={isSaving || isPublishing}
+                    className="border-slate-300 bg-white text-slate-950 hover:bg-slate-100"
+                  >
+                    {isPublishing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : course.is_published ? (
+                      <Eye className="h-4 w-4" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4" />
+                    )}
+                    {isPublishing
+                      ? "Updating..."
+                      : course.is_published
+                        ? "Move To Draft"
+                        : "Publish Course"}
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -464,90 +758,94 @@ export default function AdminCourseDetailPage() {
                       setError(null);
                       loadCourse();
                     }}
+                    className="border-slate-300 bg-white text-slate-950 hover:bg-slate-100"
                   >
                     <X className="h-4 w-4" />
                     Cancel
                   </Button>
-                  <Button onClick={handleSave} disabled={isSaving}>
+                  <Button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="bg-slate-900 text-white hover:bg-slate-800"
+                  >
                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     {isSaving ? "Saving..." : "Save Changes"}
                   </Button>
                 </>
               ) : (
-                <Button onClick={() => setIsEditMode(true)}>
-                  <Edit className="h-4 w-4" />
-                  Edit Course
-                </Button>
+                <>
+                  <Button
+                    variant={course.is_published ? "outline" : "default"}
+                    onClick={handleTogglePublish}
+                    disabled={isPublishing}
+                    className={
+                      course.is_published
+                        ? "border-slate-300 bg-white text-slate-950 hover:bg-slate-100"
+                        : undefined
+                    }
+                  >
+                    {isPublishing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : course.is_published ? (
+                      <Eye className="h-4 w-4" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4" />
+                    )}
+                    {isPublishing
+                      ? "Updating..."
+                      : course.is_published
+                        ? "Move To Draft"
+                        : "Publish Course"}
+                  </Button>
+                  <Link
+                    href={routes.adminCourseEditorResolver(course.id)}
+                    className={buttonVariants({ variant: "default", size: "default" })}
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit Course
+                  </Link>
+                </>
               )}
             </div>
-          )}
-        </div>
 
-        {loading ? (
-          <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-border bg-card">
-            <div className="inline-flex items-center gap-2 text-text-secondary">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading course details...
-            </div>
-          </div>
-        ) : error ? (
-          <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {error}
-          </div>
-        ) : course && editingCourse ? (
-          <>
-            {success && (
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
-                {success}
-              </div>
-            )}
-
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <BookOpen className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      {isEditMode ? (
+            {isEditMode ? (
+              <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-4 flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                        <BookOpen className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
                         <div className="grid gap-4 md:grid-cols-2">
                           <div className="space-y-2 md:col-span-2">
-                            <label className="text-xs font-medium text-text-secondary">Title</label>
+                            <label className="text-xs font-medium text-slate-600">Title</label>
                             <Input
                               value={editingCourse.title}
                               onChange={(e) => updateEditingCourse({ title: e.target.value })}
+                              className="border-slate-200 bg-white text-slate-900"
                             />
                           </div>
                           <div className="space-y-2 md:col-span-2">
-                            <label className="text-xs font-medium text-text-secondary">Description</label>
+                            <label className="text-xs font-medium text-slate-600">Description</label>
                             <textarea
                               value={editingCourse.description}
                               onChange={(e) => updateEditingCourse({ description: e.target.value })}
                               rows={3}
-                              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
                             />
                           </div>
                         </div>
-                      ) : (
-                        <>
-                          <h2 className="text-xl font-semibold text-text-primary">{course.title}</h2>
-                          <p className="text-sm text-text-secondary">
-                            {course.description || "No description provided."}
-                          </p>
-                        </>
-                      )}
+                      </div>
                     </div>
-                  </div>
 
-                  {isEditMode ? (
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                       <div className="space-y-2">
-                        <label className="text-xs font-medium text-text-secondary">Category</label>
+                        <label className="text-xs font-medium text-slate-600">Category</label>
                         <select
                           value={editingCourse.category}
                           onChange={(e) => updateEditingCourse({ category: e.target.value })}
-                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
+                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
                         >
                           {categoryOptions.map((category) => (
                             <option key={category} value={category}>
@@ -557,11 +855,11 @@ export default function AdminCourseDetailPage() {
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-medium text-text-secondary">Difficulty</label>
+                        <label className="text-xs font-medium text-slate-600">Difficulty</label>
                         <select
                           value={editingCourse.difficulty}
                           onChange={(e) => updateEditingCourse({ difficulty: e.target.value })}
-                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
+                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
                         >
                           {difficultyOptions.map((difficulty) => (
                             <option key={difficulty} value={difficulty}>
@@ -571,109 +869,176 @@ export default function AdminCourseDetailPage() {
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-medium text-text-secondary">Duration (minutes)</label>
+                        <label className="text-xs font-medium text-slate-600">Duration (minutes)</label>
                         <Input
                           type="number"
                           value={editingCourse.duration}
                           onChange={(e) =>
                             updateEditingCourse({ duration: parseInt(e.target.value, 10) || 0 })
                           }
+                          className="border-slate-200 bg-white text-slate-900"
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-medium text-text-secondary">XP Reward</label>
+                        <label className="text-xs font-medium text-slate-600">XP Reward</label>
                         <Input
                           type="number"
                           value={editingCourse.xp_reward}
                           onChange={(e) =>
                             updateEditingCourse({ xp_reward: parseInt(e.target.value, 10) || 0 })
                           }
+                          className="border-slate-200 bg-white text-slate-900"
                         />
                       </div>
                     </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                        {course.category}
-                      </span>
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${
-                          difficultyStyles[course.difficulty] || "bg-muted text-text-secondary"
-                        }`}
-                      >
-                        {course.difficulty}
-                      </span>
-                      <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-text-secondary">
-                        {course.is_published ? "Published" : "Draft"}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                  </div>
 
-                <div className="grid min-w-[260px] gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-border bg-background p-4">
-                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-text-secondary">
-                      <Clock3 className="h-4 w-4" />
-                      Duration
+                  <div className="grid min-w-[260px] gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-600">
+                        <Clock3 className="h-4 w-4" />
+                        Duration
+                      </div>
+                      <p className="mt-2 text-lg font-semibold text-slate-950">
+                        {Math.round(editingCourse.duration / 60)}h
+                      </p>
                     </div>
-                    <p className="mt-2 text-lg font-semibold text-text-primary">
-                      {Math.round((isEditMode ? editingCourse.duration : course.duration) / 60)}h
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-background p-4">
-                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-text-secondary">
-                      <Star className="h-4 w-4" />
-                      XP Reward
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-600">
+                        <Star className="h-4 w-4" />
+                        XP Reward
+                      </div>
+                      <p className="mt-2 text-lg font-semibold text-emerald-700">
+                        +{editingCourse.xp_reward}
+                      </p>
                     </div>
-                    <p className="mt-2 text-lg font-semibold text-primary">
-                      +{isEditMode ? editingCourse.xp_reward : course.xp_reward}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-background p-4">
-                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-text-secondary">
-                      <Layers3 className="h-4 w-4" />
-                      Modules
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-600">
+                        <Layers3 className="h-4 w-4" />
+                        Modules
+                      </div>
+                      <p className="mt-2 text-lg font-semibold text-slate-950">
+                        {editingCourse.modules.length}
+                      </p>
                     </div>
-                    <p className="mt-2 text-lg font-semibold text-text-primary">
-                      {editingCourse.modules.length}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-background p-4">
-                    <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-text-secondary">
-                      <PlayCircle className="h-4 w-4" />
-                      Lessons
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-600">
+                        <PlayCircle className="h-4 w-4" />
+                        Lessons
+                      </div>
+                      <p className="mt-2 text-lg font-semibold text-slate-950">
+                        {editingCourse.modules.reduce((total, module) => total + module.lessons.length, 0)}
+                      </p>
                     </div>
-                    <p className="mt-2 text-lg font-semibold text-text-primary">
-                      {editingCourse.modules.reduce((total, module) => total + module.lessons.length, 0)}
-                    </p>
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <section className="overflow-hidden rounded-3xl border border-[#2A5B4A] bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.22),_transparent_32%),radial-gradient(circle_at_76%_18%,_rgba(59,130,246,0.2),_transparent_26%),linear-gradient(135deg,_#102E2D_0%,_#132A3A_48%,_#0F172A_100%)] p-6 text-white shadow-[0_26px_70px_rgba(0,0,0,0.28)] sm:p-8">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Course Overview
+                </div>
+                <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="max-w-3xl">
+                    <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                      {course.title}
+                    </h2>
+                    <p className="mt-4 text-sm leading-7 text-slate-200 sm:text-base">
+                      {course.description || "No description provided."}
+                    </p>
+                    <div className="mt-6 flex flex-wrap gap-3 text-xs font-medium text-emerald-100">
+                      <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
+                        {course.category}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
+                        {course.difficulty}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5">
+                        {course.is_published ? "Published" : "Draft"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-8 grid gap-3 lg:grid-cols-4">
+                  <div className="rounded-2xl border border-white/12 bg-gradient-to-br from-emerald-400/25 to-emerald-100/10 p-[1px]">
+                    <div className="h-full rounded-2xl bg-slate-950/40 p-4 backdrop-blur-sm">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                        <Clock3 className="h-5 w-5" />
+                      </div>
+                      <div className="mt-4 text-sm font-semibold text-white">Duration</div>
+                      <p className="mt-1 text-sm leading-6 text-slate-200">
+                        {Math.round(course.duration / 60)}h of learner-facing content
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-white/12 bg-gradient-to-br from-sky-400/25 to-sky-100/10 p-[1px]">
+                    <div className="h-full rounded-2xl bg-slate-950/40 p-4 backdrop-blur-sm">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                        <Star className="h-5 w-5" />
+                      </div>
+                      <div className="mt-4 text-sm font-semibold text-white">XP Reward</div>
+                      <p className="mt-1 text-sm leading-6 text-slate-200">
+                        +{course.xp_reward} points for successful completion
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-white/12 bg-gradient-to-br from-amber-400/25 to-amber-100/10 p-[1px]">
+                    <div className="h-full rounded-2xl bg-slate-950/40 p-4 backdrop-blur-sm">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                        <Layers3 className="h-5 w-5" />
+                      </div>
+                      <div className="mt-4 text-sm font-semibold text-white">Modules</div>
+                      <p className="mt-1 text-sm leading-6 text-slate-200">
+                        {course.modules.length} structured module{course.modules.length === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-white/12 bg-gradient-to-br from-violet-400/25 to-violet-100/10 p-[1px]">
+                    <div className="h-full rounded-2xl bg-slate-950/40 p-4 backdrop-blur-sm">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                        <PlayCircle className="h-5 w-5" />
+                      </div>
+                      <div className="mt-4 text-sm font-semibold text-white">Lessons</div>
+                      <p className="mt-1 text-sm leading-6 text-slate-200">
+                        {course.modules.reduce((total, module) => total + module.lessons.length, 0)} lesson{course.modules.reduce((total, module) => total + module.lessons.length, 0) === 1 ? "" : "s"} ready for review
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
 
             <div className="space-y-4">
               {(isEditMode ? editingCourse.modules : course.modules).map((module, moduleIndex) => (
                 <div
                   key={module.id}
-                  className="rounded-3xl border border-border bg-card p-6 shadow-sm"
+                  className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-[0_14px_32px_rgba(15,23,42,0.06)]"
                 >
+                  {(() => {
+                    const isAiModule =
+                      aiCourse || moduleHasAiLessons(module as { lessons: Array<{ content?: string | null }> });
+
+                    return (
+                      <>
                   <div className="mb-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
                       Module {moduleIndex + 1}
                     </p>
                     {isEditMode ? (
                       <div className="mt-3 grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <label className="text-xs font-medium text-text-secondary">Module Title</label>
+                          <label className="text-xs font-medium text-slate-600">Module Title</label>
                           <Input
                             value={(module as EditableModule).title}
                             onChange={(e) =>
                               updateEditingModule(module.id, { title: e.target.value })
                             }
+                            className="border-slate-200 bg-white text-slate-900"
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-xs font-medium text-text-secondary">Order</label>
+                          <label className="text-xs font-medium text-slate-600">Order</label>
                           <Input
                             type="number"
                             value={(module as EditableModule).order}
@@ -682,26 +1047,27 @@ export default function AdminCourseDetailPage() {
                                 order: parseInt(e.target.value, 10) || 1,
                               })
                             }
+                            className="border-slate-200 bg-white text-slate-900"
                           />
                         </div>
                         <div className="space-y-2 md:col-span-2">
-                          <label className="text-xs font-medium text-text-secondary">Module Description</label>
+                          <label className="text-xs font-medium text-slate-600">Module Description</label>
                           <textarea
                             value={(module as EditableModule).description}
                             onChange={(e) =>
                               updateEditingModule(module.id, { description: e.target.value })
                             }
                             rows={3}
-                            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
                           />
                         </div>
                       </div>
                     ) : (
                       <>
-                        <h3 className="mt-2 text-lg font-semibold text-text-primary">
+                        <h3 className="mt-2 text-lg font-semibold text-slate-950">
                           {module.title}
                         </h3>
-                        <p className="mt-1 text-sm text-text-secondary">
+                        <p className="mt-1 text-sm text-slate-600">
                           {module.description || "No module description provided."}
                         </p>
                       </>
@@ -710,30 +1076,36 @@ export default function AdminCourseDetailPage() {
 
                   <div className="space-y-3">
                     {module.lessons.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-border bg-background px-4 py-5 text-sm text-text-secondary">
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-5 text-sm text-slate-600">
                         No lessons defined for this module yet.
                       </div>
-                    ) : !isEditMode &&
-                      module.lessons.some((lesson) => isAiSceneLesson(lesson.content)) ? (
-                      <AiCourseModulePlayer
-                        lessons={module.lessons.map((lesson) => ({
-                          id: lesson.id,
-                          title: lesson.title,
-                          duration: lesson.duration,
-                          content: lesson.content,
-                        }))}
-                      />
+                    ) : isAiModule ? (
+                      <div className="space-y-4">
+                        {isEditMode ? (
+                          <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+                            This module contains AI-generated lesson scenes. It is shown with the AI lesson presentation instead of the traditional lesson resource editor.
+                          </div>
+                        ) : null}
+                        <AiCourseModulePlayer
+                          lessons={module.lessons.map((lesson) => ({
+                            id: lesson.id,
+                            title: lesson.title,
+                            duration: lesson.duration,
+                            content: lesson.content,
+                          }))}
+                        />
+                      </div>
                     ) : (
                       module.lessons.map((lesson, lessonIndex) => (
                         <div
                           key={lesson.id}
-                          className="rounded-2xl border border-border bg-background p-4"
+                          className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
                         >
                           {isEditMode ? (
                             <div className="space-y-4">
                               <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
-                                  <label className="text-xs font-medium text-text-secondary">Lesson Title</label>
+                                  <label className="text-xs font-medium text-slate-600">Lesson Title</label>
                                   <Input
                                     value={(lesson as EditableLesson).title}
                                     onChange={(e) =>
@@ -741,10 +1113,11 @@ export default function AdminCourseDetailPage() {
                                         title: e.target.value,
                                       })
                                     }
+                                    className="border-slate-200 bg-white text-slate-900"
                                   />
                                 </div>
                                 <div className="space-y-2">
-                                  <label className="text-xs font-medium text-text-secondary">Duration (minutes)</label>
+                                  <label className="text-xs font-medium text-slate-600">Duration (minutes)</label>
                                   <Input
                                     type="number"
                                     value={(lesson as EditableLesson).duration}
@@ -753,10 +1126,11 @@ export default function AdminCourseDetailPage() {
                                         duration: parseInt(e.target.value, 10) || 0,
                                       })
                                     }
+                                    className="border-slate-200 bg-white text-slate-900"
                                   />
                                 </div>
                                 <div className="space-y-2 md:col-span-2">
-                                  <label className="text-xs font-medium text-text-secondary">Lesson Summary</label>
+                                  <label className="text-xs font-medium text-slate-600">Lesson Summary</label>
                                   <textarea
                                     value={(lesson as EditableLesson).summary}
                                     onChange={(e) =>
@@ -765,24 +1139,24 @@ export default function AdminCourseDetailPage() {
                                       })
                                     }
                                     rows={3}
-                                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-text-primary"
+                                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
                                   />
                                 </div>
                               </div>
 
                               {((lesson as EditableLesson).resources.length > 0 ||
                                 (lesson as EditableLesson).video_url) && (
-                                <div className="rounded-xl border border-border bg-card p-3">
-                                  <p className="text-xs font-medium text-text-primary">
+                                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                                  <p className="text-xs font-medium text-slate-900">
                                     Current Attached Content
                                   </p>
                                   {(lesson as EditableLesson).video_url && (
-                                    <p className="mt-2 text-xs text-text-secondary">
+                                    <p className="mt-2 text-xs text-slate-500">
                                       Main video already attached
                                     </p>
                                   )}
                                   {(lesson as EditableLesson).resources.length > 0 && (
-                                    <ul className="mt-2 space-y-1 text-xs text-text-secondary">
+                                    <ul className="mt-2 space-y-1 text-xs text-slate-500">
                                       {(lesson as EditableLesson).resources.map((resource) => (
                                         <li key={`${lesson.id}-${resource.url}`}>{resource.title}</li>
                                       ))}
@@ -792,8 +1166,8 @@ export default function AdminCourseDetailPage() {
                               )}
 
                               <div className="grid gap-4 md:grid-cols-2">
-                                <div className="rounded-2xl border border-dashed border-border bg-card p-4">
-                                  <div className="mb-2 flex items-center gap-2 text-xs font-medium text-text-secondary">
+                                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+                                  <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-600">
                                     <FileVideo className="h-4 w-4" />
                                     Replace / Add Main Video
                                   </div>
@@ -821,8 +1195,8 @@ export default function AdminCourseDetailPage() {
                                   />
                                 </div>
 
-                                <div className="rounded-2xl border border-dashed border-border bg-card p-4">
-                                  <div className="mb-2 flex items-center gap-2 text-xs font-medium text-text-secondary">
+                                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+                                  <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-600">
                                     <Upload className="h-4 w-4" />
                                     Add Support Files
                                   </div>
@@ -856,42 +1230,52 @@ export default function AdminCourseDetailPage() {
                             <>
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <p className="text-sm font-semibold text-text-primary">
+                                  <p className="text-sm font-semibold text-slate-950">
                                     Lesson {lessonIndex + 1}: {lesson.title}
                                   </p>
-                                  <p className="mt-1 text-xs text-text-secondary">
+                                  <p className="mt-1 text-xs text-slate-600">
                                     {lesson.duration} min
                                   </p>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-text-secondary">
+                                  <span className="rounded-full bg-slate-200/80 px-2.5 py-1 text-xs text-slate-700">
                                     {lesson.content_type}
                                   </span>
                                   {lesson.video_url && (
-                                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary">
+                                    <span className="rounded-full bg-sky-500/10 px-2.5 py-1 text-xs text-sky-700">
                                       Main video attached
                                     </span>
                                   )}
                                 </div>
                               </div>
 
-                              <div className="mt-3 rounded-xl border border-border bg-card px-4 py-3">
-                                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-text-secondary">
+                              <div className="mt-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+                                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-600">
                                   <FileText className="h-4 w-4" />
                                   Lesson Preview
                                 </div>
                                 {(() => {
                                   const aiPreview = parseAiScenePreview(lesson.content);
+                                  const lessonPreview = getLessonPreviewData(lesson.content);
+                                  const lessonResources = dedupeResources(
+                                    lessonPreview.resources
+                                      .filter((resource) => resource.url)
+                                      .map((resource) => ({
+                                        ...resource,
+                                        url: normalizeResourceUrl(resource.url),
+                                      }))
+                                      .filter((resource) => !isDuplicateOfMainVideo(resource, lesson.video_url))
+                                  );
 
                                   if (aiPreview) {
                                     return (
-                                      <div className="mt-3 space-y-4 text-sm text-text-secondary">
+                                      <div className="mt-3 space-y-4 text-sm text-slate-600">
                                         {aiPreview.title && (
                                           <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                                               Scene Title
                                             </p>
-                                            <p className="mt-1 text-sm font-medium text-text-primary">
+                                            <p className="mt-1 text-sm font-medium text-slate-950">
                                               {aiPreview.title}
                                             </p>
                                           </div>
@@ -899,14 +1283,14 @@ export default function AdminCourseDetailPage() {
 
                                         {aiPreview.visibleTexts.length > 0 && (
                                           <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                                               On-Screen Content
                                             </p>
                                             <ul className="mt-2 space-y-2">
                                               {aiPreview.visibleTexts.map((text, index) => (
                                                 <li
                                                   key={`${lesson.id}-visible-${index}`}
-                                                  className="rounded-lg bg-background px-3 py-2 leading-6"
+                                                  className="rounded-lg bg-slate-50 px-3 py-2 leading-6 text-slate-700"
                                                 >
                                                   {text}
                                                 </li>
@@ -917,14 +1301,14 @@ export default function AdminCourseDetailPage() {
 
                                         {aiPreview.teacherParoles.length > 0 && (
                                           <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                                               Teacher Explanations
                                             </p>
                                             <ul className="mt-2 space-y-2">
                                               {aiPreview.teacherParoles.map((text, index) => (
                                                 <li
                                                   key={`${lesson.id}-speech-${index}`}
-                                                  className="rounded-lg border border-border bg-background px-3 py-2 leading-6"
+                                                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 leading-6 text-slate-700"
                                                 >
                                                   {text}
                                                 </li>
@@ -935,10 +1319,10 @@ export default function AdminCourseDetailPage() {
 
                                         {aiPreview.interactiveDescription && (
                                           <div>
-                                            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
                                               Interactive Activity
                                             </p>
-                                            <p className="mt-2 rounded-lg bg-background px-3 py-2 leading-6">
+                                            <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 leading-6 text-slate-700">
                                               {aiPreview.interactiveDescription}
                                             </p>
                                           </div>
@@ -948,9 +1332,136 @@ export default function AdminCourseDetailPage() {
                                   }
 
                                   return (
-                                    <p className="mt-2 text-sm leading-6 text-text-secondary">
-                                      {stripHtml(lesson.content) || "No lesson summary or resources text available."}
-                                    </p>
+                                    <div className="mt-3 space-y-4">
+                                      {lesson.video_url ? (
+                                        <div>
+                                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                            Main Video
+                                          </p>
+                                          <div className="mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 shadow-sm">
+                                            <video
+                                              controls
+                                              preload="metadata"
+                                              className="h-auto w-full"
+                                              src={lesson.video_url}
+                                            >
+                                              Your browser does not support the video tag.
+                                            </video>
+                                          </div>
+                                        </div>
+                                      ) : null}
+
+                                      {lessonPreview.summary ? (
+                                        <div>
+                                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                            Lesson Summary
+                                          </p>
+                                          <p className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-6 text-slate-700">
+                                            {lessonPreview.summary}
+                                          </p>
+                                        </div>
+                                      ) : null}
+
+                                      {lessonResources.length > 0 ? (
+                                        <div>
+                                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                            Learning Materials
+                                          </p>
+                                          <div className="mt-2 space-y-4">
+                                            {lessonResources.map((resource) => (
+                                              <div
+                                                key={`${lesson.id}-${resource.url}`}
+                                                className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+                                              >
+                                                <div className="flex items-start gap-3 border-b border-slate-200 bg-white px-4 py-3">
+                                                  <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700 shadow-sm">
+                                                    <FileText className="h-4 w-4" />
+                                                  </div>
+                                                  <div className="min-w-0">
+                                                    <p className="truncate text-sm font-semibold text-slate-900">
+                                                      {resource.title}
+                                                    </p>
+                                                    <p className="mt-1 text-xs text-slate-500">
+                                                      {getResourceKind(resource) === "image"
+                                                        ? "Image resource"
+                                                        : getResourceKind(resource) === "pdf"
+                                                          ? "PDF resource"
+                                                          : getResourceKind(resource) === "video"
+                                                            ? "Video resource"
+                                                            : getResourceKind(resource) === "audio"
+                                                              ? "Audio resource"
+                                                              : "Attached file"}
+                                                    </p>
+                                                  </div>
+                                                  <div className="ml-auto">
+                                                    <a
+                                                      href={resource.url}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="inline-flex rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-900 transition hover:bg-slate-100"
+                                                    >
+                                                      Open
+                                                    </a>
+                                                  </div>
+                                                </div>
+
+                                                <div className="bg-slate-50 px-4 py-4">
+                                                  {getResourceKind(resource) === "image" ? (
+                                                    <img
+                                                      src={resource.url}
+                                                      alt={resource.title}
+                                                      className="max-h-[420px] w-full rounded-xl border border-slate-200 bg-white object-contain"
+                                                    />
+                                                  ) : getResourceKind(resource) === "pdf" ? (
+                                                    <iframe
+                                                      title={resource.title}
+                                                      src={resource.url}
+                                                      className="h-[520px] w-full rounded-xl border border-slate-200 bg-white"
+                                                    />
+                                                  ) : getResourceKind(resource) === "video" ? (
+                                                    <video
+                                                      controls
+                                                      preload="metadata"
+                                                      className="w-full rounded-xl border border-slate-200 bg-slate-950"
+                                                      src={resource.url}
+                                                    >
+                                                      Your browser does not support the video tag.
+                                                    </video>
+                                                  ) : getResourceKind(resource) === "audio" ? (
+                                                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                                                      <audio controls className="w-full" src={resource.url}>
+                                                        Your browser does not support the audio element.
+                                                      </audio>
+                                                    </div>
+                                                  ) : (
+                                                    <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-600">
+                                                      This file cannot be previewed inline. Use{" "}
+                                                      <a
+                                                        href={resource.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="font-medium text-slate-900 underline underline-offset-2"
+                                                      >
+                                                        Open
+                                                      </a>{" "}
+                                                      to view it.
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ) : null}
+
+                                      {!lesson.video_url &&
+                                      !lessonPreview.summary &&
+                                      lessonResources.length === 0 ? (
+                                        <p className="text-sm leading-6 text-slate-600">
+                                          No lesson summary is available for this lesson yet.
+                                        </p>
+                                      ) : null}
+                                    </div>
                                   );
                                 })()}
                               </div>
@@ -960,9 +1471,15 @@ export default function AdminCourseDetailPage() {
                       ))
                     )}
                   </div>
+                      </>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
+                </>
+              );
+            })()}
           </>
         ) : null}
       </div>

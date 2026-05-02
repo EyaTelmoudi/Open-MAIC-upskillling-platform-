@@ -86,6 +86,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isSidebarCompact, setIsSidebarCompact] = useState(false);
   const isLearningExpert = user?.role === "LearningExpert";
   const header = isLearningExpert
     ? pathname.startsWith(routes.adminAiCourseStudio)
@@ -115,6 +116,22 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       router.replace(routes.adminAiCourseStudio);
     }
   }, [isLoading, pathname, router, user?.role]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storedValue = window.localStorage.getItem("admin-sidebar-compact");
+    setIsSidebarCompact(storedValue === "true");
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem("admin-sidebar-compact", String(isSidebarCompact));
+  }, [isSidebarCompact]);
 
   useEffect(() => {
     if (!isProfileMenuOpen || typeof window === "undefined") {
@@ -268,7 +285,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </header>
 
         <div className="flex min-h-[calc(100vh-76px)]">
-          <AdminSidebar />
+          <AdminSidebar
+            isCompact={isSidebarCompact}
+            onToggleCompact={() => setIsSidebarCompact((current) => !current)}
+          />
 
           <main className="min-w-0 flex-1 overflow-x-hidden">
             <div className="border-b border-border bg-[linear-gradient(180deg,rgba(240,251,247,0.95)_0%,rgba(231,244,248,0.9)_100%)] backdrop-blur-sm">

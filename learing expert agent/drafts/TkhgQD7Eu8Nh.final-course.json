@@ -1,0 +1,1347 @@
+{
+  "id": "F18Lh7ofxJ",
+  "stage": {
+    "id": "F18Lh7ofxJ",
+    "name": "Welcome & Course Overview",
+    "style": "interactive",
+    "createdAt": 1777630569319,
+    "updatedAt": 1777758597972,
+    "languageDirective": "Deliver the entire course in English. Use clear, beginner‑friendly terminology and include brief explanations for all HTML tags. Keep any code examples in original HTML syntax while all surrounding narration remains in English.",
+    "generatedAgentConfigs": [
+      {
+        "id": "gen-server-0",
+        "name": "Ms. Clara Hart",
+        "role": "teacher",
+        "color": "#3b82f6",
+        "avatar": "/avatars/teacher.png",
+        "persona": "Clara is an enthusiastic web development instructor who loves breaking complex topics into simple steps. She explains every HTML tag with clear, beginner‑friendly language and encourages hands‑on practice.",
+        "priority": 10
+      },
+      {
+        "id": "gen-server-1",
+        "name": "Alex Reed",
+        "role": "assistant",
+        "color": "#10b981",
+        "avatar": "/avatars/assist.png",
+        "persona": "Alex is a supportive teaching assistant who provides gentle reminders and quick tips. He enjoys reinforcing concepts with short quizzes and handy cheat‑sheet references.",
+        "priority": 7
+      },
+      {
+        "id": "gen-server-2",
+        "name": "Jordan Lee",
+        "role": "student",
+        "color": "#f59e0b",
+        "avatar": "/avatars/curious.png",
+        "persona": "Jordan is a curious beginner eager to build a personal webpage. He asks practical questions and shares his progress, helping peers see real‑world applications.",
+        "priority": 5
+      },
+      {
+        "id": "gen-server-3",
+        "name": "Sam Patel",
+        "role": "student",
+        "color": "#ec4899",
+        "avatar": "/avatars/thinker.png",
+        "persona": "Sam prefers visual learning and often requests diagrammatic explanations. He learns best by seeing code snippets rendered and offers feedback that benefits the whole class.",
+        "priority": 5
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "scene_sjeoussxOy",
+      "type": "slide",
+      "order": 1,
+      "title": "Welcome & Course Overview",
+      "actions": [
+        {
+          "id": "action_TVCDMeiS",
+          "type": "spotlight",
+          "elementId": "text_RaJrGUTa"
+        },
+        {
+          "id": "action_Veu8WxL4",
+          "text": "Good morning, aya my dear student! I’m Ms. Clara Hart, and I’m thrilled to welcome you to our Introduction to HTML course. Over the next few weeks we’ll build real web pages together, step by step.",
+          "type": "speech"
+        },
+        {
+          "id": "action_1izejCyl",
+          "type": "spotlight",
+          "elementId": "text_8eo54Omm"
+        },
+        {
+          "id": "action_EbRY3pLe",
+          "text": "First, let’s look at why HTML is the foundation of every web page. HTML provides the structure—think of it as the skeleton that holds all the content together.",
+          "type": "speech"
+        },
+        {
+          "id": "action_25-X16hR",
+          "type": "spotlight",
+          "elementId": "text_8eo54Omm"
+        },
+        {
+          "id": "action_W1TVWnmP",
+          "text": "Next, our course objectives: by the end of this class you’ll be able to write valid HTML tags, create page layouts, and publish a simple personal website.",
+          "type": "speech"
+        },
+        {
+          "id": "action_CGhzCpLg",
+          "type": "spotlight",
+          "elementId": "text_8eo54Omm"
+        },
+        {
+          "id": "action_GhCguCWZ",
+          "text": "Finally, the structure of our upcoming lessons: we’ll start with basic tags, move on to lists and links, then explore images and forms, wrapping up with a mini‑project.",
+          "type": "speech"
+        },
+        {
+          "id": "action_vYGiAxLu",
+          "text": "That’s our roadmap for today—let’s dive in and start building the web together!",
+          "type": "speech"
+        }
+      ],
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "VqTQF0hZc4S7TRJ0THYUA",
+          "theme": {
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            },
+            "outline": {
+              "color": "#d14424",
+              "style": "solid",
+              "width": 2
+            },
+            "fontName": "Microsoft YaHei",
+            "fontColor": "#333333",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "backgroundColor": "#ffffff"
+          },
+          "elements": [
+            {
+              "id": "text_RaJrGUTa",
+              "top": 50,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 70,
+              "rotate": 0,
+              "content": "<p>Welcome &amp; Course Overviewwwwwwwwwwwwwwwwwwwwww222222222222222222222222aya</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_8eo54Omm",
+              "top": 150,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 118,
+              "rotate": 0,
+              "content": "<p>• Why HTML is the foundation of web pages • Course objectives and learning outcomes • Structure of the upcoming lessons</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          },
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625
+        }
+      },
+      "stageId": "F18Lh7ofxJ",
+      "createdAt": 1777630597027,
+      "updatedAt": 1777630597027
+    },
+    {
+      "id": "scene_PgM5oCmk2t",
+      "type": "slide",
+      "order": 2,
+      "title": "Basic HTML Document Structure",
+      "actions": [
+        {
+          "id": "action_yWFkY3T3",
+          "type": "spotlight",
+          "elementId": "text_pz1enRsU"
+        },
+        {
+          "id": "action_NeaG_9v8",
+          "text": "Alright everyone, let's dive into the basic structure of an HTML document.",
+          "type": "speech"
+        },
+        {
+          "id": "action_WlIwvmYy",
+          "type": "spotlight",
+          "elementId": "text_IoXSRRhf"
+        },
+        {
+          "id": "action_EJTFeG6U",
+          "text": "First, we always start with the doctype declaration, which tells the browser that this is an HTML5 document. Then come the opening <html> tag, followed by the <head> section where we place metadata, and finally the <body> where all the visible content lives.",
+          "type": "speech"
+        },
+        {
+          "id": "action_PemIaLZo",
+          "type": "spotlight",
+          "elementId": "text_bNNBlSzK"
+        },
+        {
+          "id": "action_q1i9TlKt",
+          "text": "Here’s a simple, complete example: we declare <!DOCTYPE html>, open the <html> tag, add a <head> with a <title>, and then the <body> with any page content. This minimal skeleton is the foundation for every web page you’ll build.",
+          "type": "speech"
+        }
+      ],
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "QrMgsv5S85nxeDoXRB4Wj",
+          "theme": {
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            },
+            "outline": {
+              "color": "#d14424",
+              "style": "solid",
+              "width": 2
+            },
+            "fontName": "Microsoft YaHei",
+            "fontColor": "#333333",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "backgroundColor": "#ffffff"
+          },
+          "elements": [
+            {
+              "id": "text_pz1enRsU",
+              "top": 60,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 70,
+              "rotate": 0,
+              "content": "<p>Basic HTML Document Structure</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_IoXSRRhf",
+              "top": 150,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 103,
+              "rotate": 0,
+              "content": "<p>• Doctype declaration • &amp;lt;html&amp;gt;, &amp;lt;head&amp;gt;, &amp;lt;title&amp;gt;, &amp;lt;body&amp;gt; tags • Simple complete page example</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_bNNBlSzK",
+              "top": 280,
+              "left": 80,
+              "type": "text",
+              "width": 840,
+              "height": 94,
+              "rotate": 0,
+              "content": "<p>&amp;lt;!DOCTYPE html&amp;gt; &amp;lt;html&amp;gt; &amp;lt;head&amp;gt; &amp;lt;title&amp;gt;Page Title&amp;lt;/title&amp;gt; &amp;lt;/head&amp;gt; &amp;lt;body&amp;gt; Content goes here &amp;lt;/body&amp;gt; &amp;lt;/html&amp;gt;</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          },
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625
+        }
+      },
+      "stageId": "F18Lh7ofxJ",
+      "createdAt": 1777630631880,
+      "updatedAt": 1777630631880
+    },
+    {
+      "id": "scene_p-w2iq_zi6",
+      "type": "interactive",
+      "order": 3,
+      "title": "Live HTML Builder",
+      "actions": [
+        {
+          "id": "action_-cvIIuxs",
+          "text": "Welcome! In this exercise you'll edit a simple HTML page and see the results instantly.",
+          "type": "speech",
+          "title": "Introduction"
+        },
+        {
+          "id": "action_XFjEYoyj",
+          "type": "widget_highlight",
+          "title": "Highlight Editor",
+          "target": "#code-editor"
+        },
+        {
+          "id": "action_XFjEYoyj_speech",
+          "text": "This is the code editor where you can modify the HTML template.",
+          "type": "speech",
+          "title": "Highlight Editor"
+        },
+        {
+          "id": "action_VKv-ukZK",
+          "type": "widget_annotation",
+          "title": "Edit Title",
+          "target": "#code-editor"
+        },
+        {
+          "id": "action_VKv-ukZK_speech",
+          "text": "Try changing the text inside the <title> tags to give your page a new title.",
+          "type": "speech",
+          "title": "Edit Title"
+        },
+        {
+          "id": "action_Tc3eAI3h",
+          "type": "widget_highlight",
+          "title": "Highlight Output",
+          "target": "#output-panel"
+        },
+        {
+          "id": "action_Tc3eAI3h_speech",
+          "text": "The preview area shows the rendered page in real time as you type.",
+          "type": "speech",
+          "title": "Highlight Output"
+        },
+        {
+          "id": "action_8UKrHhcG",
+          "type": "widget_annotation",
+          "title": "Edit Body",
+          "target": "#code-editor"
+        },
+        {
+          "id": "action_8UKrHhcG_speech",
+          "text": "Add or move HTML elements inside the <body> tag to see how their placement affects the page layout.",
+          "type": "speech",
+          "title": "Edit Body"
+        },
+        {
+          "id": "action_wu2-Tuvv",
+          "type": "widget_reveal",
+          "title": "Show Result",
+          "target": "#output-panel"
+        },
+        {
+          "id": "action_wu2-Tuvv_speech",
+          "text": "Notice how the changes you made appear instantly in the preview.",
+          "type": "speech",
+          "title": "Show Result"
+        }
+      ],
+      "content": {
+        "url": "",
+        "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Live HTML Builder Playground</title>\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <style>\n        body {font-family: Arial, sans-serif; margin:0; padding:0; display:flex; flex-direction:column; min-height:100vh;}\n        .container {flex:1; display:flex; flex-direction:row; gap:10px; padding:10px; box-sizing:border-box;}\n        .editor-pane, .output-pane {flex:1; display:flex; flex-direction:column;}\n        .output-pane iframe {flex:1; border:1px solid #ccc;}\n        .controls {margin-top:5px; display:flex; gap:5px; align-items:center;}\n        button {padding:5px 10px; cursor:pointer;}\n        .hint-box {background:#f9f9f9; border:1px solid #ddd; padding:8px; margin-top:5px; max-height:150px; overflow:auto;}\n        .hint {margin-bottom:5px;}\n        .test-case {display:flex; align-items:center; margin-top:5px;}\n        .test-case span {margin-left:5px;}\n        .pass {color:green;}\n        .fail {color:red;}\n        @media (max-width:600px) {\n            .container {flex-direction:column;}\n            .editor-pane, .output-pane {height:300px;}\n        }\n    </style>\n    <!-- CodeMirror 6 via CDN -->\n    <script type=\"module\">\n        import {EditorView, basicSetup} from \"https://cdn.jsdelivr.net/npm/@codemirror/basic-setup@0.19.1/+esm\";\n        import {html} from \"https://cdn.jsdelivr.net/npm/@codemirror/lang-html@0.19.4/+esm\";\n\n        window.initEditor = function(initialCode) {\n            const editor = new EditorView({\n                doc: initialCode,\n                extensions: [basicSetup, html()],\n                parent: document.getElementById('editor')\n            });\n            return editor;\n        };\n    </script>\n\n<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css\">\n<script src=\"https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js\"></script>\n<script src=\"https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js\"></script>\n<script>\ndocument.addEventListener(\"DOMContentLoaded\", function() {\n    const katexOptions = {\n        delimiters: [\n            {left: '\\\\[', right: '\\\\]', display: true},\n            {left: '\\\\(', right: '\\\\)', display: false},\n            {left: '$$', right: '$$', display: true},\n            {left: '$', right: '$', display: false}\n        ],\n        throwOnError: false,\n        strict: false,\n        trust: true\n    };\n\n    let renderTimeout;\n    function safeRender() {\n        if (renderTimeout) clearTimeout(renderTimeout);\n        renderTimeout = setTimeout(() => {\n            renderMathInElement(document.body, katexOptions);\n        }, 100);\n    }\n\n    renderMathInElement(document.body, katexOptions);\n\n    const observer = new MutationObserver((mutations) => {\n        let shouldRender = false;\n        mutations.forEach((mutation) => {\n            if (mutation.target &&\n                mutation.target.className &&\n                typeof mutation.target.className === 'string' &&\n                mutation.target.className.includes('katex')) {\n                return;\n            }\n            shouldRender = true;\n        });\n\n        if (shouldRender) {\n            safeRender();\n        }\n    });\n\n    observer.observe(document.body, {\n        childList: true,\n        subtree: true,\n        characterData: true\n    });\n\n    setInterval(() => {\n        const text = document.body.innerText;\n        if (text.includes('\\\\(') || text.includes('$$')) {\n            safeRender();\n        }\n    }, 2000);\n});\n</script>\n</head>\n<body>\n    <h2 style=\"text-align:center; margin:10px 0;\">Live HTML Builder Playground</h2>\n    <div class=\"container\">\n        <div class=\"editor-pane\">\n            <div id=\"editor\" style=\"flex:1; border:1px solid #ccc;\"></div>\n            <div class=\"controls\">\n                <button id=\"run-btn\">Run</button>\n                <button id=\"hint-btn\">Show Hint</button>\n                <span id=\"status\"></span>\n            </div>\n            <div id=\"hints\" class=\"hint-box\" style=\"display:none;\"></div>\n            <div id=\"tests\"></div>\n        </div>\n        <div class=\"output-pane\">\n            <iframe id=\"preview\" sandbox=\"allow-scripts allow-same-origin\"></iframe>\n        </div>\n    </div>\n\n    <script>\n        // Widget configuration JSON\n        const widgetConfig = {\n            type: \"code\",\n            language: \"html\",\n            description: \"Edit the <title> and body content and see the result instantly.\",\n            starterCode: \"<!DOCTYPE html>\\\\n<html>\\\\n<head>\\\\n    <title>My Page</title>\\\\n</head>\\\\n<body>\\\\n    <h1>Hello World!</h1>\\\\n    <p>Edit this text.</p>\\\\n</body>\\\\n</html>\",\n            testCases: [\n                {id: \"t1\", input: \"<title>Test</title>\", expected: \"Test\", description: \"Title should be 'Test'\"},\n                {id: \"t2\", input: \"<h1>Header</h1>\", expected: \"Header\", description: \"Header text appears\"}\n            ],\n            hints: [\n                \"The <title> tag goes inside the <head> section.\",\n                \"Body content is placed between <body> tags.\",\n                \"Use standard HTML tags like <h1>, <p>, <div>...\"\n            ],\n            solution: \"<!DOCTYPE html>\\\\n<html>\\\\n<head>\\\\n    <title>My Page</title>\\\\n</head>\\\\n<body>\\\\n    <h1>Hello World!</h1>\\\\n    <p>Edit this text.</p>\\\\n</body>\\\\n</html>\",\n            teacherActions: [\n                {id: \"act1\", type: \"speech\", content: \"Try changing the title and body text.\"}\n            ]\n        };\n\n        // Initialize editor with starter code\n        const editor = window.initEditor(widgetConfig.starterCode);\n\n        // Hint system\n        let hintIndex = 0;\n        const hintBtn = document.getElementById('hint-btn');\n        const hintBox = document.getElementById('hints');\n        hintBtn.addEventListener('click', () => {\n            if (hintIndex < widgetConfig.hints.length) {\n                const hintDiv = document.createElement('div');\n                hintDiv.className = 'hint';\n                hintDiv.textContent = widgetConfig.hints[hintIndex];\n                hintBox.appendChild(hintDiv);\n                hintBox.style.display = 'block';\n                hintIndex++;\n            }\n        });\n\n        // Run code and update preview\n        document.getElementById('run-btn').addEventListener('click', () => {\n            const code = editor.state.doc.toString();\n            const preview = document.getElementById('preview');\n            const blob = new Blob([code], {type: 'text/html'});\n            const url = URL.createObjectURL(blob);\n            preview.src = url;\n            runTests(code);\n        });\n\n        // Simple test runner (checks presence of expected strings in rendered DOM)\n        function runTests(code) {\n            const testContainer = document.getElementById('tests');\n            testContainer.innerHTML = '';\n            const parser = new DOMParser();\n            const doc = parser.parseFromString(code, 'text/html');\n            widgetConfig.testCases.forEach(tc => {\n                const div = document.createElement('div');\n                div.className = 'test-case';\n                const result = doc.title.includes('Test') && tc.id === 't1' ||\n                               doc.querySelector('h1')?.textContent.includes('Header') && tc.id === 't2';\n                const status = document.createElement('span');\n                status.textContent = result ? 'Pass' : 'Fail';\n                status.className = result ? 'pass' : 'fail';\n                div.textContent = tc.description + ': ';\n                div.appendChild(status);\n                testContainer.appendChild(div);\n            });\n        }\n\n        // Initial run to display starter preview\n        document.getElementById('run-btn').click();\n    </script>\n</body>\n</html>",
+        "type": "interactive",
+        "widgetType": "code",
+        "teacherActions": [
+          {
+            "id": "intro",
+            "type": "speech",
+            "label": "Introduction",
+            "content": "Welcome! In this exercise you'll edit a simple HTML page and see the results instantly."
+          },
+          {
+            "id": "highlight_editor",
+            "type": "highlight",
+            "label": "Highlight Editor",
+            "target": "#code-editor",
+            "content": "This is the code editor where you can modify the HTML template."
+          },
+          {
+            "id": "annotation_title",
+            "type": "annotation",
+            "label": "Edit Title",
+            "target": "#code-editor",
+            "content": "Try changing the text inside the <title> tags to give your page a new title."
+          },
+          {
+            "id": "highlight_output",
+            "type": "highlight",
+            "label": "Highlight Output",
+            "target": "#output-panel",
+            "content": "The preview area shows the rendered page in real time as you type."
+          },
+          {
+            "id": "annotation_body",
+            "type": "annotation",
+            "label": "Edit Body",
+            "target": "#code-editor",
+            "content": "Add or move HTML elements inside the <body> tag to see how their placement affects the page layout."
+          },
+          {
+            "id": "reveal_final",
+            "type": "reveal",
+            "label": "Show Result",
+            "target": "#output-panel",
+            "content": "Notice how the changes you made appear instantly in the preview."
+          }
+        ]
+      },
+      "stageId": "F18Lh7ofxJ",
+      "createdAt": 1777630694195,
+      "updatedAt": 1777630694195
+    },
+    {
+      "id": "scene_qFmkRjMy3e",
+      "type": "slide",
+      "order": 4,
+      "title": "Headings & Paragraphs",
+      "actions": [
+        {
+          "id": "action_HW5HJRTL",
+          "type": "spotlight",
+          "elementId": "text_8UnbhDyo"
+        },
+        {
+          "id": "action_wJ5fS5Ba",
+          "text": "Alright, everyone, let’s dive into the building blocks of HTML structure: headings and paragraphs.",
+          "type": "speech"
+        },
+        {
+          "id": "action_gyHRjCH1",
+          "type": "spotlight",
+          "elementId": "text_1AWLgzAJ"
+        },
+        {
+          "id": "action_VB-pbEDQ",
+          "text": "First, the heading tags h1 through h6 create a hierarchy for your document. Think of h1 as the main title, h2 as a section subtitle, and so on down to h6, which is used for the smallest sub‑headings.",
+          "type": "speech"
+        },
+        {
+          "id": "action_DSqbwI12",
+          "type": "laser",
+          "elementId": "text_1AWLgzAJ"
+        },
+        {
+          "id": "action_JhsJTdko",
+          "text": "Using this hierarchy not only helps readers scan your page, it also gives screen‑readers a clear outline, which is essential for accessibility.",
+          "type": "speech"
+        },
+        {
+          "id": "action_yLwL88bT",
+          "type": "laser",
+          "elementId": "text_1AWLgzAJ"
+        },
+        {
+          "id": "action_H4TRjaDG",
+          "text": "Next, the <p> tag is the standard way to group sentences into a paragraph. It adds spacing automatically and tells browsers and assistive technologies that this block of text is a distinct thought.",
+          "type": "speech"
+        },
+        {
+          "id": "action_w__XJXxG",
+          "type": "spotlight",
+          "elementId": "text_1AWLgzAJ"
+        },
+        {
+          "id": "action__NMOeloG",
+          "text": "A quick best‑practice tip: always start your page with an <h1> that describes the overall purpose, then use <h2–h6> to break the content into logical sections, and wrap all regular text inside <p> elements.",
+          "type": "speech"
+        },
+        {
+          "id": "action_6GtLXkf1",
+          "type": "discussion",
+          "topic": "Why is heading hierarchy important for accessibility?",
+          "prompt": "Think about how a screen‑reader would announce the page structure.",
+          "agentId": "gen-server-2"
+        }
+      ],
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "SXniQK8F8HcX-ViOD0XAG",
+          "theme": {
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            },
+            "outline": {
+              "color": "#d14424",
+              "style": "solid",
+              "width": 2
+            },
+            "fontName": "Microsoft YaHei",
+            "fontColor": "#333333",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "backgroundColor": "#ffffff"
+          },
+          "elements": [
+            {
+              "id": "text_8UnbhDyo",
+              "top": 60,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 70,
+              "rotate": 0,
+              "content": "<p>Headings &amp; Paragraphs</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_1AWLgzAJ",
+              "top": 150,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 103,
+              "rotate": 0,
+              "content": "<p>• h1–h6 : define document hierarchy • &amp;lt;p&amp;gt; : paragraph block • Accessibility: clear structure, semantic tags</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          },
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625
+        }
+      },
+      "stageId": "F18Lh7ofxJ",
+      "createdAt": 1777630734107,
+      "updatedAt": 1777630734107
+    },
+    {
+      "id": "scene_DJbWIZcn1C",
+      "type": "quiz",
+      "order": 5,
+      "title": "Quiz: Text Structure",
+      "actions": [
+        {
+          "id": "action_wgy9j1x0",
+          "text": "Alright, everyone, let's see how well you grasped the basics of HTML text structure. Remember, we just covered which heading levels are appropriate for main titles and the proper tags for paragraphs.",
+          "type": "speech"
+        },
+        {
+          "id": "action_FQha5TM0",
+          "text": "For the first question, think about the hierarchy of headings: <h1> is the top‑level title of a page or a major section, followed by <h2>, <h3>, and so on. Choose the tag that best represents a main section title.",
+          "type": "speech"
+        },
+        {
+          "id": "action_E4ZH0_5X",
+          "text": "The second question asks you to pick all tags that can correctly contain a paragraph of text. While many elements can hold text, only the <p> element is designed specifically for a paragraph. Some other containers, like <div> or <section>, can hold a <p> inside them but aren't themselves paragraph tags.",
+          "type": "speech"
+        },
+        {
+          "id": "action_bTgitVsi",
+          "type": "discussion",
+          "topic": "Why is it important to use the correct heading level and paragraph tag in HTML?",
+          "prompt": "Consider readability, accessibility, and SEO when you explain your answer.",
+          "agentId": "gen-server-2"
+        }
+      ],
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "single",
+            "answer": [
+              "A"
+            ],
+            "points": 5,
+            "options": [
+              {
+                "value": "A",
+                "label": "<h1>"
+              },
+              {
+                "value": "B",
+                "label": "<h2>"
+              },
+              {
+                "value": "C",
+                "label": "<h3>"
+              },
+              {
+                "value": "D",
+                "label": "<h4>"
+              }
+            ],
+            "analysis": "The <h1> tag represents the top‑level heading and is used for the main title of a page. <h2>–<h4> are for sub‑sections.",
+            "question": "Which HTML heading tag should be used for a main section title on a page?",
+            "hasAnswer": true
+          },
+          {
+            "id": "q2",
+            "type": "multiple",
+            "answer": [
+              "A"
+            ],
+            "points": 5,
+            "options": [
+              {
+                "value": "A",
+                "label": "<p>"
+              },
+              {
+                "value": "B",
+                "label": "<div>"
+              },
+              {
+                "value": "C",
+                "label": "<section>"
+              },
+              {
+                "value": "D",
+                "label": "<article>"
+              }
+            ],
+            "analysis": "The <p> tag is specifically designed for paragraphs. While <div>, <section>, and <article> can contain text, they are generic containers and not semantically a paragraph.",
+            "question": "Select all markup elements that correctly define a paragraph of text (choose all that apply).",
+            "hasAnswer": true
+          }
+        ]
+      },
+      "stageId": "F18Lh7ofxJ",
+      "createdAt": 1777630764631,
+      "updatedAt": 1777630764631
+    },
+    {
+      "id": "scene_NUFGJpgNb-",
+      "type": "slide",
+      "order": 6,
+      "title": "Links and Images",
+      "actions": [
+        {
+          "id": "action_PCPNIvP-",
+          "type": "spotlight",
+          "elementId": "text_oyFzC1f0"
+        },
+        {
+          "id": "action_fZ0gKkYc",
+          "text": "Good morning, everyone! I’m Ms. Clara Hart, and today we’ll dive into two essential HTML elements—links and images. By the end of this slide, you’ll know how to create clickable hyperlinks and embed pictures safely and effectively.",
+          "type": "speech"
+        },
+        {
+          "id": "action_sYxbsLOe",
+          "type": "spotlight",
+          "elementId": "text_oUx8JIYl"
+        },
+        {
+          "id": "action_DJsoou5U",
+          "text": "First, the anchor tag <a href=\"…\"> lets you turn any text or image into a hyperlink. The href attribute holds the URL you want to link to, and you can add optional attributes like target=\"_blank\" to open the link in a new tab.",
+          "type": "speech"
+        },
+        {
+          "id": "action_1XIPqlKK",
+          "text": "Next, the image tag <img src=\"…\" alt=\"…\"> displays pictures on your page. The src attribute points to the image file, while the alt attribute provides a textual description for accessibility and SEO benefits.",
+          "type": "speech"
+        },
+        {
+          "id": "action_moz3gGEX",
+          "text": "Finally, remember security and SEO best practices: always use absolute or trusted URLs, avoid linking to malicious sites, and write meaningful alt text so search engines understand your images.",
+          "type": "speech"
+        },
+        {
+          "id": "action_poxgpEeu",
+          "text": "That covers the basics of hyperlinks and images. In our next activity, you’ll practice adding both to a simple web page. Let’s get coding!",
+          "type": "speech"
+        }
+      ],
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "6SwSMWjWmkmmPUZVLvg4G",
+          "theme": {
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            },
+            "outline": {
+              "color": "#d14424",
+              "style": "solid",
+              "width": 2
+            },
+            "fontName": "Microsoft YaHei",
+            "fontColor": "#333333",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "backgroundColor": "#ffffff"
+          },
+          "elements": [
+            {
+              "id": "text_oyFzC1f0",
+              "top": 50,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 70,
+              "rotate": 0,
+              "content": "<p>Links and Images</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_oUx8JIYl",
+              "top": 140,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 166,
+              "rotate": 0,
+              "content": "<p>• Create hyperlinks with &amp;lt;a href=&amp;quot;...&amp;quot;&amp;gt;... • Embed images using &amp;lt;img src=&amp;quot;...&amp;quot; alt=&amp;quot;...&amp;quot;&amp;gt; • Consider security (avoid unsafe URLs) and SEO (use descriptive alt text)</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          },
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625
+        }
+      },
+      "stageId": "F18Lh7ofxJ",
+      "createdAt": 1777630805406,
+      "updatedAt": 1777630805406
+    },
+    {
+      "id": "scene_bjMXPWa1nq",
+      "type": "slide",
+      "order": 7,
+      "title": "Lists: Ordered & Unordered",
+      "actions": [
+        {
+          "id": "action_F4pJfr6E",
+          "type": "spotlight",
+          "elementId": "text_jjQMOTZp"
+        },
+        {
+          "id": "action_FiT0e4oF",
+          "text": "Let's start with the basics: an ordered list uses the <ol> tag, and each item inside it is marked with <li>.",
+          "type": "speech"
+        },
+        {
+          "id": "action_bg3nEs9R",
+          "type": "spotlight",
+          "elementId": "text_AVZ5DsH-"
+        },
+        {
+          "id": "action_yeHN1M4H",
+          "text": "Here you can see an example of an ordered list. Notice how the numbers are generated automatically, and each bullet point is wrapped in <li> tags.",
+          "type": "speech"
+        },
+        {
+          "id": "action_3idea3I6",
+          "type": "laser",
+          "elementId": "text_jjQMOTZp"
+        },
+        {
+          "id": "action_qAvy-D9A",
+          "text": "Now, moving to unordered lists: we use the <ul> tag, but the individual items are still <li>.",
+          "type": "speech"
+        },
+        {
+          "id": "action_o9PucjAt",
+          "type": "spotlight",
+          "elementId": "text_AVZ5DsH-"
+        },
+        {
+          "id": "action_2hp82yAS",
+          "text": "This snippet shows an unordered list with bullet points. The browser renders circles by default, but you can style them differently with CSS.",
+          "type": "speech"
+        },
+        {
+          "id": "action_WO4GbKyb",
+          "type": "laser",
+          "elementId": "text_jjQMOTZp"
+        },
+        {
+          "id": "action_9kp2QuC1",
+          "text": "Finally, you can nest lists inside each other to create complex outlines—just place another <ol> or <ul> inside an <li>. That lets you build hierarchical navigation menus easily.",
+          "type": "speech"
+        }
+      ],
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "Kjrlvc5XR9rvuai9G5TdY",
+          "theme": {
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            },
+            "outline": {
+              "color": "#d14424",
+              "style": "solid",
+              "width": 2
+            },
+            "fontName": "Microsoft YaHei",
+            "fontColor": "#333333",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "backgroundColor": "#ffffff"
+          },
+          "elements": [
+            {
+              "id": "text_jjQMOTZp",
+              "top": 50,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 70,
+              "rotate": 0,
+              "content": "<p>Lists: Ordered &amp;amp; Unordered</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_AVZ5DsH-",
+              "top": 130,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 103,
+              "rotate": 0,
+              "content": "<p>• Ordered list &amp;lt;ol&amp;gt; with items &amp;lt;li&amp;gt; • Unordered list &amp;lt;ul&amp;gt; with items &amp;lt;li&amp;gt; • Nesting lists for complex outlines</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          },
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625
+        }
+      },
+      "stageId": "F18Lh7ofxJ",
+      "createdAt": 1777630857719,
+      "updatedAt": 1777630857719
+    },
+    {
+      "id": "scene_o2CYcJ8QoD",
+      "type": "quiz",
+      "order": 8,
+      "title": "Quiz: Media & Lists",
+      "actions": [
+        {
+          "id": "action_GQs7YQGx",
+          "text": "Alright, let's dive into a quick quiz to see how well you’ve grasped the basics of navigation menus and image markup. Read each question carefully and think about the key points we just covered.",
+          "type": "speech"
+        },
+        {
+          "id": "action_jhgc__12",
+          "text": "Remember, the <nav> element is designed specifically for grouping navigation links, while <section> and <article> are for thematic content, and <aside> is for tangential information. Choose the most appropriate tag for a main site menu.",
+          "type": "speech"
+        },
+        {
+          "id": "action_AHUyaXBf",
+          "text": "For images, always include an alt attribute for accessibility—it’s not optional. The width attribute controls how wide the image appears on the page, but the src can be a relative path; it doesn’t have to be an absolute URL. And in HTML5 the <img> tag is self‑closing without a slash.",
+          "type": "speech"
+        },
+        {
+          "id": "action_SOUR7psn",
+          "text": "Take a moment to answer the questions, then we’ll review the answers together. If anything feels unclear, just let me know!",
+          "type": "speech"
+        },
+        {
+          "id": "action_DedYF2ma",
+          "type": "discussion",
+          "topic": "Why is the alt attribute important for images, and how does choosing the right semantic tag improve accessibility?",
+          "prompt": "Share examples of how you would fix the image tag and select a navigation element in your own projects.",
+          "agentId": "gen-server-2"
+        }
+      ],
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "single",
+            "answer": [
+              "A"
+            ],
+            "points": 10,
+            "options": [
+              {
+                "value": "A",
+                "label": "nav"
+              },
+              {
+                "value": "B",
+                "label": "section"
+              },
+              {
+                "value": "C",
+                "label": "article"
+              },
+              {
+                "value": "D",
+                "label": "aside"
+              }
+            ],
+            "analysis": "The <nav> element semantically defines a block of navigation links. <section> groups related content, <article> represents a self‑contained composition, and <aside> is for tangential content.",
+            "question": "Which HTML element is most appropriate for creating a navigation menu that links to the main sections of a website?",
+            "hasAnswer": true
+          },
+          {
+            "id": "q2",
+            "type": "multiple",
+            "answer": [
+              "A",
+              "B",
+              "D"
+            ],
+            "points": 15,
+            "options": [
+              {
+                "value": "A",
+                "label": "The image lacks an alt attribute, which is required for accessibility."
+              },
+              {
+                "value": "B",
+                "label": "The width attribute sets the display width of the image."
+              },
+              {
+                "value": "C",
+                "label": "The src attribute should include an absolute URL for the image to load."
+              },
+              {
+                "value": "D",
+                "label": "The tag is self‑closing and valid HTML5 syntax."
+              }
+            ],
+            "analysis": "A is correct because alt provides alternative text for screen readers. B is correct; width defines displayed width. D is correct; <img> is a void element and does not need a closing tag. C is incorrect; a relative URL is acceptable.",
+            "question": "Consider the following HTML image tag. Which statements are true? (select all that apply) <img src=\"photo.jpg\" width=\"300\">",
+            "hasAnswer": true
+          }
+        ]
+      },
+      "stageId": "F18Lh7ofxJ",
+      "createdAt": 1777630884787,
+      "updatedAt": 1777630884787
+    },
+    {
+      "id": "scene_LHMo1ISdy1",
+      "type": "slide",
+      "order": 9,
+      "title": "Tables and Forms Overview",
+      "actions": [
+        {
+          "id": "action_tj7C1ro4",
+          "type": "spotlight",
+          "elementId": "text_7fkiEalP"
+        },
+        {
+          "id": "action_p_--pbn6",
+          "text": "Alright, let’s dive into our Tables and Forms Overview. We’ll see how to structure data with tables and gather user input with forms.",
+          "type": "speech"
+        },
+        {
+          "id": "action_N-yiy3ti",
+          "type": "spotlight",
+          "elementId": "text_xEWVXXbm"
+        },
+        {
+          "id": "action_ZBRy_601",
+          "text": "First, building a table uses the <table> element as the container, <tr> for each row, <th> for header cells, and <td> for regular data cells.",
+          "type": "speech"
+        },
+        {
+          "id": "action_D-wCOqMV",
+          "type": "spotlight",
+          "elementId": "text_I6tuJnLe"
+        },
+        {
+          "id": "action_4TD9e9m9",
+          "text": "Here’s a simple example: <table> <tr><th>Name</th><th>Age</th></tr> <tr><td>Alice</td><td>30</td></tr> </table>. Notice how the tags nest to create rows and columns.",
+          "type": "speech"
+        },
+        {
+          "id": "action_-mDEcP5l",
+          "type": "spotlight",
+          "elementId": "text_YrUm09FM"
+        },
+        {
+          "id": "action_6sURgEXI",
+          "text": "Next, forms let users submit information. Use <form> as the wrapper, <label> to describe each input, and <input> for the actual fields. For example: <form><label for=\"name\">Name:</label><input type=\"text\" id=\"name\" name=\"name\"></form>.",
+          "type": "speech"
+        },
+        {
+          "id": "action_cnZAd-AB",
+          "text": "A quick accessibility tip: always pair <label> with its corresponding <input> using the “for” and “id” attributes—screen readers will then read the label correctly.",
+          "type": "speech"
+        },
+        {
+          "id": "action_wu3wLpDv",
+          "text": "That covers the basics of tables and forms. Feel free to experiment by adding more rows or input types, and we’ll build on this in the next slide.",
+          "type": "speech"
+        }
+      ],
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "k2pwXt-s9emDpAsULpBu7",
+          "theme": {
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            },
+            "outline": {
+              "color": "#d14424",
+              "style": "solid",
+              "width": 2
+            },
+            "fontName": "Microsoft YaHei",
+            "fontColor": "#333333",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "backgroundColor": "#ffffff"
+          },
+          "elements": [
+            {
+              "id": "text_7fkiEalP",
+              "top": 60,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 70,
+              "rotate": 0,
+              "content": "<p>Tables and Forms Overview</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_xEWVXXbm",
+              "top": 150,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 118,
+              "rotate": 0,
+              "content": "<p>• Build tables with &amp;lt;table&amp;gt; , &amp;lt;tr&amp;gt; , &amp;lt;th&amp;gt; , &amp;lt;td&amp;gt; • Create forms using &amp;lt;form&amp;gt; , &amp;lt;input&amp;gt; , &amp;lt;label&amp;gt; • Accessibility: add scope to &amp;lt;th&amp;gt; , use label with for attribute</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_I6tuJnLe",
+              "top": 280,
+              "left": 80,
+              "type": "text",
+              "width": 840,
+              "height": 94,
+              "rotate": 0,
+              "content": "<p>&amp;lt;table&amp;gt; &amp;nbsp;&amp;nbsp;&amp;lt;tr&amp;gt; &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;lt;th scope=&quot;col&quot;&amp;gt;Header&amp;lt;/th&amp;gt; &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;lt;td&amp;gt;Data&amp;lt;/td&amp;gt; &amp;nbsp;&amp;nbsp;&amp;lt;/tr&amp;gt; &amp;lt;/table&amp;gt;</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_YrUm09FM",
+              "top": 390,
+              "left": 80,
+              "type": "text",
+              "width": 840,
+              "height": 94,
+              "rotate": 0,
+              "content": "<p>&amp;lt;form&amp;gt; &amp;nbsp;&amp;nbsp;&amp;lt;label for=&quot;name&quot;&amp;gt;Name:&amp;lt;/label&amp;gt; &amp;nbsp;&amp;nbsp;&amp;lt;input type=&quot;text&quot; id=&quot;name&quot; name=&quot;name&quot;&amp;gt; &amp;lt;/form&amp;gt;</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          },
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625
+        }
+      },
+      "stageId": "F18Lh7ofxJ",
+      "createdAt": 1777630933405,
+      "updatedAt": 1777630933405
+    },
+    {
+      "id": "scene_fNbKxzSkFq",
+      "type": "slide",
+      "order": 10,
+      "title": "Semantic HTML & Good Practices",
+      "actions": [
+        {
+          "id": "action_twtkVgM6",
+          "type": "spotlight",
+          "elementId": "text_zmh2TBAf"
+        },
+        {
+          "id": "action_pQvPX7SV",
+          "text": "Alright, everyone, let’s dive into Semantic HTML and why good coding practices matter.",
+          "type": "speech"
+        },
+        {
+          "id": "action_G1maA_p_",
+          "type": "spotlight",
+          "elementId": "text_fFKka1Eu"
+        },
+        {
+          "id": "action_8d3F3Hrd",
+          "text": "First, we have the sectioning tags: <header>, <nav>, <main>, <section>, <article>, and <footer>. These elements describe the purpose of each part of our page, making it easier for browsers and assistive technologies to understand the structure.",
+          "type": "speech"
+        },
+        {
+          "id": "action_EYqQOPNl",
+          "type": "laser",
+          "elementId": "text_fFKka1Eu"
+        },
+        {
+          "id": "action_hTPru1hj",
+          "text": "Next, always use meaningful headings—like <h1> for the main title and descending <h2>, <h3> for sub‑sections—so the hierarchy is clear. And don’t forget alt text for images; it provides a text description for users who can’t see the picture.",
+          "type": "speech"
+        },
+        {
+          "id": "action_QFYm1V3p",
+          "type": "laser",
+          "elementId": "text_fFKka1Eu"
+        },
+        {
+          "id": "action_VFWRs7wK",
+          "text": "Finally, keep your code tidy: proper indentation, helpful comments, and run it through a validator. Clean code is easier to read, debug, and maintain.",
+          "type": "speech"
+        },
+        {
+          "id": "action_QjX13RUi",
+          "text": "That covers the key points for today—sectioning tags, clear headings and alt text, and solid coding style. Great job, everyone!",
+          "type": "speech"
+        }
+      ],
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "gON-PdOwR1Z0u-6kzeTFQ",
+          "theme": {
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            },
+            "outline": {
+              "color": "#d14424",
+              "style": "solid",
+              "width": 2
+            },
+            "fontName": "Microsoft YaHei",
+            "fontColor": "#333333",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "backgroundColor": "#ffffff"
+          },
+          "elements": [
+            {
+              "id": "text_zmh2TBAf",
+              "top": 60,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 58,
+              "rotate": 0,
+              "content": "<p>Semantic HTML &amp;amp; Good Practices</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_fFKka1Eu",
+              "top": 150,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 103,
+              "rotate": 0,
+              "content": "<p>• Sectioning tags: &amp;lt;header&amp;gt; , &amp;lt;nav&amp;gt; , &amp;lt;main&amp;gt; , &amp;lt;section&amp;gt; , &amp;lt;article&amp;gt; , &amp;lt;footer&amp;gt; • Meaningful headings ( &amp;lt;h1&amp;gt;-&amp;lt;h6&amp;gt; ) and descriptive alt text for images • Consistent indentation, clear comments, and HTML validation</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            }
+          ],
+          "background": {
+            "type": "solid",
+            "color": "#ffffff"
+          },
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625
+        }
+      },
+      "stageId": "F18Lh7ofxJ",
+      "createdAt": 1777630957698,
+      "updatedAt": 1777630957698
+    },
+    {
+      "id": "scene_zxKNCwsZsj",
+      "type": "quiz",
+      "order": 11,
+      "title": "Final Knowledge Check",
+      "actions": [
+        {
+          "id": "action_2No5TinS",
+          "text": "Alright everyone, it's time for our final knowledge check on HTML5 semantics and form controls. You'll have a single‑choice question, a multiple‑selection question, and a short‑answer prompt. Read each carefully and remember the key points we covered: choosing the right semantic tag for a page region and picking the appropriate form element for user input.",
+          "type": "speech"
+        },
+        {
+          "id": "action_9yGEaUGe",
+          "text": "For the first question, think about the element that specifically describes a set of navigation links. That's the tag we use to wrap menus, site‑wide navigation bars, and any list of links that help users move around the site.",
+          "type": "speech"
+        },
+        {
+          "id": "action_F7oJOVyO",
+          "text": "The second question asks which form controls are suitable for letting someone pick their preferred contact method. Remember, checkboxes allow multiple selections, radio buttons enforce a single choice, and a drop‑down list can also present several options. A file input is for uploading files, not for selecting a contact preference.",
+          "type": "speech"
+        },
+        {
+          "id": "action_84HwFFUp",
+          "text": "The short‑answer question wants you to explain why semantic tags like <article>, <section>, <nav>, and <footer> matter for accessibility and SEO. Think about screen readers, document outlines, and how search engines understand page structure.",
+          "type": "speech"
+        },
+        {
+          "id": "action_bNG3rDX7",
+          "text": "Take your time, apply what you've learned, and once you're done we'll reflect on how these concepts fit into building accessible, well‑structured webpages. Great job getting this far!",
+          "type": "speech"
+        },
+        {
+          "id": "action_z5CF7tdR",
+          "type": "discussion",
+          "topic": "How do semantic HTML tags improve both accessibility for users with assistive technologies and search engine visibility?",
+          "prompt": "Share examples of how you might use these tags in a personal webpage project.",
+          "agentId": "gen-server-2"
+        }
+      ],
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "single",
+            "answer": [
+              "B"
+            ],
+            "points": 10,
+            "options": [
+              {
+                "value": "A",
+                "label": "header"
+              },
+              {
+                "value": "B",
+                "label": "nav"
+              },
+              {
+                "value": "C",
+                "label": "section"
+              },
+              {
+                "value": "D",
+                "label": "aside"
+              }
+            ],
+            "analysis": "The <nav> element specifically defines a set of navigation links. <header> is for introductory content, <section> groups related content, and <aside> is for tangential content.",
+            "question": "Which HTML5 semantic element is most appropriate for the main navigation links of a website?",
+            "hasAnswer": true
+          },
+          {
+            "id": "q2",
+            "type": "multiple",
+            "answer": [
+              "A",
+              "C"
+            ],
+            "points": 15,
+            "options": [
+              {
+                "value": "A",
+                "label": "Checkboxes"
+              },
+              {
+                "value": "B",
+                "label": "Radio buttons"
+              },
+              {
+                "value": "C",
+                "label": "Drop‑down (select) list"
+              },
+              {
+                "value": "D",
+                "label": "File input"
+              }
+            ],
+            "analysis": "Checkboxes permit multiple independent choices, which fits a user who may want more than one contact method. A drop‑down can also allow multiple selections when the 'multiple' attribute is used. Radio buttons allow only a single choice, and file input is unrelated.",
+            "question": "Select all form controls that are suitable for collecting a user's preferred contact method (multiple selections allowed).",
+            "hasAnswer": true
+          },
+          {
+            "id": "q3",
+            "type": "short_answer",
+            "points": 20,
+            "analysis": "A good answer should mention that semantic tags give screen readers clear cues about page regions, help search engines understand content hierarchy, and make the markup easier for developers to read and maintain.",
+            "question": "Explain why using semantic HTML tags (such as <article>, <section>, <nav>, and <footer>) is important for web accessibility and SEO.",
+            "hasAnswer": false,
+            "commentPrompt": "Rubric: (1) Improves accessibility for assistive technologies - 40%; (2) Provides meaningful document structure for search engines - 35%; (3) Enhances code readability and maintainability - 25%.",
+            "answer": [],
+            "options": []
+          }
+        ]
+      },
+      "stageId": "F18Lh7ofxJ",
+      "createdAt": 1777630989930,
+      "updatedAt": 1777630989930
+    }
+  ],
+  "generatedAt": "2026-05-02T21:49:57.972Z"
+}

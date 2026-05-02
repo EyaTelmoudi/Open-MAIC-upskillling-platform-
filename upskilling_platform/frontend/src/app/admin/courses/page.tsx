@@ -1,18 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CourseManagementNav } from "@/app/admin/courses/course-management-nav";
 import { AdminShell } from "@/app/components/layout/AdminShell";
 import { useAuth } from "@/app/context/AuthContext";
-import { Button, buttonVariants } from "@/app/components/ui/Button";
+import { Button } from "@/app/components/ui/Button";
 import { Input } from "@/app/components/ui/Input";
 import {
   createCourse,
   createCourseModule,
   createModuleLesson,
   deleteCourseById,
-  getCourseById,
   getCourses,
   toggleCoursePublish,
   updateCourseById,
@@ -26,9 +25,7 @@ import {
 import { routes } from "@/app/lib/routes";
 import {
   BookOpen,
-  CheckCircle,
   Edit,
-  Eye,
   FileText,
   FileVideo,
   Loader2,
@@ -552,95 +549,10 @@ export default function AdminCoursesPage() {
     }
   };
 
-  const handleTogglePublish = async (course: AdminCourse) => {
+  const handleOpenEditor = (courseId: string) => {
     setError(null);
     setSuccess(null);
-    try {
-      const updated = await toggleCoursePublish(course.id);
-      setCourses((current) =>
-        current.map((item) =>
-          item.id === course.id
-            ? { ...item, is_published: updated.is_published }
-            : item
-        )
-      );
-      if (updated.is_published) {
-        const memoryResponse = await fetch("/api/course-memory-agent/published-course", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ courseId: course.id }),
-        });
-        const memoryData = (await memoryResponse.json().catch(() => null)) as
-          | { success?: boolean; error?: string }
-          | null;
-
-        if (!memoryResponse.ok || !memoryData?.success) {
-          throw new Error(
-            memoryData?.error ||
-              "Course published, but the Course Memory Agent failed to assemble the course payload.",
-          );
-        }
-      }
-      setSuccess(
-        updated.is_published
-          ? "Course published successfully. The Course Memory Agent assembled the course content."
-          : "Course moved back to draft."
-      );
-    } catch (err) {
-      console.error("Failed to toggle publish state:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to change course visibility"
-      );
-    }
-  };
-
-  const handleOpenEditor = async (courseId: string) => {
-    setError(null);
-    setSuccess(null);
-    setIsSubmitting(true);
-    try {
-      const detail = await getCourseById(courseId);
-      const editable: EditableCourse = {
-        id: detail.id,
-        title: detail.title,
-        description: detail.description || "",
-        category: detail.category,
-        difficulty: detail.difficulty,
-        duration: detail.duration,
-        xp_reward: detail.xp_reward,
-        is_published: detail.is_published,
-        modules: detail.modules.map((module) => ({
-          id: module.id,
-          title: module.title,
-          description: module.description || "",
-          order: module.order,
-          lessons: module.lessons.map((lesson) => {
-            const parsed = extractLessonEditorData(lesson.content);
-            return {
-              id: lesson.id,
-              title: lesson.title,
-              summary: parsed.summary,
-              video_url: lesson.video_url || null,
-              content_type: lesson.content_type,
-              duration: lesson.duration,
-              order: lesson.order,
-              resources: parsed.resources,
-              newVideoFile: null,
-              newFiles: [],
-            };
-          }),
-        })),
-      };
-      setEditingCourse(editable);
-      setShowEditModal(true);
-    } catch (err) {
-      console.error("Failed to load course editor:", err);
-      setError(err instanceof Error ? err.message : "Failed to open course editor");
-    } finally {
-      setIsSubmitting(false);
-    }
+    router.push(routes.adminCourseEditorResolver(courseId));
   };
 
   const updateEditingCourse = (changes: Partial<EditableCourse>) => {
@@ -780,15 +692,7 @@ export default function AdminCoursesPage() {
   return (
     <AdminShell>
       <div className="space-y-6">
-        <div className="flex items-center justify-end gap-4">
-          <Link
-            href={routes.adminCourseNew}
-            className={buttonVariants({ variant: "default" })}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create Course
-          </Link>
-        </div>
+        <CourseManagementNav />
 
         {error && (
           <div className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -873,8 +777,11 @@ export default function AdminCoursesPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
                   Status
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-700">
-                  Actions
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-700">
+                  Edit
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-700">
+                  Delete
                 </th>
               </tr>
             </thead>
@@ -882,7 +789,7 @@ export default function AdminCoursesPage() {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-4 py-10 text-center text-slate-600"
                   >
                     <div className="inline-flex items-center gap-2">
@@ -957,51 +864,34 @@ export default function AdminCoursesPage() {
                         {course.is_published ? "Published" : "Draft"}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleTogglePublish(course)}
-                        >
-                          {course.is_published ? (
-                            <Eye className="h-4 w-4 text-amber-500" />
-                          ) : (
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            router.push(routes.adminCourseDetail(course.id));
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleOpenEditor(course.id);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedCourse(course);
-                            setShowDeleteModal(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+                    <td className="px-4 py-4 text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-700 hover:text-slate-950"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOpenEditor(course.id);
+                        }}
+                        title="Open course edit modal"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-700 hover:text-destructive"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedCourse(course);
+                          setShowDeleteModal(true);
+                        }}
+                        title="Delete course"
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </td>
                   </tr>
                 ))

@@ -28,6 +28,9 @@ export const routes = {
   adminAiCourseReview: (draftId: string) =>
     `/admin/ai-course-studio/course-builder/review/${draftId}`,
   adminCourses: "/admin/courses",
+  adminCourseDetails: "/admin/courses/details",
+  adminCourseEditor: "/admin/courses/editor",
+  adminCourseEditorResolver: (id: string) => `/admin/courses/${id}/editor`,
   adminCourseNew: "/admin/courses/new",
   adminCourseDetail: (id: string) => `/admin/courses/${id}`,
   adminContent: "/admin/content",

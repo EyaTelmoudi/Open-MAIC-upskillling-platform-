@@ -1,0 +1,16 @@
+{
+  "requirement": "do a html file",
+  "options": {
+    "enableWebSearch": true,
+    "enableImageGeneration": true,
+    "enableVideoGeneration": true,
+    "enableTTS": true,
+    "agentMode": "generate"
+  },
+  "pdf": {
+    "fileName": "Introduction to HTML.pdf",
+    "size": 45701,
+    "type": "application/pdf"
+  },
+  "createdAt": "2026-05-01T09:53:42.870Z"
+}

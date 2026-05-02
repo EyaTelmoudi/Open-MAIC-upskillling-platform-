@@ -19,6 +19,7 @@ rabbitmq_client = RabbitMQClient()
 security = HTTPBearer()
 COURSE_EDIT_ROLES = {"LearningExpert", "Manager", "Admin", "SuperAdmin"}
 COURSE_DELETE_ROLES = {"LearningExpert", "Manager", "Admin", "SuperAdmin"}
+DRAFT_VIEW_ROLES = {"LearningExpert", "Admin", "SuperAdmin"}
 
 
 def get_current_user(
@@ -65,6 +66,10 @@ def _require_course_edit_role(user: User) -> None:
         )
 
 
+def _can_view_unpublished_course(user: User) -> bool:
+    return user.role in DRAFT_VIEW_ROLES
+
+
 @router.get("/", response_model=dict)
 def list_courses(
     category: Optional[str] = Query(None),
@@ -82,6 +87,9 @@ def list_courses(
 
     if user_info.role != "SuperAdmin":
         query = query.filter(Course.tenant_id == user_info.tenant_id)
+
+    if not _can_view_unpublished_course(user_info):
+        query = query.filter(Course.is_published.is_(True))
 
     if category:
         query = query.filter(Course.category == category)
@@ -142,6 +150,12 @@ def get_course(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied: course belongs to another tenant"
+        )
+
+    if not course.is_published and not _can_view_unpublished_course(user_info):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found"
         )
 
     modules = sorted(course.modules, key=lambda m: m.order)
@@ -205,6 +219,12 @@ def get_course_curriculum(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied: course belongs to another tenant"
+        )
+
+    if not course.is_published and not _can_view_unpublished_course(user_info):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found"
         )
 
     modules = sorted(course.modules, key=lambda m: m.order)

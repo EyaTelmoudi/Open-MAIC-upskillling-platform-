@@ -5,7 +5,7 @@
     "name": "Welcome & Course Overview",
     "style": "interactive",
     "createdAt": 1777564129083,
-    "updatedAt": 1777564556165,
+    "updatedAt": 1777651182655,
     "languageDirective": "Deliver the entire course in clear English. Use simple, practical language and a friendly, encouraging tone suitable for complete beginners. All technical terms (e.g., HTML tags) should be presented in English, and any generated visual assets must have any text labels in English as well.",
     "generatedAgentConfigs": [
       {
@@ -135,7 +135,7 @@
               "width": 880,
               "height": 70,
               "rotate": 0,
-              "content": "<p>Welcome &amp; Course Overview</p>",
+              "content": "<p>Welcome &amp; Course Overviewwwwwwwwwwwwwwwwwwwwwwwwwww123123123</p>",
               "defaultColor": "#333333",
               "defaultFontName": "Microsoft YaHei"
             },
@@ -942,5 +942,5 @@
       "updatedAt": 1777564472805
     }
   ],
-  "generatedAt": "2026-04-30T15:55:56.165Z"
+  "generatedAt": "2026-05-01T15:59:42.655Z"
 }

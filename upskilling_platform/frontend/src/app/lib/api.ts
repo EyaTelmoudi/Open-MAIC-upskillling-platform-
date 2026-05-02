@@ -15,6 +15,10 @@ function isBrowser() {
 }
 
 function resolveBaseUrl(path: string): string {
+  if (isBrowser() && path.startsWith("/api/")) {
+    return "";
+  }
+
   if (
     path.startsWith("/api/v1/auth") ||
     path.startsWith("/api/v1/identity") ||
@@ -1337,6 +1341,26 @@ export async function uploadCourseContent(
     formData.append("module_id", options.moduleId);
   }
   return api.postForm<ContentUploadResponse>("/api/v1/learning/content/upload", formData);
+}
+
+export async function getAICourseDraftByPlatformCourseId(
+  courseId: string,
+  title?: string | null,
+): Promise<{
+  success: boolean;
+  draftId: string;
+  record: {
+    draftId: string;
+    status: string;
+    platformCourseId: string | null;
+  };
+}> {
+  const params = new URLSearchParams();
+  if (title) {
+    params.set("title", title);
+  }
+  const query = params.toString();
+  return api.get(`/api/ai-course-builder/platform-course/${courseId}${query ? `?${query}` : ""}`);
 }
 
 export interface TenantStats {

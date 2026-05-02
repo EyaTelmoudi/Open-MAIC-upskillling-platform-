@@ -173,6 +173,43 @@ def list_ai_course_drafts(
     return {"success": True, "drafts": [_draft_summary(draft) for draft in drafts]}
 
 
+@router.get("/by-platform-course/{course_id}", response_model=dict)
+def get_ai_course_draft_by_platform_course(
+    course_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    user = _get_user_from_payload(current_user, db)
+    _require_course_edit_role(user)
+
+    query = db.query(AICourseDraft).filter(AICourseDraft.platform_course_id == course_id)
+    if user.role != "SuperAdmin":
+        query = query.filter(AICourseDraft.tenant_id == user.tenant_id)
+
+    record = query.order_by(AICourseDraft.updated_at.desc()).first()
+    if not record:
+        course = db.query(Course).filter(Course.id == course_id).first()
+        if course:
+            fallback_query = db.query(AICourseDraft).filter(AICourseDraft.title == course.title)
+            if user.role != "SuperAdmin":
+                fallback_query = fallback_query.filter(AICourseDraft.tenant_id == user.tenant_id)
+            record = fallback_query.order_by(AICourseDraft.updated_at.desc()).first()
+
+            if record and not record.platform_course_id:
+                record.platform_course_id = course.id
+                db.commit()
+                db.refresh(record)
+
+    if not record:
+        raise HTTPException(status_code=404, detail="AI course draft not found for this platform course")
+
+    return {
+        "success": True,
+        "draftId": record.external_draft_id,
+        "record": _review_record(record),
+    }
+
+
 @router.get("/{draft_id}", response_model=dict)
 def get_ai_course_draft(
     draft_id: str,

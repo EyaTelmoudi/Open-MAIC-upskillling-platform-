@@ -28,6 +28,20 @@ export async function safeGetAiCourseDraft(draftId: string) {
   }
 }
 
+export async function safeGetAiCourseDraftByPlatformCourseId(
+  request: Request,
+  platformCourseId: string,
+  title?: string | null,
+) {
+  const db = await loadAiCourseDb();
+  if (!db) return null;
+  try {
+    return await db.getAiCourseDraftByPlatformCourseId(request, platformCourseId, title);
+  } catch {
+    return null;
+  }
+}
+
 export async function safeUpsertAiCourseDraft(
   request: Request,
   payload: Parameters<AiCourseDbModule["upsertAiCourseDraft"]>[1],

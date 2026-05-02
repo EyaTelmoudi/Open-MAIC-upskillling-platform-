@@ -124,6 +124,81 @@ function parseSlideBlocks(scene: ParsedScene) {
     .filter((block) => block.text.length > 0);
 }
 
+function extractLooseMatches(source: string, pattern: RegExp) {
+  return Array.from(source.matchAll(pattern))
+    .map((match) => decodeHtmlEntities(stripHtml(match[1] || "")))
+    .filter(Boolean);
+}
+
+function parseLooseSceneLesson(lesson: LessonInput, order: number): ParsedScene | null {
+  if (!lesson.content) {
+    return null;
+  }
+
+  const source = lesson.content;
+  const sceneType =
+    source.match(/"content"\s*:\s*\{\s*"type"\s*:\s*"([^"]+)"/)?.[1] ||
+    source.match(/"type"\s*:\s*"([^"]+)"/)?.[1] ||
+    "lesson";
+
+  const speechTexts = extractLooseMatches(
+    source,
+    /"text"\s*:\s*"([\s\S]*?)"\s*,\s*"type"\s*:\s*"speech"/g
+  );
+
+  const slideTexts = extractLooseMatches(
+    source,
+    /"content"\s*:\s*"([\s\S]*?)"\s*,\s*"defaultColor"/g
+  );
+
+  const interactiveHtmlMatch = source.match(/"html"\s*:\s*"([\s\S]*?)"\s*,\s*"type"\s*:\s*"interactive"/);
+  const interactiveHtml = interactiveHtmlMatch ? decodeHtmlEntities(interactiveHtmlMatch[1]) : undefined;
+
+  if (speechTexts.length === 0 && slideTexts.length === 0 && !interactiveHtml && !source.includes('"questions"')) {
+    return null;
+  }
+
+  const content: SceneContent =
+    sceneType === "slide"
+      ? {
+          type: "slide",
+          canvas: {
+            elements: slideTexts.map((text, index) => ({
+              id: `${lesson.id}-slide-${index}`,
+              type: "text",
+              content: text,
+            })),
+          },
+        }
+      : sceneType === "interactive"
+        ? {
+            type: "interactive",
+            html: interactiveHtml,
+          }
+        : sceneType === "quiz"
+          ? {
+              type: "quiz",
+              questions: [],
+            }
+          : {
+              type: sceneType,
+            };
+
+  return {
+    id: lesson.id,
+    title: lesson.title,
+    type: sceneType,
+    duration: lesson.duration,
+    order,
+    actions: speechTexts.map((text, index) => ({
+      id: `${lesson.id}-speech-${index}`,
+      type: "speech" as const,
+      text,
+    })),
+    content,
+  };
+}
+
 function parseSceneLesson(lesson: LessonInput, order: number): ParsedScene | null {
   if (!lesson.content) {
     return null;
@@ -159,7 +234,7 @@ function parseSceneLesson(lesson: LessonInput, order: number): ParsedScene | nul
       content: parsed.content || { type: parsed.type || "lesson" },
     };
   } catch {
-    return null;
+    return parseLooseSceneLesson(lesson, order);
   }
 }
 
@@ -372,6 +447,43 @@ export function AiCourseModulePlayer({
     (action): action is SpeechAction => action.type === "speech"
   );
   const quizQuestions = isQuizContent(selectedScene.content) ? selectedScene.content.questions || [] : [];
+  const playbackControls = (
+    <div className="flex flex-wrap gap-3">
+      <button
+        type="button"
+        onClick={handlePrevious}
+        className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+      >
+        <SkipBack className="mr-2 inline h-4 w-4" />
+        Previous lesson
+      </button>
+      <button
+        type="button"
+        onClick={handlePlayPause}
+        className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+      >
+        {playbackState === "playing" ? (
+          <>
+            <Pause className="mr-2 inline h-4 w-4" />
+            Pause
+          </>
+        ) : (
+          <>
+            <Play className="mr-2 inline h-4 w-4" />
+            {playbackState === "paused" ? "Resume" : "Play lesson"}
+          </>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={handleNext}
+        className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+      >
+        Next lesson
+        <SkipForward className="ml-2 inline h-4 w-4" />
+      </button>
+    </div>
+  );
 
   return (
     <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
@@ -421,44 +533,6 @@ export function AiCourseModulePlayer({
           </div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={handlePrevious}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
-            >
-              <SkipBack className="mr-2 inline h-4 w-4" />
-              Previous lesson
-            </button>
-            <button
-              type="button"
-              onClick={handlePlayPause}
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-            >
-              {playbackState === "playing" ? (
-                <>
-                  <Pause className="mr-2 inline h-4 w-4" />
-                  Pause
-                </>
-              ) : (
-                <>
-                  <Play className="mr-2 inline h-4 w-4" />
-                  {playbackState === "paused" ? "Resume" : "Play lesson"}
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
-            >
-              Next lesson
-              <SkipForward className="ml-2 inline h-4 w-4" />
-            </button>
-          </div>
-        </section>
-
         {isSlideContent(selectedScene.content) ? (
           <section className="overflow-hidden rounded-3xl border border-sky-200 bg-white text-slate-900 shadow-sm">
             <div className="bg-[linear-gradient(180deg,rgba(224,242,254,0.58),rgba(236,253,245,0.38),rgba(248,250,252,0.96))] px-5 py-5">
@@ -486,6 +560,7 @@ export function AiCourseModulePlayer({
               </div>
             </div>
             <div className="border-t border-slate-200 bg-slate-50 px-6 py-4 text-slate-900">
+              <div className="mb-4">{playbackControls}</div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
                 <Volume2 className="h-4 w-4" />
                 Live narration
@@ -560,6 +635,9 @@ export function AiCourseModulePlayer({
 
         {speechBlocks.length > 0 && !isQuizContent(selectedScene.content) ? (
           <section className="rounded-3xl border border-emerald-200 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.99),rgba(240,253,250,0.96))] p-6 text-slate-900 shadow-sm">
+            {!isSlideContent(selectedScene.content) ? (
+              <div className="mb-5">{playbackControls}</div>
+            ) : null}
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
               Teacher script
             </div>

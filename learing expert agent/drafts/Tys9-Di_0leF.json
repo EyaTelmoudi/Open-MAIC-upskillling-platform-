@@ -49,7 +49,7 @@
   "draftId": "Tys9-Di_0leF",
   "createdAt": "2026-04-30T15:54:32.828Z",
   "outputDir": "D:\\PFE\\OpenMAIC\\learing expert agent\\outputs\\2026-04-30T15-46-39-222Z_build-a-beginner-friendly-course-about-h_TIXha2",
-  "updatedAt": "2026-04-30T15:55:56.188Z",
+  "updatedAt": "2026-05-01T15:59:42.660Z",
   "classroomId": "ALVWX7b4Lx",
   "sourceScenes": [
     {
@@ -956,11 +956,11 @@
       "blocks": [
         {
           "id": "slide_text_1",
-          "html": "<p>Welcome &amp; Course Overview</p>",
+          "html": "<p>Welcome &amp; Course Overviewwwwwwwwwwwwwwwwwwwwwwwwwww123123123</p>",
           "type": "slide_text",
           "label": "Slide title/content block 1",
           "elementId": "text_whbDS0M6",
-          "plainText": "Welcome & Course Overview"
+          "plainText": "Welcome & Course Overviewwwwwwwwwwwwwwwwwwwwwwwwwww123123123"
         },
         {
           "id": "slide_text_2",
