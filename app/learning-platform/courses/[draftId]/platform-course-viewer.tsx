@@ -10,16 +10,124 @@ import { useStageStore } from '@/lib/store/stage';
 import { useCanvasStore } from '@/lib/store/canvas';
 import { createAudioPlayer } from '@/lib/utils/audio-player';
 
+type SlideBlock = {
+  id: string;
+  html: string;
+  text: string;
+};
+
+type SlideBeat = {
+  id: string;
+  htmlParts: string[];
+  textParts: string[];
+};
+
+function decodeHtmlEntities(value: string): string {
+  const namedEntities: Record<string, string> = {
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'",
+    nbsp: ' ',
+  };
+
+  let decoded = value;
+  for (let index = 0; index < 5; index += 1) {
+    const next = decoded.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity: string) => {
+      if (entity[0] === '#') {
+        const isHex = entity[1]?.toLowerCase() === 'x';
+        const numericValue = Number.parseInt(entity.slice(isHex ? 2 : 1), isHex ? 16 : 10);
+        return Number.isFinite(numericValue) ? String.fromCodePoint(numericValue) : match;
+      }
+
+      return namedEntities[entity] ?? match;
+    });
+
+    if (next === decoded) {
+      break;
+    }
+    decoded = next;
+  }
+
+  return decoded;
+}
+
+function repairEscapedHtml(value: string): string {
+  let repaired = value;
+  for (let index = 0; index < 5; index += 1) {
+    const next = repaired
+      .replace(/&amp;(amp|lt|gt|quot|apos|nbsp);/g, '&$1;')
+      .replace(/&amp;(#x?[0-9a-fA-F]+);/g, '&$1;');
+    if (next === repaired) {
+      break;
+    }
+    repaired = next;
+  }
+  return repaired;
+}
+
 function stripHtml(value: string): string {
-  return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  return decodeHtmlEntities(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function parseSlideBlocks(scene: Scene): SlideBlock[] {
+  if (scene.content.type !== 'slide') return [];
+
+  return scene.content.canvas.elements
+    .filter((element): element is Extract<(typeof scene.content.canvas.elements)[number], { type: 'text' }> =>
+      element.type === 'text' && 'content' in element,
+    )
+    .map((element) => ({
+      id: element.id,
+      html: repairEscapedHtml(String(element.content || '')),
+      text: stripHtml(String(element.content || '')),
+    }))
+    .filter((element) => element.text.length > 0);
+}
+
+function isCodeLikeBlock(block: SlideBlock): boolean {
+  return /<br\/?>|&lt;|[{};]|<!doctype|<html|<style|background-color|font-size|rgb\(/i.test(block.html);
+}
+
+function isTitleBlock(block: SlideBlock, sceneTitle: string): boolean {
+  const normalize = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  return normalize(block.text) === normalize(sceneTitle);
+}
+
+function buildSlideBeats(scene: Scene): SlideBeat[] {
+  const blocks = parseSlideBlocks(scene);
+  const contentBlocks = blocks.filter((block, index) => !(index === 0 && isTitleBlock(block, scene.title)));
+  const beats: SlideBeat[] = [];
+
+  for (let index = 0; index < contentBlocks.length; index += 1) {
+    const current = contentBlocks[index];
+    const next = contentBlocks[index + 1];
+
+    if (next && isCodeLikeBlock(next) && !isCodeLikeBlock(current)) {
+      beats.push({
+        id: `${current.id}_${next.id}`,
+        htmlParts: [current.html, next.html],
+        textParts: [current.text, next.text],
+      });
+      index += 1;
+      continue;
+    }
+
+    beats.push({
+      id: current.id,
+      htmlParts: [current.html],
+      textParts: [current.text],
+    });
+  }
+
+  return beats;
 }
 
 function sceneSummary(scene: Scene): string {
   if (scene.type === 'slide' && scene.content.type === 'slide') {
-    const text = scene.content.canvas.elements
-      .filter((element) => element.type === 'text' && 'content' in element)
-      .map((element) => stripHtml(String(element.content || '')))
-      .filter(Boolean)
+    const text = buildSlideBeats(scene)
+      .flatMap((beat) => beat.textParts)
       .join(' ');
     return text.slice(0, 120) || 'Slide lesson';
   }
@@ -42,6 +150,15 @@ function wait(ms: number): Promise<void> {
 function speechDurationMs(action: SpeechAction): number {
   const words = action.text.trim().split(/\s+/).filter(Boolean).length;
   return Math.min(9000, Math.max(2200, words * 260));
+}
+
+function beatIndexForStep(stepIndex: number, totalSteps: number, beatCount: number): number {
+  if (beatCount <= 0 || totalSteps <= 1 || stepIndex <= 0) {
+    return -1;
+  }
+
+  const normalized = Math.floor(((stepIndex - 1) * beatCount) / Math.max(totalSteps - 1, 1));
+  return Math.min(normalized, beatCount - 1);
 }
 
 function AnimatedSlidePreview({
@@ -126,32 +243,68 @@ function renderSlideDetails(
   activeSpeech: string | null,
   isPlaying: boolean,
   onReplay: () => void,
+  activeBeatIndex: number,
 ) {
   if (scene.content.type !== 'slide') return null;
 
-  const textElements = scene.content.canvas.elements.filter(
-    (element) => element.type === 'text' && 'content' in element,
-  );
+  const slideBeats = buildSlideBeats(scene);
 
   return (
     <div className="space-y-5">
-      <AnimatedSlidePreview
-        scene={scene}
-        activeSpeech={activeSpeech}
-        isPlaying={isPlaying}
-        onReplay={onReplay}
-      />
-      {textElements.map((element) => (
-        <section
-          key={element.id}
-          className="rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm"
-        >
-          <div
-            className="prose prose-slate max-w-none text-sm leading-7"
-            dangerouslySetInnerHTML={{ __html: String(element.content || '') }}
-          />
-        </section>
-      ))}
+      {isPlaying ? (
+        <AnimatedSlidePreview
+          scene={scene}
+          activeSpeech={activeSpeech}
+          isPlaying={isPlaying}
+          onReplay={onReplay}
+        />
+      ) : null}
+      <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+        <div className="bg-slate-50 px-6 py-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+            Lesson Presentation
+          </div>
+        </div>
+        <div className="bg-slate-100 px-5 py-5">
+          <div className="mx-auto flex aspect-[16/9] w-full max-w-5xl flex-col justify-center rounded-[24px] border border-slate-200 bg-white p-10 shadow-sm">
+            {!isPlaying || activeBeatIndex < 0 ? (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <div className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">
+                  Lesson Opening
+                </div>
+                <h3 className="mt-6 max-w-3xl text-4xl font-semibold leading-tight text-slate-950">
+                  {scene.title}
+                </h3>
+                <p className="mt-6 max-w-2xl text-base leading-7 text-slate-500">
+                  Start playback to move through this lesson step by step, with one core idea visible at a time.
+                </p>
+              </div>
+            ) : (
+              <div className="flex h-full flex-col">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+                  {scene.title}
+                </div>
+                <div className="mt-2 text-sm text-slate-500">
+                  Idea {Math.min(activeBeatIndex + 1, slideBeats.length)} / {slideBeats.length}
+                </div>
+                {slideBeats[activeBeatIndex] ? (
+                  <div className="mt-8 flex-1 rounded-3xl border border-sky-300 bg-[linear-gradient(135deg,rgba(14,165,233,0.16),rgba(16,185,129,0.10))] px-6 py-6 shadow-[0_12px_30px_rgba(14,165,233,0.16)]">
+                    <div className="space-y-4">
+                      {slideBeats[activeBeatIndex].htmlParts.map((html, partIndex) => (
+                        <div
+                          key={`${slideBeats[activeBeatIndex].id}_${partIndex}`}
+                          className="prose prose-slate max-w-none text-sm leading-7"
+                          dangerouslySetInnerHTML={{ __html: html }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -242,6 +395,7 @@ function renderInteractive(scene: Scene) {
 }
 
 function renderNarration(scene: Scene) {
+  if (scene.type === 'quiz') return null;
   const speech = (scene.actions || []).filter((action): action is SpeechAction => action.type === 'speech');
   if (speech.length === 0) return null;
 
@@ -272,6 +426,7 @@ export function PlatformCourseViewer({ course }: { course: FinalizedCoursePackag
   const [selectedSceneId, setSelectedSceneId] = useState<string>(orderedScenes[0]?.id || '');
   const [playbackState, setPlaybackState] = useState<'idle' | 'playing' | 'paused'>('idle');
   const [activeSpeech, setActiveSpeech] = useState<string | null>(null);
+  const [activeBeatIndex, setActiveBeatIndex] = useState<number>(-1);
   const audioPlayerRef = useRef(createAudioPlayer());
   const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const playbackTokenRef = useRef(0);
@@ -395,8 +550,15 @@ export function PlatformCourseViewer({ course }: { course: FinalizedCoursePackag
     async (scene: Scene, token: number) => {
       clearVisuals();
       clearSpeech();
+      const slideBeats = scene.type === 'slide' ? buildSlideBeats(scene) : [];
+      const sceneSpeechActions =
+        scene.type === 'quiz'
+          ? []
+          : (scene.actions || []).filter((action): action is SpeechAction => action.type === 'speech');
+      const totalSteps = Math.max(sceneSpeechActions.length, slideBeats.length + 1, 1);
       await wait(250);
 
+      let actionIndex = 0;
       for (const action of scene.actions || []) {
         if (playbackTokenRef.current !== token) return false;
         const ok = await waitWhilePaused(token);
@@ -422,14 +584,20 @@ export function PlatformCourseViewer({ course }: { course: FinalizedCoursePackag
         }
 
         if (action.type === 'speech') {
+          if (scene.type === 'quiz') continue;
+          if (scene.type === 'slide') {
+            setActiveBeatIndex(beatIndexForStep(actionIndex, totalSteps, slideBeats.length));
+          }
           const continued = await playSpeechAction(action, token);
           if (!continued) return false;
+          actionIndex += 1;
           continue;
         }
       }
 
       clearVisuals();
       clearSpeech();
+      setActiveBeatIndex(-1);
       return pausableDelay(700, token);
     },
     [clearSpeech, clearVisuals, pausableDelay, playSpeechAction, waitWhilePaused],
@@ -438,6 +606,7 @@ export function PlatformCourseViewer({ course }: { course: FinalizedCoursePackag
   const stopPlayback = useCallback(() => {
     playbackTokenRef.current += 1;
     setPlaybackState('idle');
+    setActiveBeatIndex(-1);
     stopCurrentSpeech();
     clearVisuals();
   }, [clearVisuals, stopCurrentSpeech]);
@@ -461,6 +630,7 @@ export function PlatformCourseViewer({ course }: { course: FinalizedCoursePackag
 
       if (playbackTokenRef.current === token) {
         setPlaybackState('idle');
+        setActiveBeatIndex(-1);
         clearVisuals();
         clearSpeech();
       }
@@ -625,7 +795,13 @@ export function PlatformCourseViewer({ course }: { course: FinalizedCoursePackag
             </section>
 
             {selectedScene.type === 'slide'
-              ? renderSlideDetails(selectedScene, activeSpeech, playbackState === 'playing', handleReplayCurrent)
+              ? renderSlideDetails(
+                  selectedScene,
+                  activeSpeech,
+                  playbackState === 'playing',
+                  handleReplayCurrent,
+                  activeBeatIndex,
+                )
               : null}
             {selectedScene.type === 'quiz' ? renderQuiz(selectedScene) : null}
             {selectedScene.type === 'interactive' ? renderInteractive(selectedScene) : null}

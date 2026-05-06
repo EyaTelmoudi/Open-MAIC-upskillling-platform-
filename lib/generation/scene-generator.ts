@@ -80,6 +80,202 @@ export interface SceneActionsOptions {
   languageDirective?: string;
 }
 
+type SlideRole =
+  | 'opening'
+  | 'overview'
+  | 'content'
+  | 'practice'
+  | 'summary';
+
+const INTRO_DEFINITION_PATTERNS = [
+  /\b(backbone|skeleton)\b/i,
+  /\bframe of a house\b/i,
+  /\blets browsers? (know|understand|display)\b/i,
+  /\bgives? (a|the) page its basic structure\b/i,
+];
+
+const CONTENT_BAD_PATTERNS = [
+  /^\s*(welcome|hi there|hello everyone)\b/i,
+  /\b(backbone|skeleton)\b/i,
+  /\*\*[^*]+\*\*/,
+];
+
+function stripGeneratedHtml(html: string): string {
+  return decodeHtmlEntities(
+    html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim(),
+  );
+}
+
+function decodeHtmlEntities(value: string): string {
+  const namedEntities: Record<string, string> = {
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'",
+    nbsp: ' ',
+  };
+
+  let decoded = value;
+  for (let i = 0; i < 5; i += 1) {
+    const next = decoded.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity: string) => {
+      if (entity[0] === '#') {
+        const isHex = entity[1]?.toLowerCase() === 'x';
+        const raw = isHex ? entity.slice(2) : entity.slice(1);
+        const codePoint = Number.parseInt(raw, isHex ? 16 : 10);
+        return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : match;
+      }
+      return namedEntities[entity] ?? match;
+    });
+
+    if (next === decoded) {
+      break;
+    }
+    decoded = next;
+  }
+
+  return decoded;
+}
+
+function escapeGeneratedHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function isCodeLikeGeneratedText(text: string): boolean {
+  return /<!doctype|<html>|<head>|<body>|<title>|<\/html>|<\/body>|<\/head>/i.test(text);
+}
+
+function isBulletLikeGeneratedText(text: string): boolean {
+  return (
+    text.includes('\u2022') ||
+    text.includes('â€¢') ||
+    text.includes('â¢') ||
+    /^\s*[-*]\s+/m.test(text)
+  );
+}
+
+function normalizeGeneratedBulletLines(text: string): string[] {
+  const compact = text.replace(/\s*•\s*/g, '\n• ').trim();
+  return compact
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function normalizeGeneratedSlideDesign(
+  elements: PPTElement[],
+  background?: SlideBackground,
+): { elements: PPTElement[]; background: SlideBackground | undefined } {
+  const textElements = elements
+    .filter((element) => element.type === 'text' && 'content' in element)
+    .slice()
+    .sort((a, b) => a.top - b.top);
+
+  const titleElementId = textElements[0]?.id;
+
+  const updatedElements = elements.map((element) => {
+    if (element.type !== 'text' || !('content' in element)) return element;
+
+    const text = stripGeneratedHtml(String(element.content || ''));
+
+    if (element.id === titleElementId) {
+      return {
+        ...element,
+        left: 60,
+        top: 50,
+        width: 880,
+        content: `<p style="font-size:32px; text-align:center; color:#0f766e;"><strong>${escapeGeneratedHtml(
+          text,
+        )}</strong></p>`,
+        defaultColor: '#0f766e',
+      };
+    }
+
+    if (isCodeLikeGeneratedText(text)) {
+      return {
+        ...element,
+        left: 80,
+        width: 840,
+        content: `<p style="font-size:14px; font-family:Consolas, 'Courier New', monospace; color:#0f172a; line-height:1.65; background:#ecfeff; padding:10px;">${text
+          .replace(/>\s+</g, '>\n<')
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => escapeGeneratedHtml(line))
+          .join('<br/>')}</p>`,
+        defaultColor: '#0f172a',
+      };
+    }
+
+    if (text.includes('•')) {
+      return {
+        ...element,
+        left: 80,
+        width: 840,
+        content: normalizeGeneratedBulletLines(text)
+          .map(
+            (line) =>
+              `<p style="font-size:18px; color:#1f2937; line-height:1.55; text-align:left;">${escapeGeneratedHtml(
+                line,
+              )}</p>`,
+          )
+          .join(''),
+        defaultColor: '#1f2937',
+      };
+    }
+
+    return element;
+  });
+
+  const nextBackground =
+    background?.type === 'gradient'
+      ? background
+      : {
+          type: 'gradient' as const,
+          gradient: {
+            type: 'linear' as const,
+            colors: [
+              { color: '#f8fffd', pos: 0 },
+              { color: '#eef6ff', pos: 100 },
+            ],
+            rotate: 135,
+          },
+        };
+
+  return {
+    elements: updatedElements,
+    background: nextBackground,
+  };
+}
+
+function hasIntroDefinitionPattern(text: string): boolean {
+  return INTRO_DEFINITION_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function isOpeningOverviewSpeechAcceptable(role: SlideRole, speechTexts: string[]): boolean {
+  if (role !== 'opening' && role !== 'overview') return true;
+  return !speechTexts.some((text) => hasIntroDefinitionPattern(text));
+}
+
+function isContentSpeechAcceptable(role: SlideRole, speechTexts: string[]): boolean {
+  if (role !== 'content') return true;
+  return !speechTexts.some((text) => CONTENT_BAD_PATTERNS.some((pattern) => pattern.test(text)));
+}
+
 // ==================== Stage 2: Full Scenes (Two-Step) ====================
 
 /**
@@ -268,6 +464,40 @@ function buildWidgetOutline(
     default:
       return base;
   }
+}
+
+function deriveSlideRole(outline: SceneOutline): SlideRole {
+  const haystack = `${outline.title} ${outline.description || ''} ${
+    outline.keyPoints?.join(' ') || ''
+  }`
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (
+    /\b(welcome|introduction|intro|course overview|overview|roadmap|objectives?|learning outcomes?)\b/.test(
+      haystack,
+    )
+  ) {
+    return haystack.includes('overview') || haystack.includes('roadmap') ? 'overview' : 'opening';
+  }
+
+  if (/\b(summary|recap|conclusion|wrap[- ]?up|key takeaways?)\b/.test(haystack)) {
+    return 'summary';
+  }
+
+  if (/\b(practice|exercise|quiz|activity|hands[- ]?on|challenge)\b/.test(haystack)) {
+    return 'practice';
+  }
+
+  return 'content';
+}
+
+function extractSpeechTextsFromActions(actions: Action[]): string[] {
+  return actions
+    .filter((action): action is SpeechAction => action.type === 'speech')
+    .map((action) => action.text || '')
+    .filter(Boolean);
 }
 
 /**
@@ -766,9 +996,11 @@ async function generateSlideContent(
     }
   }
 
+  const normalizedDesign = normalizeGeneratedSlideDesign(processedElements, background);
+
   return {
-    elements: processedElements,
-    background,
+    elements: normalizedDesign.elements,
+    background: normalizedDesign.background,
     remark: generatedData.remark || outline.description,
   };
 }
@@ -1176,11 +1408,13 @@ export async function generateSceneActions(
   if (outline.type === 'slide' && 'elements' in content) {
     // Format element list for AI to select from
     const elementsText = formatElementsForPrompt(content.elements);
+    const slideRole = deriveSlideRole(outline);
 
     const prompts = buildPrompt(PROMPT_IDS.SLIDE_ACTIONS, {
       title: outline.title,
       keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join('\n'),
       description: outline.description,
+      slideRole,
       elements: elementsText,
       courseContext: buildCourseContext(ctx),
       agents: agentsText,
@@ -1192,43 +1426,30 @@ export async function generateSceneActions(
       return generateDefaultSlideActions(outline, content.elements);
     }
 
-    const response = await aiCall(prompts.system, prompts.user);
-    const actions = parseActionsFromStructuredOutput(response, outline.type);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await aiCall(prompts.system, prompts.user);
+      const actions = parseActionsFromStructuredOutput(response, outline.type);
 
-    if (actions.length > 0) {
-      // Validate and fill in Action IDs
-      return processActions(actions, content.elements, agents);
+      if (actions.length > 0) {
+        const processed = processActions(actions, content.elements, agents);
+        const speechTexts = extractSpeechTextsFromActions(processed);
+        if (
+          isOpeningOverviewSpeechAcceptable(slideRole, speechTexts) &&
+          isContentSpeechAcceptable(slideRole, speechTexts)
+        ) {
+          return processed;
+        }
+        log.warn(
+          `[Slide Actions] Rejected generated narration for "${outline.title}" due to role-specific quality rules. Retrying...`,
+        );
+      }
     }
 
     return generateDefaultSlideActions(outline, content.elements);
   }
 
   if (outline.type === 'quiz' && 'questions' in content) {
-    // Format question list for AI reference
-    const questionsText = formatQuestionsForPrompt(content.questions);
-
-    const prompts = buildPrompt(PROMPT_IDS.QUIZ_ACTIONS, {
-      title: outline.title,
-      keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join('\n'),
-      description: outline.description,
-      questions: questionsText,
-      courseContext: buildCourseContext(ctx),
-      agents: agentsText,
-      languageDirective: languageDirective || '',
-    });
-
-    if (!prompts) {
-      return generateDefaultQuizActions(outline);
-    }
-
-    const response = await aiCall(prompts.system, prompts.user);
-    const actions = parseActionsFromStructuredOutput(response, outline.type);
-
-    if (actions.length > 0) {
-      return processActions(actions, [], agents);
-    }
-
-    return generateDefaultQuizActions(outline);
+    return [];
   }
 
   if (outline.type === 'interactive' && 'html' in content) {
@@ -1586,6 +1807,7 @@ export function createSceneWithActions(
     | GeneratedPBLContent,
   actions: Action[],
   api: ReturnType<typeof createStageAPI>,
+  sceneId?: string,
 ): string | null {
   if (outline.type === 'slide' && 'elements' in content) {
     // Build complete Slide object
@@ -1608,6 +1830,7 @@ export function createSceneWithActions(
     };
 
     const sceneResult = api.scene.create({
+      id: sceneId,
       type: 'slide',
       title: outline.title,
       order: outline.order,
@@ -1623,6 +1846,7 @@ export function createSceneWithActions(
 
   if (outline.type === 'quiz' && 'questions' in content) {
     const sceneResult = api.scene.create({
+      id: sceneId,
       type: 'quiz',
       title: outline.title,
       order: outline.order,
@@ -1638,6 +1862,7 @@ export function createSceneWithActions(
 
   if (outline.type === 'interactive' && 'html' in content) {
     const sceneResult = api.scene.create({
+      id: sceneId,
       type: 'interactive',
       title: outline.title,
       order: outline.order,
@@ -1658,6 +1883,7 @@ export function createSceneWithActions(
 
   if (outline.type === 'pbl' && 'projectConfig' in content) {
     const sceneResult = api.scene.create({
+      id: sceneId,
       type: 'pbl',
       title: outline.title,
       order: outline.order,

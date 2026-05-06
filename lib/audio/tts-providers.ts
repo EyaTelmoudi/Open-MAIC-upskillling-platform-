@@ -154,6 +154,9 @@ export async function generateTTS(
     case 'qwen-tts':
       return await generateQwenTTS(config, text);
 
+    case 'piper-tts':
+      return await generatePiperTTS(config, text);
+
     case 'voxcpm-tts':
       return await generateVoxCPMTTS(config, text);
 
@@ -279,6 +282,44 @@ async function generateVoxCPMTTS(
   return {
     audio: new Uint8Array(arrayBuffer),
     format,
+  };
+}
+
+async function generatePiperTTS(
+  config: TTSModelConfig,
+  text: string,
+): Promise<TTSGenerationResult> {
+  const baseUrl = (config.baseUrl || TTS_PROVIDERS['piper-tts'].defaultBaseUrl || '').replace(
+    /\/$/,
+    '',
+  );
+  if (!baseUrl) {
+    throw new Error('Piper base URL is required');
+  }
+
+  const response = await fetch(`${baseUrl}/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+    },
+    body: JSON.stringify({
+      text,
+      voice: config.voice,
+      ...(config.speed && config.speed > 0
+        ? { length_scale: Number((1 / config.speed).toFixed(4)) }
+        : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    throw new Error(`Piper TTS API error: ${errorText || response.statusText}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return {
+    audio: new Uint8Array(arrayBuffer),
+    format: 'wav',
   };
 }
 

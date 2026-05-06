@@ -38,6 +38,7 @@ export const PROMPT_IDS = {
   GAME_CONTENT: 'game-content',
   VISUALIZATION3D_CONTENT: 'visualization3d-content',
   WIDGET_TEACHER_ACTIONS: 'widget-teacher-actions',
+  DRAFT_SCENE_REVISION: 'draft-scene-revision',
   PBL_ACTIONS: 'pbl-actions',
   AGENT_SYSTEM: 'agent-system',
   AGENT_SYSTEM_WB_TEACHER: 'agent-system-wb-teacher',

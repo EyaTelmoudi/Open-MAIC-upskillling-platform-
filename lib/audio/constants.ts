@@ -663,6 +663,27 @@ export const TTS_PROVIDERS: Record<BuiltInTTSProviderId, TTSProviderConfig> = {
     supportedFormats: ['mp3', 'wav', 'pcm'],
   },
 
+  'piper-tts': {
+    id: 'piper-tts',
+    name: 'Piper TTS',
+    requiresApiKey: false,
+    defaultBaseUrl: 'http://localhost:5005',
+    icon: '/logos/browser.svg',
+    models: [],
+    defaultModelId: '',
+    voices: [
+      {
+        id: 'en_US-lessac-medium',
+        name: 'Lessac Medium',
+        language: 'en-US',
+        gender: 'neutral',
+        description: 'Local Piper English voice served over HTTP',
+      },
+    ],
+    supportedFormats: ['wav'],
+    speedRange: { min: 0.5, max: 2.0, default: 1.0 },
+  },
+
   'minimax-tts': {
     id: 'minimax-tts',
     name: 'MiniMax TTS',
@@ -1153,6 +1174,7 @@ export const DEFAULT_TTS_VOICES: Record<BuiltInTTSProviderId, string> = {
   'azure-tts': 'zh-CN-XiaoxiaoNeural',
   'glm-tts': 'tongtong',
   'qwen-tts': 'Cherry',
+  'piper-tts': 'en_US-lessac-medium',
   'voxcpm-tts': VOXCPM_AUTO_VOICE_ID,
   'doubao-tts': 'zh_female_vv_uranus_bigtts',
   'elevenlabs-tts': 'EXAVITQu4vr4xnSDxMaL',
@@ -1165,6 +1187,7 @@ export const DEFAULT_TTS_MODELS: Record<BuiltInTTSProviderId, string> = {
   'azure-tts': '',
   'glm-tts': 'glm-tts',
   'qwen-tts': 'qwen3-tts-flash',
+  'piper-tts': '',
   'voxcpm-tts': VOXCPM_VLLM_MODEL_ID,
   'doubao-tts': '',
   'elevenlabs-tts': 'eleven_multilingual_v2',

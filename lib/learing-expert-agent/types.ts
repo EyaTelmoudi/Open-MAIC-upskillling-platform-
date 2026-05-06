@@ -1,7 +1,7 @@
 import type { Scene, Stage } from '@/lib/types/stage';
 
-export type DraftStatus = 'draft' | 'approved' | 'finalized';
-export type SceneDraftStatus = 'draft' | 'approved';
+export type DraftStatus = 'generating' | 'draft' | 'approved' | 'finalized';
+export type SceneDraftStatus = 'generating' | 'draft' | 'approved';
 
 export interface EditableSlideTextBlock {
   id: string;

@@ -18,13 +18,19 @@ export async function POST(
 
     draft.editableScenes = draft.editableScenes.map((scene) =>
       scene.sceneId === body.sceneId
-        ? { ...scene, status: body.approved ? 'approved' : 'draft' }
+        ? {
+            ...scene,
+            status:
+              scene.status === 'generating' ? 'generating' : body.approved ? 'approved' : 'draft',
+          }
         : scene,
     );
 
-    draft.status = draft.editableScenes.every((scene) => scene.status === 'approved')
-      ? 'approved'
-      : 'draft';
+    draft.status = draft.editableScenes.some((scene) => scene.status === 'generating')
+      ? 'generating'
+      : draft.editableScenes.every((scene) => scene.status === 'approved')
+        ? 'approved'
+        : 'draft';
 
     const saved = await saveDraft(draft);
     return apiSuccess({ draft: saved });

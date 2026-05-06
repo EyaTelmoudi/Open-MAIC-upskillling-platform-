@@ -40,6 +40,8 @@ type ProgressState = {
   message: string;
   scenesGenerated?: number;
   totalScenes?: number;
+  draftId?: string;
+  classroomId?: string;
 };
 
 type FinalizeResponse = {
@@ -50,6 +52,7 @@ type FinalizeResponse = {
 };
 
 function statusBadge(status: string): string {
+  if (status === 'generating') return 'border-amber-200 bg-amber-50 text-amber-700';
   if (status === 'approved') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   if (status === 'finalized') return 'border-violet-200 bg-violet-50 text-violet-700';
   return 'border-amber-200 bg-amber-50 text-amber-700';
@@ -76,7 +79,7 @@ export default function LearningExpertAgentPage() {
   const [enableWebSearch, setEnableWebSearch] = useState(false);
   const [enableImageGeneration, setEnableImageGeneration] = useState(false);
   const [enableVideoGeneration, setEnableVideoGeneration] = useState(false);
-  const [enableTTS, setEnableTTS] = useState(false);
+  const [enableTTS] = useState(true);
   const [agentMode, setAgentMode] = useState<'default' | 'generate'>('default');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -98,6 +101,7 @@ export default function LearningExpertAgentPage() {
 
   const approvedScenesCount = draft?.editableScenes.filter((scene) => scene.status === 'approved')
     .length;
+  const selectedSceneGenerating = selectedScene?.status === 'generating';
 
   const loadDrafts = async () => {
     const response = await fetch('/api/learing-expert-agent/drafts');
@@ -114,7 +118,11 @@ export default function LearningExpertAgentPage() {
       throw new Error(data.error || 'Failed to load draft');
     }
     setDraft(data.draft);
-    setSelectedSceneId(data.draft.editableScenes[0]?.sceneId || null);
+    setSelectedSceneId((current) =>
+      current && data.draft.editableScenes.some((scene: EditableSceneDraft) => scene.sceneId === current)
+        ? current
+        : data.draft.editableScenes[0]?.sceneId || null,
+    );
     setFinalPath(null);
     setFinalClassroomUrl(null);
   };
@@ -123,16 +131,23 @@ export default function LearningExpertAgentPage() {
     void loadDrafts();
   }, []);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!pdfFile) {
-      setError('Please attach a PDF file before sending the request.');
+  useEffect(() => {
+    if (!loading || !draft || draft.status !== 'generating') {
       return;
     }
 
-    if (!requirement.trim()) {
-      setError('Please describe what course OpenMAIC should build from the PDF.');
+    const interval = window.setInterval(() => {
+      void loadDraft(draft.draftId).catch(() => undefined);
+    }, 3000);
+
+    return () => window.clearInterval(interval);
+  }, [draft, loading]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!pdfFile && !requirement.trim()) {
+      setError('Please provide either a prompt, a PDF file, or both.');
       return;
     }
 
@@ -150,7 +165,9 @@ export default function LearningExpertAgentPage() {
 
     try {
       const formData = new FormData();
-      formData.append('pdf', pdfFile);
+      if (pdfFile) {
+        formData.append('pdf', pdfFile);
+      }
       formData.append('requirement', requirement.trim());
       formData.append('enableWebSearch', String(enableWebSearch));
       formData.append('enableImageGeneration', String(enableImageGeneration));
@@ -190,6 +207,8 @@ export default function LearningExpertAgentPage() {
                 message: string;
                 scenesGenerated?: number;
                 totalScenes?: number;
+                draftId?: string;
+                classroomId?: string;
               }
             | { type: 'done'; data: GenerationResponse & { success: boolean } }
             | { type: 'error'; error: string };
@@ -201,7 +220,13 @@ export default function LearningExpertAgentPage() {
               message: event.message,
               scenesGenerated: event.scenesGenerated,
               totalScenes: event.totalScenes,
+              draftId: event.draftId,
+              classroomId: event.classroomId,
             });
+            if (event.draftId) {
+              await loadDraft(event.draftId);
+              await loadDrafts();
+            }
           } else if (event.type === 'done') {
             doneReceived = true;
             setProgress({
@@ -412,7 +437,7 @@ export default function LearningExpertAgentPage() {
                     id="requirement"
                     value={requirement}
                     onChange={(event) => setRequirement(event.target.value)}
-                    placeholder="Example: Build a beginner Generative AI and LLM course from this PDF. Keep the sequence practical, include quizzes after each concept block, and maintain a clear teacher-led narration."
+                    placeholder="Use this alone, or combine it with a PDF. Example: Build a beginner Generative AI and LLM course. Keep the sequence practical, include quizzes after each concept block, and maintain a clear teacher-led narration."
                     className="min-h-40 w-full rounded-3xl border border-slate-300 bg-white px-4 py-4 text-sm leading-6 text-slate-900 outline-none transition focus:border-sky-500"
                   />
                 </div>
@@ -440,14 +465,6 @@ export default function LearningExpertAgentPage() {
                       type="checkbox"
                       checked={enableVideoGeneration}
                       onChange={(event) => setEnableVideoGeneration(event.target.checked)}
-                    />
-                  </label>
-                  <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                    <span>Generate TTS audio</span>
-                    <input
-                      type="checkbox"
-                      checked={enableTTS}
-                      onChange={(event) => setEnableTTS(event.target.checked)}
                     />
                   </label>
                 </div>
@@ -603,6 +620,7 @@ export default function LearningExpertAgentPage() {
                   <button
                     type="button"
                     onClick={() => void approveLesson(true)}
+                    disabled={draft.status === 'generating'}
                     className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
                   >
                     Approve lesson
@@ -610,10 +628,14 @@ export default function LearningExpertAgentPage() {
                   <button
                     type="button"
                     onClick={() => void finalizeCourse()}
-                    disabled={finalizing}
+                    disabled={finalizing || draft.status === 'generating'}
                     className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50"
                   >
-                    {finalizing ? 'Generating final course...' : 'Generate final course'}
+                    {finalizing
+                      ? 'Generating final course...'
+                      : draft.status === 'generating'
+                        ? 'Wait for all scenes to finish'
+                        : 'Generate final course'}
                   </button>
                 </div>
               ) : null}
@@ -634,6 +656,12 @@ export default function LearningExpertAgentPage() {
                     <div className="mt-1 text-xs text-slate-500">
                       Approved scenes: {approvedScenesCount}/{draft.editableScenes.length}
                     </div>
+                    {draft.status === 'generating' ? (
+                      <div className="mt-2 text-xs text-amber-700">
+                        Ready scenes can already be reviewed. Remaining scenes will refresh
+                        automatically as generation continues.
+                      </div>
+                    ) : null}
                     {finalPath ? (
                       <div className="mt-3 rounded-2xl border border-violet-200 bg-violet-50 p-3 text-xs text-violet-700">
                         <div>
@@ -689,6 +717,12 @@ export default function LearningExpertAgentPage() {
                 <div>
                   {selectedScene ? (
                     <div className="space-y-6">
+                      {selectedSceneGenerating ? (
+                        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                          This scene is still being generated. You can continue reviewing other ready
+                          scenes while it completes.
+                        </div>
+                      ) : null}
                       <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
@@ -697,6 +731,7 @@ export default function LearningExpertAgentPage() {
                             </div>
                             <input
                               value={selectedScene.title}
+                              disabled={selectedSceneGenerating}
                               onChange={(event) =>
                                 updateScene((scene) => ({
                                   ...scene,
@@ -710,6 +745,7 @@ export default function LearningExpertAgentPage() {
                             <button
                               type="button"
                               onClick={() => void approveScene(selectedScene.status !== 'approved')}
+                              disabled={selectedSceneGenerating}
                               className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-white"
                             >
                               {selectedScene.status === 'approved'
@@ -734,6 +770,7 @@ export default function LearningExpertAgentPage() {
                                   </div>
                                   <textarea
                                     value={block.plainText}
+                                    disabled={selectedSceneGenerating}
                                     onChange={(event) =>
                                       updateScene((scene) => ({
                                         ...scene,
@@ -759,6 +796,7 @@ export default function LearningExpertAgentPage() {
                                   </div>
                                   <textarea
                                     value={block.text}
+                                    disabled={selectedSceneGenerating}
                                     onChange={(event) =>
                                       updateScene((scene) => ({
                                         ...scene,
@@ -784,6 +822,7 @@ export default function LearningExpertAgentPage() {
                                   </div>
                                   <textarea
                                     value={block.question}
+                                    disabled={selectedSceneGenerating}
                                     onChange={(event) =>
                                       updateScene((scene) => ({
                                         ...scene,
@@ -807,6 +846,7 @@ export default function LearningExpertAgentPage() {
                                         </div>
                                         <input
                                           value={option.label}
+                                          disabled={selectedSceneGenerating}
                                           onChange={(event) =>
                                             updateScene((scene) => ({
                                               ...scene,
@@ -836,6 +876,7 @@ export default function LearningExpertAgentPage() {
                                     </div>
                                     <input
                                       value={block.correctAnswer.join(',')}
+                                      disabled={selectedSceneGenerating}
                                       onChange={(event) =>
                                         updateScene((scene) => ({
                                           ...scene,
@@ -861,6 +902,7 @@ export default function LearningExpertAgentPage() {
                                     </div>
                                     <textarea
                                       value={block.explanation}
+                                      disabled={selectedSceneGenerating}
                                       onChange={(event) =>
                                         updateScene((scene) => ({
                                           ...scene,
@@ -884,6 +926,7 @@ export default function LearningExpertAgentPage() {
                                   </div>
                                   <textarea
                                     value={block.text}
+                                    disabled={selectedSceneGenerating}
                                     onChange={(event) =>
                                       updateScene((scene) => ({
                                         ...scene,

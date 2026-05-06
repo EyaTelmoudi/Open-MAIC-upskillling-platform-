@@ -1,8 +1,7 @@
-import { promises as fs, createReadStream } from 'fs';
-import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
-import { CLASSROOMS_DIR, isValidClassroomId } from '@/lib/server/classroom-storage';
+import { isValidClassroomId } from '@/lib/server/classroom-storage';
 import { createLogger } from '@/lib/logger';
+import { getObject, statObject } from '@/lib/server/object-storage';
 
 const log = createLogger('ClassroomMedia');
 
@@ -43,26 +42,14 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid path' }, { status: 404 });
   }
 
-  const filePath = path.join(CLASSROOMS_DIR, classroomId, ...pathSegments);
-  const resolvedBase = path.resolve(CLASSROOMS_DIR, classroomId);
+  const objectKey = `classrooms/${classroomId}/${pathSegments.join('/')}`;
 
   try {
-    // Resolve symlinks and verify the real path stays within the classroom dir
-    const realPath = await fs.realpath(filePath);
-    if (!realPath.startsWith(resolvedBase + path.sep) && realPath !== resolvedBase) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    }
-
-    const stat = await fs.stat(realPath);
-    if (!stat.isFile()) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    }
-
-    const ext = path.extname(realPath).toLowerCase();
+    const stat = await statObject(objectKey);
+    const ext = objectKey.slice(objectKey.lastIndexOf('.')).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-    // Stream the file to avoid loading large videos into memory
-    const stream = createReadStream(realPath);
+    const stream = await getObject(objectKey);
     const webStream = new ReadableStream({
       start(controller) {
         stream.on('data', (chunk: Buffer | string) => controller.enqueue(chunk));
@@ -70,7 +57,7 @@ export async function GET(
         stream.on('error', (err) => controller.error(err));
       },
       cancel() {
-        stream.destroy();
+        (stream as { destroy?: () => void }).destroy?.();
       },
     });
 
@@ -83,11 +70,15 @@ export async function GET(
       },
     });
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+    if (
+      (error as { code?: string }).code === 'NotFound' ||
+      (error as { code?: string }).code === 'NoSuchKey' ||
+      (error as { code?: string }).code === 'ENOENT'
+    ) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
     log.error(
-      `Classroom media serving failed [classroomId=${classroomId}, path=${joined}]:`,
+      `Classroom media serving failed [classroomId=${classroomId}, objectKey=${objectKey}]:`,
       error,
     );
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });

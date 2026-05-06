@@ -15,7 +15,7 @@ from agno.workflow import Step, StepInput, StepOutput, Workflow
 
 class CourseMakerForwardInput(BaseModel):
     runId: str
-    pdfPath: str
+    pdfPath: str | None = None
     pdfName: str
     requirement: str
     openmaicUrl: str
@@ -55,7 +55,7 @@ def forward_generation_request(step_input: StepInput) -> StepOutput:
     _log(f"- Workflow: course-maker-openmaic-handoff")
     _log(f"- Run ID: {payload.runId}")
     _log(f"- Time: {datetime.now(timezone.utc).isoformat()}")
-    _log(f"- PDF: {payload.pdfName}")
+    _log(f"- PDF: {payload.pdfName if payload.pdfPath else 'No PDF attached'}")
     _log(f"- Agent mode: {payload.agentMode}")
     _log(
         "- Options: "
@@ -65,26 +65,42 @@ def forward_generation_request(step_input: StepInput) -> StepOutput:
         f"tts={payload.enableTTS}"
     )
     _log(f"- Prompt preview: {payload.promptPreview or '(empty prompt)'}")
-    _log("[Agno Course Maker Workflow] Sending PDF and prompt to OpenMAIC...")
+    _log("[Agno Course Maker Workflow] Sending source inputs to OpenMAIC...")
 
-    with open(payload.pdfPath, "rb") as pdf_file:
-        files = {"pdf": (payload.pdfName, pdf_file, "application/pdf")}
-        data = {
-            "runId": payload.runId,
-            "requirement": payload.requirement,
-            "enableWebSearch": str(payload.enableWebSearch).lower(),
-            "enableImageGeneration": str(payload.enableImageGeneration).lower(),
-            "enableVideoGeneration": str(payload.enableVideoGeneration).lower(),
-            "enableTTS": str(payload.enableTTS).lower(),
-            "agentMode": payload.agentMode,
-        }
+    data = {
+        "runId": payload.runId,
+        "requirement": payload.requirement,
+        "enableWebSearch": str(payload.enableWebSearch).lower(),
+        "enableImageGeneration": str(payload.enableImageGeneration).lower(),
+        "enableVideoGeneration": str(payload.enableVideoGeneration).lower(),
+        "enableTTS": str(payload.enableTTS).lower(),
+        "agentMode": payload.agentMode,
+    }
 
-        with httpx.Client(timeout=None) as client:
-            with client.stream("POST", payload.openmaicUrl, data=data, files=files) as response:
+    with httpx.Client(timeout=None) as client:
+        if payload.pdfPath:
+            with open(payload.pdfPath, "rb") as pdf_file:
+                files = {"pdf": (payload.pdfName, pdf_file, "application/pdf")}
+                with client.stream("POST", payload.openmaicUrl, data=data, files=files) as response:
+                    _log("[Agno Course Maker Workflow] OpenMAIC accepted the request.")
+                    _log(f"- OpenMAIC URL: {payload.openmaicUrl}")
+                    _log(f"- OpenMAIC status: {response.status_code}")
+                    streamed_lines: list[str] = []
+                    for line in response.iter_lines():
+                        if not line:
+                            continue
+                        streamed_lines.append(line)
+                        _emit_stream_line(line)
+
+                    response_body = (
+                        ("\n".join(streamed_lines) + ("\n" if streamed_lines else "")).encode("utf-8")
+                    )
+        else:
+            with client.stream("POST", payload.openmaicUrl, data=data) as response:
                 _log("[Agno Course Maker Workflow] OpenMAIC accepted the request.")
                 _log(f"- OpenMAIC URL: {payload.openmaicUrl}")
                 _log(f"- OpenMAIC status: {response.status_code}")
-                streamed_lines: list[str] = []
+                streamed_lines = []
                 for line in response.iter_lines():
                     if not line:
                         continue

@@ -14,7 +14,7 @@ type CourseMakerWorkflowPayload = {
 };
 
 type CourseMakerForwardPayload = CourseMakerWorkflowPayload & {
-  pdfPath: string;
+  pdfPath: string | null;
   requirement: string;
   openmaicUrl: string;
 };

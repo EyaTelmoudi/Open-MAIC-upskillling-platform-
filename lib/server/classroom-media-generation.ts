@@ -2,13 +2,10 @@
  * Server-side media and TTS generation for classrooms.
  *
  * Generates image/video files and TTS audio for a classroom,
- * writes them to disk, and returns serving URL mappings.
+ * uploads them to object storage, and returns serving URL mappings.
  */
-
-import { promises as fs } from 'fs';
 import path from 'path';
 import { createLogger } from '@/lib/logger';
-import { CLASSROOMS_DIR } from '@/lib/server/classroom-storage';
 import { generateImage } from '@/lib/media/image-providers';
 import { generateVideo, normalizeVideoOptions } from '@/lib/media/video-providers';
 import { generateTTS } from '@/lib/audio/tts-providers';
@@ -35,16 +32,9 @@ import type { VideoProviderId } from '@/lib/media/types';
 import type { TTSProviderId } from '@/lib/audio/types';
 import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
 import { VOXCPM_AUTO_VOICE_ID, VOXCPM_TTS_PROVIDER_ID } from '@/lib/audio/voxcpm';
+import { putObject } from './object-storage';
 
 const log = createLogger('ClassroomMedia');
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function ensureDir(dir: string) {
-  await fs.mkdir(dir, { recursive: true });
-}
 
 const DOWNLOAD_TIMEOUT_MS = 120_000; // 2 minutes
 const DOWNLOAD_MAX_SIZE = 100 * 1024 * 1024; // 100 MB
@@ -72,9 +62,6 @@ export async function generateMediaForClassroom(
   classroomId: string,
   baseUrl: string,
 ): Promise<Record<string, string>> {
-  const mediaDir = path.join(CLASSROOMS_DIR, classroomId, 'media');
-  await ensureDir(mediaDir);
-
   // Collect all media generation requests from outlines
   const requests = outlines.flatMap((o) => o.mediaGenerations ?? []);
   if (requests.length === 0) return {};
@@ -122,7 +109,9 @@ export async function generateMediaForClassroom(
         }
 
         const filename = `${req.elementId}.${ext}`;
-        await fs.writeFile(path.join(mediaDir, filename), buf);
+        await putObject(`classrooms/${classroomId}/media/${filename}`, buf, {
+          'Content-Type': ext === 'jpg' ? 'image/jpeg' : `image/${ext}`,
+        });
         mediaMap[req.elementId] = mediaServingUrl(baseUrl, classroomId, `media/${filename}`);
         log.info(`Generated image: ${filename}`);
       } catch (err) {
@@ -155,7 +144,9 @@ export async function generateMediaForClassroom(
 
         const buf = await downloadToBuffer(result.url);
         const filename = `${req.elementId}.mp4`;
-        await fs.writeFile(path.join(mediaDir, filename), buf);
+        await putObject(`classrooms/${classroomId}/media/${filename}`, buf, {
+          'Content-Type': 'video/mp4',
+        });
         mediaMap[req.elementId] = mediaServingUrl(baseUrl, classroomId, `media/${filename}`);
         log.info(`Generated video: ${filename}`);
       } catch (err) {
@@ -207,9 +198,6 @@ export async function generateTTSForClassroom(
   classroomId: string,
   baseUrl: string,
 ): Promise<void> {
-  const audioDir = path.join(CLASSROOMS_DIR, classroomId, 'audio');
-  await ensureDir(audioDir);
-
   // Resolve TTS provider (exclude browser-native-tts)
   const ttsProviderIds = Object.keys(getServerTTSProviders()).filter(
     (id) => id !== 'browser-native-tts',
@@ -221,16 +209,17 @@ export async function generateTTSForClassroom(
 
   const providerId = ttsProviderIds[0] as TTSProviderId;
   const apiKey = resolveTTSApiKey(providerId);
-  if (!apiKey) {
+  const providerConfig = TTS_PROVIDERS[providerId as keyof typeof TTS_PROVIDERS];
+  if (providerConfig?.requiresApiKey && !apiKey) {
     log.warn(`No API key for TTS provider "${providerId}", skipping TTS generation`);
     return;
   }
   const ttsBaseUrl =
     resolveTTSBaseUrl(providerId) ||
-    TTS_PROVIDERS[providerId as keyof typeof TTS_PROVIDERS]?.defaultBaseUrl;
+    providerConfig?.defaultBaseUrl;
   const voice = DEFAULT_TTS_VOICES[providerId as keyof typeof DEFAULT_TTS_VOICES] || 'default';
   const format =
-    TTS_PROVIDERS[providerId as keyof typeof TTS_PROVIDERS]?.supportedFormats?.[0] || 'mp3';
+    providerConfig?.supportedFormats?.[0] || 'mp3';
   if (providerId === VOXCPM_TTS_PROVIDER_ID && voice === VOXCPM_AUTO_VOICE_ID) {
     log.warn('VoxCPM Auto Voice requires agent context; skipping server-side TTS generation');
     return;
@@ -265,12 +254,20 @@ export async function generateTTSForClassroom(
           speechAction.text,
         );
 
+        const audioBuffer = Buffer.from(result.audio);
         const filename = `${audioId}.${result.format || format}`;
-        await fs.writeFile(path.join(audioDir, filename), result.audio);
+        await putObject(`classrooms/${classroomId}/audio/${filename}`, audioBuffer, {
+          'Content-Type':
+            result.format === 'wav'
+              ? 'audio/wav'
+              : result.format === 'ogg'
+                ? 'audio/ogg'
+                : 'audio/mpeg',
+        });
 
         speechAction.audioId = audioId;
         speechAction.audioUrl = mediaServingUrl(baseUrl, classroomId, `audio/${filename}`);
-        log.info(`Generated TTS: ${filename} (${result.audio.length} bytes)`);
+        log.info(`Generated TTS: ${filename} (${audioBuffer.length} bytes)`);
       } catch (err) {
         log.warn(`TTS generation failed for action ${action.id}:`, err);
       }

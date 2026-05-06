@@ -27,8 +27,8 @@ import { routes } from "@/app/lib/routes";
 import { formatDateForUser } from "@/app/lib/user-date-format";
 import { AiCourseStudioNav } from "../ai-course-studio-nav";
 
-type DraftStatus = "draft" | "approved" | "finalized";
-type SceneDraftStatus = "draft" | "approved";
+type DraftStatus = "generating" | "draft" | "approved" | "finalized";
+type SceneDraftStatus = "generating" | "draft" | "approved";
 type SceneType = "slide" | "quiz" | "interactive" | string;
 
 type EditableSlideTextBlock = {
@@ -168,6 +168,9 @@ function formatDate(value: string, timezone?: string | null) {
 }
 
 function statusVariant(status: DraftStatus | SceneDraftStatus) {
+  if (status === "generating") {
+    return "outline" as const;
+  }
   if (status === "approved" || status === "finalized") {
     return "default" as const;
   }
@@ -236,8 +239,7 @@ export default function AiCourseBuilderPage() {
   const [enableWebSearch, setEnableWebSearch] = useState(false);
   const [enableImageGeneration, setEnableImageGeneration] = useState(false);
   const [enableVideoGeneration, setEnableVideoGeneration] = useState(false);
-  const [enableTTS, setEnableTTS] = useState(false);
-  const [agentMode, setAgentMode] = useState<"default" | "generate">("default");
+  const [enableTTS] = useState(true);
   const [finalPath, setFinalPath] = useState<string | null>(null);
   const [activeRun, setActiveRun] = useState<ActiveGenerationRun | null>(null);
   const generationAbortRef = useRef<AbortController | null>(null);
@@ -270,21 +272,33 @@ export default function AiCourseBuilderPage() {
     setDrafts(data.drafts || []);
   };
 
-  const loadDraft = async (draftId: string) => {
+  const loadDraft = async (
+    draftId: string,
+    options?: { allowNotReady?: boolean },
+  ): Promise<LearningExpertDraft | null> => {
     const response = await fetch(`/api/ai-course-builder/drafts/${draftId}`, {
       cache: "no-store",
     });
     const data = (await response.json()) as {
       success?: boolean;
       draft?: LearningExpertDraft;
+      pending?: boolean;
       error?: string;
     };
+    if (options?.allowNotReady && (response.status === 404 || response.status === 202 || data.pending)) {
+      return null;
+    }
     if (!response.ok || !data.success || !data.draft) {
       throw new Error(data.error || "Failed to load draft");
     }
     setDraft(data.draft);
-    setSelectedSceneId(data.draft.editableScenes[0]?.sceneId ?? null);
+    setSelectedSceneId((current) =>
+      current && data.draft.editableScenes.some((scene) => scene.sceneId === current)
+        ? current
+        : data.draft.editableScenes[0]?.sceneId ?? null,
+    );
     setFinalPath(null);
+    return data.draft;
   };
 
   useEffect(() => {
@@ -356,6 +370,18 @@ export default function AiCourseBuilderPage() {
 
     return () => window.clearInterval(interval);
   }, [activeRun?.active]);
+
+  useEffect(() => {
+    if (!loading || !draft || draft.status !== "generating") {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void loadDraft(draft.draftId, { allowNotReady: true }).catch(() => undefined);
+    }, 3000);
+
+    return () => window.clearInterval(interval);
+  }, [draft, loading]);
 
   const updateScene = (updater: (scene: EditableSceneDraft) => EditableSceneDraft) => {
     setDraft((current) => {
@@ -500,13 +526,8 @@ export default function AiCourseBuilderPage() {
   const handleGenerate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!pdfFile) {
-      setError("Attach a PDF file before starting generation.");
-      return;
-    }
-
-    if (!prompt.trim()) {
-      setError("Write the learning expert prompt before starting generation.");
+    if (!pdfFile && !prompt.trim()) {
+      setError("Provide either a learning expert prompt, a PDF file, or both.");
       return;
     }
 
@@ -515,7 +536,7 @@ export default function AiCourseBuilderPage() {
     setProgress({
       step: "queued",
       progress: 0,
-      message: "Waiting for the course generator agent to accept the generation request.",
+      message: "Waiting for OpenMAIC to accept the generation request.",
     });
     setResult(null);
     setDraft(null);
@@ -524,13 +545,14 @@ export default function AiCourseBuilderPage() {
 
     try {
       const formData = new FormData();
-      formData.append("pdf", pdfFile);
+      if (pdfFile) {
+        formData.append("pdf", pdfFile);
+      }
       formData.append("requirement", prompt.trim());
       formData.append("enableWebSearch", String(enableWebSearch));
       formData.append("enableImageGeneration", String(enableImageGeneration));
       formData.append("enableVideoGeneration", String(enableVideoGeneration));
-      formData.append("enableTTS", String(enableTTS));
-      formData.append("agentMode", agentMode);
+      formData.append("enableTTS", "true");
 
       const controller = new AbortController();
       generationAbortRef.current = controller;
@@ -570,6 +592,8 @@ export default function AiCourseBuilderPage() {
                 message: string;
                 scenesGenerated?: number;
                 totalScenes?: number;
+                draftId?: string;
+                classroomId?: string;
               }
             | { type: "done"; data: GenerationResponse & { success: boolean } }
             | { type: "error"; error: string };
@@ -583,6 +607,8 @@ export default function AiCourseBuilderPage() {
                   message: string;
                   scenesGenerated?: number;
                   totalScenes?: number;
+                  draftId?: string;
+                  classroomId?: string;
                 }
               | { type: "done"; data: GenerationResponse & { success: boolean } }
               | { type: "error"; error: string };
@@ -603,6 +629,9 @@ export default function AiCourseBuilderPage() {
               scenesGenerated: eventData.scenesGenerated,
               totalScenes: eventData.totalScenes,
             });
+            if (eventData.draftId) {
+              void loadDraft(eventData.draftId, { allowNotReady: true }).catch(() => undefined);
+            }
           } else if (eventData.type === "done") {
             doneReceived = true;
             setProgress({
@@ -619,7 +648,7 @@ export default function AiCourseBuilderPage() {
         }
       }
 
-      if (!response.ok && !doneReceived && !cancelRequestedRef.current) {
+      if (!doneReceived && !cancelRequestedRef.current) {
         throw new Error("Generation failed before completion.");
       }
     } catch (generateError) {
@@ -758,8 +787,8 @@ export default function AiCourseBuilderPage() {
                 <div>
                   <CardTitle>Course inputs</CardTitle>
                   <CardDescription>
-                    Send both the source PDF and your learning expert prompt to the course generator
-                    agent.
+                    Use a prompt, a source PDF, or both. The course generator can work from either
+                    input alone, or combine both when available.
                   </CardDescription>
                 </div>
               </div>
@@ -780,12 +809,12 @@ export default function AiCourseBuilderPage() {
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-slate-950">
-                          {pdfFile ? "PDF selected" : "Choose a PDF to generate the course"}
+                          {pdfFile ? "PDF selected" : "Choose a PDF source if you have one"}
                         </div>
                         <p className="mt-1 text-sm leading-6 text-slate-600">
                           {pdfFile
                             ? pdfFile.name
-                            : "Click here to browse your files and upload the source document."}
+                            : "Optional. Upload a PDF when the course should be grounded in source material."}
                         </p>
                         <div className="mt-3 inline-flex items-center rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-medium text-emerald-700">
                           {pdfFile ? "Change file" : "Browse PDF"}
@@ -811,7 +840,7 @@ export default function AiCourseBuilderPage() {
                     value={prompt}
                     onChange={(event) => setPrompt(event.target.value)}
                     className="min-h-[180px] bg-white text-slate-900 placeholder:text-slate-400"
-                    placeholder="Example: Build a practical beginner course on Generative AI and LLMs from this PDF. Use clear English, add quizzes after each major concept, and prepare teacher-friendly narration."
+                    placeholder="Optional when a PDF is attached. Example: Build a practical beginner course on Generative AI and LLMs. Use clear English, add quizzes after each major concept, and prepare teacher-friendly narration."
                   />
                 </div>
 
@@ -840,34 +869,9 @@ export default function AiCourseBuilderPage() {
                       onChange={(event) => setEnableVideoGeneration(event.target.checked)}
                     />
                   </label>
-                  <label className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-slate-800">
-                    <span>Generate TTS audio</span>
-                    <input
-                      type="checkbox"
-                      checked={enableTTS}
-                      onChange={(event) => setEnableTTS(event.target.checked)}
-                    />
-                  </label>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-900" htmlFor="agent-mode">
-                    Agent mode
-                  </label>
-                  <select
-                    id="agent-mode"
-                    value={agentMode}
-                    onChange={(event) =>
-                      setAgentMode(event.target.value === "generate" ? "generate" : "default")
-                    }
-                    className="flex h-10 w-full rounded-[10px] border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="default">Use default classroom agents</option>
-                    <option value="generate">Generate custom agents</option>
-                  </select>
-                </div>
-
-                <Button type="submit" disabled={loading}>
+                <Button type="submit" disabled={loading || !!activeRun?.active}>
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -1040,6 +1044,12 @@ export default function AiCourseBuilderPage() {
                         Final course saved to {finalPath}
                       </div>
                     ) : null}
+                    {draft.status === "generating" ? (
+                      <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                        Ready scenes can already be reviewed in the editor. Remaining scenes are
+                        still being prepared.
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -1060,13 +1070,15 @@ export default function AiCourseBuilderPage() {
                     <Button
                       className="bg-slate-950 text-white hover:bg-slate-800 sm:col-span-2"
                       onClick={() => void finalizeCourse()}
-                      disabled={finalizing}
+                      disabled={finalizing || draft.status === "generating"}
                     >
                       {finalizing ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
                           Finalizing
                         </>
+                      ) : draft.status === "generating" ? (
+                        "Wait for all scenes to finish"
                       ) : (
                         "Generate final course"
                       )}

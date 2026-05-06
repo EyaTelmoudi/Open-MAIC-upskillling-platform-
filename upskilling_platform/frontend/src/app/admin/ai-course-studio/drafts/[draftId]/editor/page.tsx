@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { CheckCircle2, FilePenLine, Loader2, Save } from "lucide-react";
+import {
+  CheckCircle2,
+  FilePenLine,
+  Loader2,
+  MessageSquareText,
+  Save,
+  Sparkles,
+  X,
+} from "lucide-react";
 
 import { AdminShell } from "@/app/components/layout/AdminShell";
 import { Badge } from "@/app/components/ui/Badge";
@@ -20,8 +28,8 @@ import { useAuth } from "@/app/context/AuthContext";
 import { routes } from "@/app/lib/routes";
 import { AiCourseStudioNav } from "../../../ai-course-studio-nav";
 
-type DraftStatus = "draft" | "approved" | "finalized";
-type SceneDraftStatus = "draft" | "approved";
+type DraftStatus = "generating" | "draft" | "approved" | "finalized";
+type SceneDraftStatus = "generating" | "draft" | "approved";
 type SceneType = "slide" | "quiz" | "interactive" | string;
 
 type EditableSlideTextBlock = {
@@ -101,7 +109,36 @@ type FinalizeResponse = {
   finalCoursePathRelative: string;
 };
 
+type AssistantMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+};
+
+function isSlideTextBlock(block: EditableBlock): block is EditableSlideTextBlock {
+  return block.type === "slide_text";
+}
+
+function isScriptBlock(block: EditableBlock): block is EditableScriptBlock {
+  return block.type === "script";
+}
+
+function buildSlideScriptMap(blocks: EditableBlock[]) {
+  const slideBlocks = blocks.filter(isSlideTextBlock);
+  const scriptBlocks = blocks.filter(isScriptBlock);
+  const scriptMap = new Map<string, EditableScriptBlock[]>();
+
+  slideBlocks.forEach((block, index) => {
+    const start = Math.floor((index * scriptBlocks.length) / slideBlocks.length);
+    const end = Math.floor(((index + 1) * scriptBlocks.length) / slideBlocks.length);
+    scriptMap.set(block.id, scriptBlocks.slice(start, end));
+  });
+
+  return scriptMap;
+}
+
 function statusVariant(status: DraftStatus | SceneDraftStatus) {
+  if (status === "generating") return "outline" as const;
   if (status === "approved" || status === "finalized") return "default" as const;
   return "outline" as const;
 }
@@ -119,8 +156,15 @@ export default function AiCourseDraftEditorPage() {
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const [revising, setRevising] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [finalPath, setFinalPath] = useState<string | null>(null);
+  const [assistantInstruction, setAssistantInstruction] = useState("");
+  const [assistantOpen, setAssistantOpen] = useState(true);
+  const [assistantMessagesByScene, setAssistantMessagesByScene] = useState<
+    Record<string, AssistantMessage[]>
+  >({});
+  const assistantAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!isLoading && user?.role !== "LearningExpert") {
@@ -141,7 +185,11 @@ export default function AiCourseDraftEditorPage() {
       throw new Error(data.error || "Failed to load draft");
     }
     setDraft(data.draft);
-    setSelectedSceneId(data.draft.editableScenes[0]?.sceneId ?? null);
+    setSelectedSceneId((current) =>
+      current && data.draft.editableScenes.some((scene) => scene.sceneId === current)
+        ? current
+        : data.draft.editableScenes[0]?.sceneId ?? null,
+    );
   };
 
   useEffect(() => {
@@ -151,13 +199,31 @@ export default function AiCourseDraftEditorPage() {
     });
   }, [draftId, user]);
 
+  useEffect(() => {
+    if (!draftId || !draft || draft.status !== "generating") {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void loadDraft(draftId).catch(() => undefined);
+    }, 3000);
+
+    return () => window.clearInterval(interval);
+  }, [draft, draftId]);
+
   const selectedScene = useMemo(
     () => draft?.editableScenes.find((scene) => scene.sceneId === selectedSceneId) ?? null,
     [draft, selectedSceneId],
   );
+  const selectedSceneSlideScriptMap = useMemo(
+    () => (selectedScene?.type === "slide" ? buildSlideScriptMap(selectedScene.blocks) : new Map()),
+    [selectedScene],
+  );
 
   const approvedScenesCount =
     draft?.editableScenes.filter((scene) => scene.status === "approved").length ?? 0;
+  const assistantMessages = selectedSceneId ? assistantMessagesByScene[selectedSceneId] || [] : [];
+  const selectedSceneGenerating = selectedScene?.status === "generating";
 
   const updateScene = (updater: (scene: EditableSceneDraft) => EditableSceneDraft) => {
     setDraft((current) => {
@@ -289,6 +355,97 @@ export default function AiCourseDraftEditorPage() {
     }
   };
 
+  const reviseSelectedSceneWithAi = async () => {
+    if (!draft || !selectedScene || !assistantInstruction.trim()) return;
+
+    setRevising(true);
+    setError(null);
+    const abortController = new AbortController();
+    assistantAbortRef.current = abortController;
+
+    const nextUserMessage: AssistantMessage = {
+      id: `user_${Date.now()}`,
+      role: "user",
+      content: assistantInstruction.trim(),
+    };
+
+    try {
+      const conversation = [...assistantMessages, nextUserMessage].map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
+
+      setAssistantMessagesByScene((current) => ({
+        ...current,
+        [selectedScene.sceneId]: [...(current[selectedScene.sceneId] || []), nextUserMessage],
+      }));
+
+      const response = await fetch(
+        `/api/ai-course-builder/drafts/${draft.draftId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: abortController.signal,
+          body: JSON.stringify({
+            sceneId: selectedScene.sceneId,
+            instruction: assistantInstruction.trim(),
+            conversation,
+          }),
+        },
+      );
+
+      const data = (await response.json()) as {
+        success?: boolean;
+        error?: string;
+        draft?: LearningExpertDraft;
+        assistantMessage?: string;
+      };
+
+      if (!response.ok || !data.success || !data.draft) {
+        throw new Error(data.error || "The AI revision assistant could not revise this scene.");
+      }
+
+      setDraft(data.draft);
+      setAssistantInstruction("");
+      setAssistantMessagesByScene((current) => ({
+        ...current,
+        [selectedScene.sceneId]: [
+          ...(current[selectedScene.sceneId] || []),
+          {
+            id: `assistant_${Date.now()}`,
+            role: "assistant",
+            content:
+              data.assistantMessage ||
+              "I revised the selected scene and saved the updated draft.",
+          },
+        ],
+      }));
+    } catch (revisionError) {
+      if (revisionError instanceof Error && revisionError.name === "AbortError") {
+        setAssistantMessagesByScene((current) => ({
+          ...current,
+          [selectedScene.sceneId]: (current[selectedScene.sceneId] || []).filter(
+            (message) => message.id !== nextUserMessage.id,
+          ),
+        }));
+        setError("The scene assistant was stopped before the revision completed.");
+        return;
+      }
+      setError(
+        revisionError instanceof Error
+          ? revisionError.message
+          : "Failed to revise the selected scene with AI.",
+      );
+    } finally {
+      assistantAbortRef.current = null;
+      setRevising(false);
+    }
+  };
+
+  const stopAssistantRevision = () => {
+    assistantAbortRef.current?.abort();
+  };
+
   if (!isLoading && user?.role !== "LearningExpert") return null;
 
   return (
@@ -330,6 +487,12 @@ export default function AiCourseDraftEditorPage() {
                           Final package: {finalPath}
                         </div>
                       ) : null}
+                      {draft.status === "generating" ? (
+                        <div className="mt-2 text-xs text-amber-700">
+                          Ready scenes can be reviewed now. Remaining scenes will appear
+                          automatically as generation continues.
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="flex flex-wrap gap-3 lg:justify-end">
@@ -346,12 +509,17 @@ export default function AiCourseDraftEditorPage() {
                           </>
                         )}
                       </Button>
-                      <Button onClick={() => void finalizeCourse()} disabled={finalizing}>
+                      <Button
+                        onClick={() => void finalizeCourse()}
+                        disabled={finalizing || draft.status === "generating"}
+                      >
                         {finalizing ? (
                           <>
                             <Loader2 className="h-4 w-4 animate-spin" />
                             Finalizing
                           </>
+                        ) : draft.status === "generating" ? (
+                          "Wait for all scenes to finish"
                         ) : (
                           <>
                             <CheckCircle2 className="h-4 w-4" />
@@ -369,7 +537,13 @@ export default function AiCourseDraftEditorPage() {
               </CardContent>
             </Card>
 
-          <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[380px_minmax(0,1fr)]">
+          <div
+            className={`grid gap-6 ${
+              selectedScene && assistantOpen
+                ? "xl:grid-cols-[340px_minmax(0,1fr)_380px] 2xl:grid-cols-[380px_minmax(0,1fr)_400px]"
+                : "xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[380px_minmax(0,1fr)]"
+            }`}
+          >
             <aside className="xl:sticky xl:top-[108px] xl:h-[calc(100vh-140px)] xl:self-start">
               <Card className="border border-slate-200 bg-white text-slate-900 shadow-sm">
                 <CardHeader>
@@ -427,9 +601,17 @@ export default function AiCourseDraftEditorPage() {
               </Card>
             </aside>
 
-            <div className="min-w-0 space-y-6">
+            <div className={`min-w-0 space-y-6 ${assistantOpen ? "pb-[620px] xl:pb-0" : ""}`}>
               {selectedScene ? (
                 <>
+                  {selectedSceneGenerating ? (
+                    <Card className="border border-amber-200 bg-amber-50 text-amber-900 shadow-sm">
+                      <CardContent className="p-4 text-sm">
+                        This scene is still being generated. You can review other ready scenes now,
+                        and this one will refresh automatically when it is complete.
+                      </CardContent>
+                    </Card>
+                  ) : null}
                   <Card className="border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,250,252,0.96))] text-slate-900 shadow-sm">
                     <CardContent className="p-6">
                       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -439,6 +621,7 @@ export default function AiCourseDraftEditorPage() {
                           </div>
                           <Input
                             value={selectedScene.title}
+                            disabled={selectedSceneGenerating}
                             onChange={(event) =>
                               updateScene((scene) => ({
                                 ...scene,
@@ -452,6 +635,7 @@ export default function AiCourseDraftEditorPage() {
                           variant="outline"
                           className="border-slate-300 bg-white text-slate-900 hover:bg-slate-50"
                           onClick={() => void approveScene(selectedScene.status !== "approved")}
+                          disabled={selectedSceneGenerating}
                         >
                           {selectedScene.status === "approved" ? "Unapprove scene" : "Approve scene"}
                         </Button>
@@ -460,195 +644,247 @@ export default function AiCourseDraftEditorPage() {
                   </Card>
 
                   <div className="space-y-4">
-                    {selectedScene.blocks.map((block, blockIndex) => (
-                      <Card key={block.id} className="border border-slate-200 bg-white text-slate-900 shadow-sm">
-                        <CardContent className="p-5">
-                          {block.type === "slide_text" ? (
-                            <div className="space-y-3">
-                              <div className="text-sm font-semibold text-slate-900">
-                                {block.label}
-                              </div>
-                              <Textarea
-                                value={block.plainText}
-                                className={`min-h-[160px] ${editorFieldClassName}`}
-                                onChange={(event) =>
-                                  updateScene((scene) => ({
-                                    ...scene,
-                                    blocks: scene.blocks.map((candidate) =>
-                                      candidate.id === block.id
-                                        ? { ...candidate, plainText: event.target.value }
-                                        : candidate,
-                                    ),
-                                  }))
-                                }
-                              />
-                            </div>
-                          ) : null}
-
-                          {block.type === "script" ? (
-                            <div className="space-y-3">
-                              <div className="text-sm font-semibold text-slate-900">
-                                Teacher script {blockIndex + 1}
-                              </div>
-                              <Textarea
-                                value={block.text}
-                                className={`min-h-[130px] ${editorFieldClassName}`}
-                                onChange={(event) =>
-                                  updateScene((scene) => ({
-                                    ...scene,
-                                    blocks: scene.blocks.map((candidate) =>
-                                      candidate.id === block.id
-                                        ? { ...candidate, text: event.target.value }
-                                        : candidate,
-                                    ),
-                                  }))
-                                }
-                              />
-                            </div>
-                          ) : null}
-
-                          {block.type === "quiz_question" ? (
-                            <div className="space-y-4">
-                              <div className="text-sm font-semibold text-slate-900">
-                                Quiz question {blockIndex + 1}
-                              </div>
-                              <Textarea
-                                value={block.question}
-                                className={`min-h-[110px] ${editorFieldClassName}`}
-                                onChange={(event) =>
-                                  updateScene((scene) => ({
-                                    ...scene,
-                                    blocks: scene.blocks.map((candidate) =>
-                                      candidate.id === block.id
-                                        ? { ...candidate, question: event.target.value }
-                                        : candidate,
-                                    ),
-                                  }))
-                                }
-                              />
-                              <div className="grid gap-3">
-                                {block.options.map((option, optionIndex) => (
-                                  <div
-                                    key={`${block.id}_${option.value}`}
-                                    className="rounded-2xl border border-border bg-slate-50 p-3"
-                                  >
-                                    <div className="mb-2 text-xs uppercase tracking-[0.14em] text-slate-500">
-                                      Option {option.value}
-                                    </div>
-                                    <Input
-                                      value={option.label}
-                                      className={editorFieldClassName}
-                                      onChange={(event) =>
-                                        updateScene((scene) => ({
-                                          ...scene,
-                                          blocks: scene.blocks.map((candidate) =>
-                                            candidate.id === block.id &&
-                                            candidate.type === "quiz_question"
-                                              ? {
-                                                  ...candidate,
-                                                  options: candidate.options.map((item, idx) =>
-                                                    idx === optionIndex
-                                                      ? { ...item, label: event.target.value }
-                                                      : item,
-                                                  ),
-                                                }
-                                              : candidate,
-                                          ),
-                                        }))
-                                      }
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="space-y-2">
-                                <label className="text-xs uppercase tracking-[0.14em] text-slate-500">
-                                  Correct answer values
-                                </label>
-                                <Input
-                                  value={block.correctAnswer.join(",")}
-                                  className={editorFieldClassName}
+                    <div className="space-y-4">
+                      {selectedScene.blocks
+                        .filter(
+                          (block) =>
+                            !(selectedScene.type === "slide" && block.type === "script"),
+                        )
+                        .map((block, blockIndex) => (
+                        <Card key={block.id} className="border border-slate-200 bg-white text-slate-900 shadow-sm">
+                          <CardContent className="p-5">
+                            {block.type === "slide_text" ? (
+                              <div className="space-y-3">
+                                <div className="text-sm font-semibold text-slate-900">
+                                  {block.label}
+                                </div>
+                                <Textarea
+                                  value={block.plainText}
+                                  disabled={selectedSceneGenerating}
+                                  className={`min-h-[160px] ${editorFieldClassName}`}
                                   onChange={(event) =>
                                     updateScene((scene) => ({
                                       ...scene,
                                       blocks: scene.blocks.map((candidate) =>
                                         candidate.id === block.id
-                                          ? {
-                                              ...candidate,
-                                              correctAnswer: event.target.value
-                                                .split(",")
-                                                .map((value) => value.trim())
-                                                .filter(Boolean),
-                                            }
+                                          ? { ...candidate, plainText: event.target.value }
+                                          : candidate,
+                                      ),
+                                    }))
+                                  }
+                                />
+                                <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+                                  <div className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700">
+                                    Related teacher script
+                                  </div>
+                                  <div className="mt-3 space-y-3">
+                                    {(selectedSceneSlideScriptMap.get(block.id) || []).length > 0 ? (
+                                      (selectedSceneSlideScriptMap.get(block.id) || []).map(
+                                        (scriptBlock, scriptIndex) => (
+                                          <div key={scriptBlock.id} className="space-y-2">
+                                            <div className="text-xs font-medium text-slate-600">
+                                              Script segment {scriptIndex + 1}
+                                            </div>
+                                            <Textarea
+                                              value={scriptBlock.text}
+                                              disabled={selectedSceneGenerating}
+                                              className={`min-h-[120px] ${editorFieldClassName}`}
+                                              onChange={(event) =>
+                                                updateScene((scene) => ({
+                                                  ...scene,
+                                                  blocks: scene.blocks.map((candidate) =>
+                                                    candidate.id === scriptBlock.id
+                                                      ? { ...candidate, text: event.target.value }
+                                                      : candidate,
+                                                  ),
+                                                }))
+                                              }
+                                            />
+                                          </div>
+                                        ),
+                                      )
+                                    ) : (
+                                      <div className="rounded-xl border border-dashed border-sky-200 bg-white px-3 py-4 text-sm text-slate-500">
+                                        No teacher script segment is currently linked to this slide block.
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : null}
+
+                            {block.type === "script" && selectedScene.type !== "slide" ? (
+                              <div className="space-y-3">
+                                <div className="text-sm font-semibold text-slate-900">
+                                  Teacher script {blockIndex + 1}
+                                </div>
+                                <Textarea
+                                  value={block.text}
+                                  disabled={selectedSceneGenerating}
+                                  className={`min-h-[130px] ${editorFieldClassName}`}
+                                  onChange={(event) =>
+                                    updateScene((scene) => ({
+                                      ...scene,
+                                      blocks: scene.blocks.map((candidate) =>
+                                        candidate.id === block.id
+                                          ? { ...candidate, text: event.target.value }
                                           : candidate,
                                       ),
                                     }))
                                   }
                                 />
                               </div>
-                              <div className="space-y-2">
-                                <label className="text-xs uppercase tracking-[0.14em] text-slate-500">
-                                  Explanation
-                                </label>
+                            ) : null}
+
+                            {block.type === "quiz_question" ? (
+                              <div className="space-y-4">
+                                <div className="text-sm font-semibold text-slate-900">
+                                  Quiz question {blockIndex + 1}
+                                </div>
                                 <Textarea
-                                  value={block.explanation}
+                                  value={block.question}
+                                  disabled={selectedSceneGenerating}
                                   className={`min-h-[110px] ${editorFieldClassName}`}
                                   onChange={(event) =>
                                     updateScene((scene) => ({
                                       ...scene,
                                       blocks: scene.blocks.map((candidate) =>
                                         candidate.id === block.id
-                                          ? { ...candidate, explanation: event.target.value }
+                                          ? { ...candidate, question: event.target.value }
+                                          : candidate,
+                                      ),
+                                    }))
+                                  }
+                                />
+                                <div className="grid gap-3">
+                                  {block.options.map((option, optionIndex) => (
+                                    <div
+                                      key={`${block.id}_${option.value}`}
+                                      className="rounded-2xl border border-border bg-slate-50 p-3"
+                                    >
+                                      <div className="mb-2 text-xs uppercase tracking-[0.14em] text-slate-500">
+                                        Option {option.value}
+                                      </div>
+                                      <Input
+                                        value={option.label}
+                                        disabled={selectedSceneGenerating}
+                                        className={editorFieldClassName}
+                                        onChange={(event) =>
+                                          updateScene((scene) => ({
+                                            ...scene,
+                                            blocks: scene.blocks.map((candidate) =>
+                                              candidate.id === block.id &&
+                                              candidate.type === "quiz_question"
+                                                ? {
+                                                    ...candidate,
+                                                    options: candidate.options.map((item, idx) =>
+                                                      idx === optionIndex
+                                                        ? { ...item, label: event.target.value }
+                                                        : item,
+                                                    ),
+                                                  }
+                                                : candidate,
+                                            ),
+                                          }))
+                                        }
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="space-y-2">
+                                  <label className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                                    Correct answer values
+                                  </label>
+                                  <Input
+                                    value={block.correctAnswer.join(",")}
+                                    disabled={selectedSceneGenerating}
+                                    className={editorFieldClassName}
+                                    onChange={(event) =>
+                                      updateScene((scene) => ({
+                                        ...scene,
+                                        blocks: scene.blocks.map((candidate) =>
+                                          candidate.id === block.id
+                                            ? {
+                                                ...candidate,
+                                                correctAnswer: event.target.value
+                                                  .split(",")
+                                                  .map((value) => value.trim())
+                                                  .filter(Boolean),
+                                              }
+                                            : candidate,
+                                        ),
+                                      }))
+                                    }
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <label className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                                    Explanation
+                                  </label>
+                                  <Textarea
+                                    value={block.explanation}
+                                    disabled={selectedSceneGenerating}
+                                    className={`min-h-[110px] ${editorFieldClassName}`}
+                                    onChange={(event) =>
+                                      updateScene((scene) => ({
+                                        ...scene,
+                                        blocks: scene.blocks.map((candidate) =>
+                                          candidate.id === block.id
+                                            ? { ...candidate, explanation: event.target.value }
+                                            : candidate,
+                                        ),
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            ) : null}
+
+                            {block.type === "interactive_instruction" ? (
+                              <div className="space-y-3">
+                                <div className="text-sm font-semibold text-slate-900">
+                                  Interactive instructions
+                                </div>
+                                <Textarea
+                                  value={block.text}
+                                  disabled={selectedSceneGenerating}
+                                  className={`min-h-[160px] ${editorFieldClassName}`}
+                                  onChange={(event) =>
+                                    updateScene((scene) => ({
+                                      ...scene,
+                                      blocks: scene.blocks.map((candidate) =>
+                                        candidate.id === block.id
+                                          ? { ...candidate, text: event.target.value }
                                           : candidate,
                                       ),
                                     }))
                                   }
                                 />
                               </div>
-                            </div>
-                          ) : null}
+                            ) : null}
+                          </CardContent>
+                        </Card>
+                      ))}
+                      {selectedScene.type === "interactive" && selectedScene.readonlyHtml ? (
+                        <Card className="border border-slate-200 bg-white text-slate-900 shadow-sm">
+                          <CardHeader>
+                            <CardTitle className="text-slate-950">Generated interactive HTML</CardTitle>
+                            <CardDescription className="text-slate-600">
+                              Raw HTML stays read-only here while instruction text remains editable.
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <Textarea
+                              readOnly
+                              value={selectedScene.readonlyHtml}
+                              className={`min-h-[260px] text-xs leading-5 ${editorFieldClassName}`}
+                            />
+                          </CardContent>
+                        </Card>
+                      ) : null}
+                    </div>
 
-                          {block.type === "interactive_instruction" ? (
-                            <div className="space-y-3">
-                              <div className="text-sm font-semibold text-slate-900">
-                                Interactive instructions
-                              </div>
-                              <Textarea
-                                value={block.text}
-                                className={`min-h-[160px] ${editorFieldClassName}`}
-                                onChange={(event) =>
-                                  updateScene((scene) => ({
-                                    ...scene,
-                                    blocks: scene.blocks.map((candidate) =>
-                                      candidate.id === block.id
-                                        ? { ...candidate, text: event.target.value }
-                                        : candidate,
-                                    ),
-                                  }))
-                                }
-                              />
-                            </div>
-                          ) : null}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  {selectedScene.type === "interactive" && selectedScene.readonlyHtml ? (
-                    <Card className="border border-slate-200 bg-white text-slate-900 shadow-sm">
-                      <CardHeader>
-                        <CardTitle className="text-slate-950">Generated interactive HTML</CardTitle>
-                        <CardDescription className="text-slate-600">
-                          Raw HTML stays read-only here while instruction text remains editable.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Textarea
-                          readOnly
-                          value={selectedScene.readonlyHtml}
-                          className={`min-h-[260px] text-xs leading-5 ${editorFieldClassName}`}
-                        />
-                      </CardContent>
-                    </Card>
-                  ) : null}
-                </div>
+                  </div>
                 </>
               ) : (
                 <Card className="border border-slate-200 bg-white text-slate-900 shadow-sm">
@@ -658,9 +894,208 @@ export default function AiCourseDraftEditorPage() {
                 </Card>
               )}
             </div>
+            {selectedScene && assistantOpen ? (
+              <aside className="hidden xl:block xl:sticky xl:top-[108px] xl:h-[calc(100vh-140px)] xl:self-start">
+                <div className="overflow-hidden rounded-[26px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(239,246,255,0.98))] text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.16)]">
+                  <div className="flex items-start justify-between gap-4 border-b border-slate-200/90 px-5 py-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 text-sm font-medium text-sky-700">
+                        <Sparkles className="h-4 w-4" />
+                        Scene Assistant
+                      </div>
+                      <div className="mt-2 text-sm text-slate-600">
+                        Scene {selectedScene.order} • {selectedScene.type} • {selectedScene.title}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAssistantOpen(false)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+                      aria-label="Close assistant"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex h-[calc(100vh-250px)] min-h-[520px] flex-col">
+                    <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+                      {assistantMessages.length > 0 ? (
+                        assistantMessages.map((message) => (
+                          <div
+                            key={message.id}
+                            className={`rounded-2xl px-4 py-3 text-sm leading-6 ${
+                              message.role === "user"
+                                ? "ml-6 border border-slate-200 bg-white text-slate-700"
+                                : "mr-6 border border-sky-100 bg-sky-50 text-slate-800"
+                            }`}
+                          >
+                            <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                              {message.role === "user" ? "Learning expert" : "Assistant"}
+                            </div>
+                            {message.content}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-500">
+                          Ask for a revision on the selected scene. The assistant will only edit this scene and keep the draft structure intact.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border-t border-slate-200/90 bg-white/90 px-5 py-4">
+                      <Textarea
+                        value={assistantInstruction}
+                        onChange={(event) => setAssistantInstruction(event.target.value)}
+                        placeholder="Tell the assistant how the selected scene should be improved."
+                        className={`min-h-[120px] resize-none ${editorFieldClassName}`}
+                      />
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <div className="text-xs text-slate-500">
+                          The assistant uses the current selected scene as context.
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {revising ? (
+                            <Button
+                              variant="outline"
+                              onClick={stopAssistantRevision}
+                              className="border-red-200 bg-white text-red-700 hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" />
+                              Stop
+                            </Button>
+                          ) : null}
+                          <Button
+                            onClick={() => void reviseSelectedSceneWithAi()}
+                            disabled={revising || !assistantInstruction.trim() || selectedSceneGenerating}
+                          >
+                            {revising ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Revising
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4" />
+                                Send
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            ) : null}
           </div>
         </div>
       </div>
+      {selectedScene ? (
+        <div className="pointer-events-none fixed bottom-6 right-6 z-40 flex max-w-[calc(100vw-2rem)] items-end justify-end xl:hidden">
+          {assistantOpen ? (
+            <div className="pointer-events-auto w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[26px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(239,246,255,0.98))] text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.20)]">
+              <div className="flex items-start justify-between gap-4 border-b border-slate-200/90 px-5 py-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-sm font-medium text-sky-700">
+                    <Sparkles className="h-4 w-4" />
+                    Scene Assistant
+                  </div>
+                  <div className="mt-2 text-sm text-slate-600">
+                    Scene {selectedScene.order} • {selectedScene.type} • {selectedScene.title}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAssistantOpen(false)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+                  aria-label="Close assistant"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="flex h-[560px] flex-col">
+                <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+                  {assistantMessages.length > 0 ? (
+                    assistantMessages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`rounded-2xl px-4 py-3 text-sm leading-6 ${
+                          message.role === "user"
+                            ? "ml-6 border border-slate-200 bg-white text-slate-700"
+                            : "mr-6 border border-sky-100 bg-sky-50 text-slate-800"
+                        }`}
+                      >
+                        <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                          {message.role === "user" ? "Learning expert" : "Assistant"}
+                        </div>
+                        {message.content}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-500">
+                      Ask for a revision on the selected scene. The assistant will only edit this scene and keep the draft structure intact.
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-slate-200/90 bg-white/90 px-5 py-4">
+                  <Textarea
+                    value={assistantInstruction}
+                    onChange={(event) => setAssistantInstruction(event.target.value)}
+                    placeholder="Tell the assistant how the selected scene should be improved."
+                    className={`min-h-[120px] resize-none ${editorFieldClassName}`}
+                  />
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <div className="text-xs text-slate-500">
+                      The assistant uses the current selected scene as context.
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {revising ? (
+                        <Button
+                          variant="outline"
+                          onClick={stopAssistantRevision}
+                          className="border-red-200 bg-white text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                          Stop
+                        </Button>
+                      ) : null}
+                      <Button
+                        onClick={() => void reviseSelectedSceneWithAi()}
+                        disabled={revising || !assistantInstruction.trim() || selectedSceneGenerating}
+                      >
+                        {revising ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Revising
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4" />
+                            Send
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAssistantOpen(true)}
+              className="pointer-events-auto inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[0_18px_40px_rgba(15,23,42,0.18)] transition hover:border-sky-300 hover:bg-sky-50"
+            >
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                <MessageSquareText className="h-4 w-4" />
+              </span>
+              Open scene assistant
+            </button>
+          )}
+        </div>
+      ) : null}
     </AdminShell>
   );
 }

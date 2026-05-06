@@ -81,7 +81,7 @@ async def refinement(payload: CourseRefinementInput) -> JSONResponse:
 async def generate(payload: CourseMakerForwardInput) -> StreamingResponse:
     _mark_running(payload.runId)
     _log(
-        f"[Agno Course Maker Agent] Starting generation run {payload.runId} for '{payload.pdfName}'."
+        f"[Agno Course Maker Agent] Starting generation run {payload.runId} for '{payload.pdfName if payload.pdfPath else 'prompt-only request'}'."
     )
 
     async def stream() -> AsyncIterator[bytes]:
@@ -91,7 +91,7 @@ async def generate(payload: CourseMakerForwardInput) -> StreamingResponse:
         _log(f"- Workflow: course-maker-openmaic-handoff")
         _log(f"- Run ID: {payload.runId}")
         _log(f"- Time: {datetime.now(timezone.utc).isoformat()}")
-        _log(f"- PDF: {payload.pdfName}")
+        _log(f"- PDF: {payload.pdfName if payload.pdfPath else 'No PDF attached'}")
         _log(f"- Agent mode: {payload.agentMode}")
         _log(
             "- Options: "
@@ -101,33 +101,60 @@ async def generate(payload: CourseMakerForwardInput) -> StreamingResponse:
             f"tts={payload.enableTTS}"
         )
         _log(f"- Prompt preview: {payload.promptPreview or '(empty prompt)'}")
-        _log("[Agno Course Maker Workflow] Sending PDF and prompt to OpenMAIC...")
+        _log("[Agno Course Maker Workflow] Sending source inputs to OpenMAIC...")
 
         try:
-            with open(payload.pdfPath, "rb") as pdf_file:
-                files = {"pdf": (payload.pdfName, pdf_file, "application/pdf")}
-                data = {
-                    "runId": payload.runId,
-                    "requirement": payload.requirement,
-                    "enableWebSearch": str(payload.enableWebSearch).lower(),
-                    "enableImageGeneration": str(payload.enableImageGeneration).lower(),
-                    "enableVideoGeneration": str(payload.enableVideoGeneration).lower(),
-                    "enableTTS": str(payload.enableTTS).lower(),
-                    "agentMode": payload.agentMode,
-                }
+            data = {
+                "runId": payload.runId,
+                "requirement": payload.requirement,
+                "enableWebSearch": str(payload.enableWebSearch).lower(),
+                "enableImageGeneration": str(payload.enableImageGeneration).lower(),
+                "enableVideoGeneration": str(payload.enableVideoGeneration).lower(),
+                "enableTTS": str(payload.enableTTS).lower(),
+                "agentMode": payload.agentMode,
+            }
 
-                async with httpx.AsyncClient(timeout=None) as client:
+            async with httpx.AsyncClient(timeout=None) as client:
+                if payload.pdfPath:
+                    with open(payload.pdfPath, "rb") as pdf_file:
+                        files = {"pdf": (payload.pdfName, pdf_file, "application/pdf")}
+                        async with client.stream(
+                            "POST",
+                            payload.openmaicUrl,
+                            data=data,
+                            files=files,
+                        ) as response:
+                            _log("[Agno Course Maker Workflow] OpenMAIC accepted the request.")
+                            _log(f"- OpenMAIC URL: {payload.openmaicUrl}")
+                            _log(f"- OpenMAIC status: {response.status_code}")
+
+                            streamed_lines: list[str] = []
+                            async for line in response.aiter_lines():
+                                if _is_cancelled(payload.runId):
+                                    yield _json_line(
+                                        {
+                                            "type": "error",
+                                            "error": "Generation was cancelled by the learning expert.",
+                                        }
+                                    )
+                                    return
+
+                                if not line:
+                                    continue
+
+                                streamed_lines.append(line)
+                                yield f"{line}\n".encode("utf-8")
+                else:
                     async with client.stream(
                         "POST",
                         payload.openmaicUrl,
                         data=data,
-                        files=files,
                     ) as response:
                         _log("[Agno Course Maker Workflow] OpenMAIC accepted the request.")
                         _log(f"- OpenMAIC URL: {payload.openmaicUrl}")
                         _log(f"- OpenMAIC status: {response.status_code}")
 
-                        streamed_lines: list[str] = []
+                        streamed_lines = []
                         async for line in response.aiter_lines():
                             if _is_cancelled(payload.runId):
                                 yield _json_line(
@@ -144,40 +171,48 @@ async def generate(payload: CourseMakerForwardInput) -> StreamingResponse:
                             streamed_lines.append(line)
                             yield f"{line}\n".encode("utf-8")
 
-                        line_count = len(streamed_lines)
-                        last_event_type = "unknown"
-                        done_seen = False
+                line_count = len(streamed_lines)
+                last_event_type = "unknown"
+                done_seen = False
 
-                        for line in streamed_lines:
-                            try:
-                                event = json.loads(line)
-                            except json.JSONDecodeError:
-                                continue
-                            event_type = event.get("type")
-                            if isinstance(event_type, str):
-                                last_event_type = event_type
-                            if event_type == "done":
-                                done_seen = True
+                for line in streamed_lines:
+                    try:
+                        event = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    event_type = event.get("type")
+                    if isinstance(event_type, str):
+                        last_event_type = event_type
+                    if event_type == "done":
+                        done_seen = True
 
-                        _log(
-                            "[Agno Course Maker Workflow] OpenMAIC handoff completed successfully."
-                            if response.is_success
-                            else "[Agno Course Maker Workflow] OpenMAIC handoff returned an error response."
-                        )
-                        _log("============================================================")
-                        _log("")
-                        _log("[Agno Course Maker Workflow] OpenMAIC finished and returned generated content.")
-                        _log(f"- Received stream lines: {line_count}")
-                        _log(f"- Last event type: {last_event_type}")
-                        _log(f"- Final done event received: {done_seen}")
-                        _log(
-                            "[Agno Course Maker Workflow] Generated content was received successfully by the Course Maker workflow."
-                            if response.is_success
-                            else "[Agno Course Maker Workflow] Generated content receipt completed with upstream issues."
-                        )
-                        _log(
-                            f"[Agno Course Maker Agent] Generation run {payload.runId} finished streaming."
-                        )
+                _log(
+                    "[Agno Course Maker Workflow] OpenMAIC handoff completed successfully."
+                    if response.is_success
+                    else "[Agno Course Maker Workflow] OpenMAIC handoff returned an error response."
+                )
+                _log("============================================================")
+                _log("")
+                _log("[Agno Course Maker Workflow] OpenMAIC finished and returned generated content.")
+                _log(f"- Received stream lines: {line_count}")
+                _log(f"- Last event type: {last_event_type}")
+                _log(f"- Final done event received: {done_seen}")
+                _log(
+                    "[Agno Course Maker Workflow] Generated content was received successfully by the Course Maker workflow."
+                    if response.is_success
+                    else "[Agno Course Maker Workflow] Generated content receipt completed with upstream issues."
+                )
+                _log(
+                    f"[Agno Course Maker Agent] Generation run {payload.runId} finished streaming."
+                )
+
+                if not done_seen and not _is_cancelled(payload.runId):
+                    yield _json_line(
+                        {
+                            "type": "error",
+                            "error": "OpenMAIC stopped before returning a completion event.",
+                        }
+                    )
         except FileNotFoundError:
             _log(
                 f"[Agno Course Maker Agent] Generation run {payload.runId} failed because the PDF file was not found."

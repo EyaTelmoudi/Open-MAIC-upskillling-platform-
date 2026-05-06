@@ -16,6 +16,8 @@ export type ActiveGenerationRunRecord = {
     message: string;
     scenesGenerated?: number;
     totalScenes?: number;
+    draftId?: string;
+    classroomId?: string;
   } | null;
   result?: {
     draftId: string;

@@ -11,13 +11,23 @@ const log = createLogger('GenerateClassroom API');
 
 export const maxDuration = 30;
 
+function buildRequirementFromPdfContent(pdfContent?: { text: string; images: string[] }) {
+  const preview = pdfContent?.text?.replace(/\s+/g, ' ').trim().slice(0, 160) || '';
+  if (preview) {
+    return `Create a complete course based on the uploaded PDF content. Use this source material as the primary reference: ${preview}`;
+  }
+  return 'Create a complete course based on the uploaded PDF content. Use the document as the primary source, infer the learning objectives, and structure the lessons clearly.';
+}
+
 export async function POST(req: NextRequest) {
   let requirementSnippet: string | undefined;
   try {
     const rawBody = (await req.json()) as Partial<GenerateClassroomInput>;
-    requirementSnippet = rawBody.requirement?.substring(0, 60);
+    const normalizedRequirement =
+      rawBody.requirement?.trim() || buildRequirementFromPdfContent(rawBody.pdfContent);
+    requirementSnippet = normalizedRequirement.substring(0, 60);
     const body: GenerateClassroomInput = {
-      requirement: rawBody.requirement || '',
+      requirement: normalizedRequirement,
       ...(rawBody.pdfContent ? { pdfContent: rawBody.pdfContent } : {}),
 
       ...(rawBody.enableWebSearch != null ? { enableWebSearch: rawBody.enableWebSearch } : {}),
@@ -32,8 +42,12 @@ export async function POST(req: NextRequest) {
     };
     const { requirement } = body;
 
-    if (!requirement) {
-      return apiError('MISSING_REQUIRED_FIELD', 400, 'Missing required field: requirement');
+    if (!requirement && !rawBody.pdfContent) {
+      return apiError(
+        'MISSING_REQUIRED_FIELD',
+        400,
+        'Missing required input: provide requirement text, PDF content, or both',
+      );
     }
 
     const baseUrl = buildRequestOrigin(req);

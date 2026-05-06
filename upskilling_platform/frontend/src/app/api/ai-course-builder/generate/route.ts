@@ -1,13 +1,5 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import os from "node:os";
-import path from "node:path";
 
-import {
-  ensureCourseMakerAgentService,
-  startCourseGenerationThroughAgent,
-  type CourseMakerForwardResult,
-} from "@/app/lib/course-maker-agent";
 import { buildOpenMAICUrl } from "@/app/lib/openmaic-proxy";
 import { safeUpsertAiCourseDraft } from "@/app/lib/safe-ai-course-db";
 import {
@@ -35,17 +27,14 @@ export async function POST(request: Request) {
     const enableVideoGeneration = String(
       formData.get("enableVideoGeneration") || "false",
     );
-    const enableTTS = String(formData.get("enableTTS") || "false");
-    const pdfFile =
-      pdfEntry && typeof pdfEntry === "object" && "arrayBuffer" in pdfEntry
-        ? pdfEntry
-        : null;
+    const enableTTS = "true";
+    const pdfFile = pdfEntry instanceof File ? pdfEntry : null;
 
-    if (!pdfFile) {
+    if (!pdfFile && !requirement) {
       return Response.json(
         {
           success: false,
-          error: "The platform did not receive a valid PDF file.",
+          error: "Provide either a learning expert prompt, a PDF file, or both.",
         },
         { status: 400 },
       );
@@ -63,65 +52,60 @@ export async function POST(request: Request) {
       );
     }
 
-    const tempDir = await mkdtemp(path.join(os.tmpdir(), "course-maker-agent-"));
-    const pdfPath = path.join(tempDir, pdfName);
-    const pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
-    await writeFile(pdfPath, pdfBuffer);
-
-    const agentServiceReady = await ensureCourseMakerAgentService();
-    if (!agentServiceReady) {
-      await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
-      return Response.json(
-        {
-          success: false,
-          error: "The Course Maker AgentOS service could not be started.",
-        },
-        { status: 503 },
-      );
-    }
-
     const runId = randomUUID();
 
-    const agentResponse = await startCourseGenerationThroughAgent({
-      runId,
-      pdfPath,
-      requirement,
-      openmaicUrl: buildOpenMAICUrl("/api/learing-expert-agent/generate"),
-      pdfName,
-      agentMode,
-      enableWebSearch: enableWebSearch === "true",
-      enableImageGeneration: enableImageGeneration === "true",
-      enableVideoGeneration: enableVideoGeneration === "true",
-      enableTTS: enableTTS === "true",
-      promptPreview: requirement.slice(0, 140) || "(empty prompt)",
+    const upstreamFormData = new FormData();
+    upstreamFormData.append("runId", runId);
+    upstreamFormData.append("requirement", requirement);
+    upstreamFormData.append("agentMode", agentMode);
+    upstreamFormData.append("enableWebSearch", enableWebSearch);
+    upstreamFormData.append("enableImageGeneration", enableImageGeneration);
+    upstreamFormData.append("enableVideoGeneration", enableVideoGeneration);
+    upstreamFormData.append("enableTTS", enableTTS);
+    if (pdfFile) {
+      upstreamFormData.append("pdf", pdfFile, pdfName);
+    }
+
+    const agentResponse = await fetch(buildOpenMAICUrl("/api/learing-expert-agent/generate"), {
+      method: "POST",
+      body: upstreamFormData,
+      cache: "no-store",
     });
 
     if (!agentResponse.body) {
-      await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
       return Response.json(
         {
           success: false,
-          error: "The Course Maker AgentOS service did not return a readable stream.",
+          error: "OpenMAIC did not return a readable generation stream.",
         },
         { status: 502 },
       );
     }
 
     const encoder = new TextEncoder();
-    let resultPayload: CourseMakerForwardResult | null = null;
+    let resultPayload: {
+      generatedDraftData?: {
+        draftId?: string;
+        [key: string]: unknown;
+      } | null;
+    } | null = null;
 
     await setActiveGenerationRun({
       runId,
       active: true,
       status: "running",
-      sourcePdfName: pdfName,
-      promptPreview: requirement.slice(0, 140) || "(empty prompt)",
+      sourcePdfName: pdfFile ? pdfName : "No PDF attached",
+      promptPreview:
+        requirement.slice(0, 140) ||
+        (pdfFile
+          ? "Generate the course from the uploaded PDF."
+          : "(prompt-only request)"),
       startedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       progress: {
         step: "queued",
         progress: 0,
-        message: "Waiting for the course generator agent to accept the generation request.",
+        message: "Waiting for OpenMAIC to accept the generation request.",
       },
       result: null,
       error: null,
@@ -133,6 +117,7 @@ export async function POST(request: Request) {
       start(controller) {
         let stdoutBuffer = "";
         const reader = agentResponse.body!.getReader();
+        let terminalEventSeen = false;
 
         const safeEnqueue = (line: string) => {
           if (controllerClosed) return;
@@ -188,69 +173,110 @@ export async function POST(request: Request) {
                         message: string;
                         scenesGenerated?: number;
                         totalScenes?: number;
+                        draftId?: string;
+                        classroomId?: string;
                       }
                     | { type: "done"; data: Record<string, unknown> }
                     | { type: "error"; error: string };
 
-                  void (async () => {
-                    const current = await getActiveGenerationRun();
-                    if (!current || current.runId !== runId) return;
-                    if (current.status === "cancelled") return;
+                  const current = await getActiveGenerationRun();
+                  if (!current || current.runId !== runId || current.status === "cancelled") {
+                    safeEnqueue(`${line}\n`);
+                    continue;
+                  }
 
-                    if (eventData.type === "progress") {
-                      await setActiveGenerationRun({
-                        ...current,
-                        updatedAt: new Date().toISOString(),
-                        progress: {
-                          step: eventData.step,
-                          progress: eventData.progress,
-                          message: eventData.message,
-                          scenesGenerated: eventData.scenesGenerated,
-                          totalScenes: eventData.totalScenes,
-                        },
-                      });
-                    } else if (eventData.type === "done") {
-                      await setActiveGenerationRun({
-                        ...current,
-                        active: false,
-                        status: "completed",
-                        updatedAt: new Date().toISOString(),
-                        progress: {
-                          step: "completed",
-                          progress: 100,
-                          message:
-                            "The course generator agent finished the course draft successfully.",
-                        },
-                        result: eventData.data as ActiveGenerationRunRecord["result"],
-                        error: null,
-                      });
-                      resultPayload = {
-                        success: true,
-                        workflowName: "course-maker-openmaic-handoff",
-                        stage: "generated_content_received",
-                        status: agentResponse.status,
-                        contentType:
-                          agentResponse.headers.get("content-type") ||
-                          "application/x-ndjson; charset=utf-8",
-                        bodyBase64: "",
-                        generatedDraftData: eventData.data,
-                      };
-                    } else if (eventData.type === "error") {
-                      await setActiveGenerationRun({
-                        ...current,
-                        active: false,
-                        status: "failed",
-                        updatedAt: new Date().toISOString(),
-                        error: eventData.error,
-                      });
+                  if (eventData.type === "progress") {
+                    if ("draftId" in eventData && eventData.draftId) {
+                      try {
+                        const draftResponse = await fetch(
+                          buildOpenMAICUrl(
+                            `/api/learing-expert-agent/drafts/${eventData.draftId}`,
+                          ),
+                          { cache: "no-store" },
+                        );
+                        const draftData = await draftResponse.json().catch(() => ({}));
+                        if (draftResponse.ok && draftData?.success && draftData?.draft) {
+                          await safeUpsertAiCourseDraft(request, {
+                            draft: draftData.draft,
+                            prompt: requirement,
+                            sourcePdfName: pdfName,
+                          });
+                        }
+                      } catch {
+                        // Draft may not be ready yet through the upstream route.
+                      }
                     }
-                  })();
+
+                    await setActiveGenerationRun({
+                      ...current,
+                      updatedAt: new Date().toISOString(),
+                      progress: {
+                        step: eventData.step,
+                        progress: eventData.progress,
+                        message: eventData.message,
+                        scenesGenerated: eventData.scenesGenerated,
+                        totalScenes: eventData.totalScenes,
+                        draftId: eventData.draftId,
+                        classroomId: eventData.classroomId,
+                      },
+                    });
+                  } else if (eventData.type === "done") {
+                    terminalEventSeen = true;
+                    await setActiveGenerationRun({
+                      ...current,
+                      active: false,
+                      status: "completed",
+                      updatedAt: new Date().toISOString(),
+                      progress: {
+                        step: "completed",
+                        progress: 100,
+                        message:
+                          "The course generator agent finished the course draft successfully.",
+                      },
+                      result: eventData.data as ActiveGenerationRunRecord["result"],
+                      error: null,
+                    });
+                    resultPayload = {
+                      generatedDraftData: eventData.data,
+                    };
+                  } else if (eventData.type === "error") {
+                    terminalEventSeen = true;
+                    await setActiveGenerationRun({
+                      ...current,
+                      active: false,
+                      status: "failed",
+                      updatedAt: new Date().toISOString(),
+                      error: eventData.error,
+                    });
+                  }
                 } catch {
                   // Ignore malformed lines but continue streaming them through.
                 }
 
                 safeEnqueue(`${line}\n`);
               }
+            }
+
+            if (!terminalEventSeen) {
+              const current = await getActiveGenerationRun();
+              if (current?.runId === runId && current.status !== "cancelled") {
+                await setActiveGenerationRun({
+                  ...current,
+                  active: false,
+                  status: "failed",
+                  updatedAt: new Date().toISOString(),
+                  error:
+                    "OpenMAIC stopped before returning a completion event.",
+                });
+              }
+
+              safeEnqueue(
+                `${JSON.stringify({
+                  type: "error",
+                  error:
+                    "OpenMAIC stopped before returning a completion event.",
+                })}\n`,
+              );
             }
           } catch (error) {
             const current = await getActiveGenerationRun();
@@ -263,7 +289,7 @@ export async function POST(request: Request) {
                 error:
                   error instanceof Error
                     ? error.message
-                    : "Course Maker AgentOS service failed.",
+                    : "OpenMAIC generation failed.",
               });
             }
             safeEnqueue(
@@ -272,7 +298,7 @@ export async function POST(request: Request) {
                 error:
                   error instanceof Error
                     ? error.message
-                    : "Course Maker AgentOS service failed.",
+                    : "OpenMAIC generation failed.",
               })}\n`,
             );
           } finally {
@@ -343,7 +369,6 @@ export async function POST(request: Request) {
               }
             } finally {
               safeClose();
-              await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
             }
           }
         })();
@@ -370,7 +395,7 @@ export async function POST(request: Request) {
         error:
           error instanceof Error
             ? error.message
-            : "Failed to forward request to OpenMAIC",
+            : "Failed to start OpenMAIC generation",
       },
       { status: 500 }
     );

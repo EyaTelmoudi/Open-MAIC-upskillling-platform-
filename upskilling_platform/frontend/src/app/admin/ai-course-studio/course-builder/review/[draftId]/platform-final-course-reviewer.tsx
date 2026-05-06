@@ -8,6 +8,8 @@ type SpeechAction = {
   id: string;
   type: "speech";
   text: string;
+  audioId?: string;
+  audioUrl?: string;
 };
 
 type SceneAction = SpeechAction | { id: string; type: string };
@@ -16,6 +18,18 @@ type SlideTextElement = {
   id: string;
   type: "text";
   content?: string;
+};
+
+type SlideBlock = {
+  id: string;
+  html: string;
+  text: string;
+};
+
+type SlideBeat = {
+  id: string;
+  htmlParts: string[];
+  textParts: string[];
 };
 
 type SlideContent = {
@@ -73,8 +87,53 @@ function isInteractiveContent(content: Scene["content"]): content is Interactive
   return content.type === "interactive";
 }
 
+function decodeHtmlEntities(value: string) {
+  const namedEntities: Record<string, string> = {
+    amp: "&",
+    lt: "<",
+    gt: ">",
+    quot: "\"",
+    apos: "'",
+    nbsp: " ",
+  };
+
+  let decoded = value;
+  for (let index = 0; index < 5; index += 1) {
+    const next = decoded.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity: string) => {
+      if (entity[0] === "#") {
+        const isHex = entity[1]?.toLowerCase() === "x";
+        const numericValue = Number.parseInt(entity.slice(isHex ? 2 : 1), isHex ? 16 : 10);
+        return Number.isFinite(numericValue) ? String.fromCodePoint(numericValue) : match;
+      }
+
+      return namedEntities[entity] ?? match;
+    });
+
+    if (next === decoded) {
+      break;
+    }
+    decoded = next;
+  }
+
+  return decoded;
+}
+
+function repairEscapedHtml(value: string) {
+  let repaired = value;
+  for (let index = 0; index < 5; index += 1) {
+    const next = repaired
+      .replace(/&amp;(amp|lt|gt|quot|apos|nbsp);/g, '&$1;')
+      .replace(/&amp;(#x?[0-9a-fA-F]+);/g, '&$1;');
+    if (next === repaired) {
+      break;
+    }
+    repaired = next;
+  }
+  return repaired;
+}
+
 function stripHtml(value: string) {
-  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return decodeHtmlEntities(value).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function parseSlideBlocks(scene: Scene) {
@@ -83,16 +142,54 @@ function parseSlideBlocks(scene: Scene) {
     .filter((element: SlideTextElement | { id: string; type: string; content?: string }): element is SlideTextElement => element.type === "text")
     .map((element) => ({
       id: element.id,
-      html: String(element.content || ""),
+      html: repairEscapedHtml(String(element.content || "")),
       text: stripHtml(String(element.content || "")),
     }))
-    .filter((element: { id: string; html: string; text: string }) => element.text.length > 0);
+    .filter((element: SlideBlock) => element.text.length > 0);
+}
+
+function isCodeLikeBlock(block: SlideBlock) {
+  return /<br\/?>|&lt;|[{};]|<!doctype|<html|<style|background-color|font-size|rgb\(/i.test(block.html);
+}
+
+function isTitleBlock(block: SlideBlock, sceneTitle: string) {
+  const normalize = (value: string) => value.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  return normalize(block.text) === normalize(sceneTitle);
+}
+
+function buildSlideBeats(scene: Scene): SlideBeat[] {
+  const blocks = parseSlideBlocks(scene);
+  const contentBlocks = blocks.filter((block, index) => !(index === 0 && isTitleBlock(block, scene.title)));
+  const beats: SlideBeat[] = [];
+
+  for (let index = 0; index < contentBlocks.length; index += 1) {
+    const current = contentBlocks[index];
+    const next = contentBlocks[index + 1];
+
+    if (next && isCodeLikeBlock(next) && !isCodeLikeBlock(current)) {
+      beats.push({
+        id: `${current.id}_${next.id}`,
+        htmlParts: [current.html, next.html],
+        textParts: [current.text, next.text],
+      });
+      index += 1;
+      continue;
+    }
+
+    beats.push({
+      id: current.id,
+      htmlParts: [current.html],
+      textParts: [current.text],
+    });
+  }
+
+  return beats;
 }
 
 function sceneSummary(scene: Scene) {
   if (isSlideContent(scene.content)) {
-    return parseSlideBlocks(scene)
-      .map((block: { text: string }) => block.text)
+    return buildSlideBeats(scene)
+      .flatMap((beat: SlideBeat) => beat.textParts)
       .join(" ")
       .slice(0, 120);
   }
@@ -114,6 +211,15 @@ function speechDuration(text: string) {
   return Math.min(9000, Math.max(2200, words * 260));
 }
 
+function beatIndexForStep(stepIndex: number, totalSteps: number, beatCount: number) {
+  if (beatCount <= 0 || totalSteps <= 1 || stepIndex <= 0) {
+    return -1;
+  }
+
+  const normalized = Math.floor(((stepIndex - 1) * beatCount) / Math.max(totalSteps - 1, 1));
+  return Math.min(normalized, beatCount - 1);
+}
+
 export function PlatformFinalCourseReviewer({
   course,
   timezone,
@@ -131,6 +237,7 @@ export function PlatformFinalCourseReviewer({
   const [highlightedBlockIndex, setHighlightedBlockIndex] = useState<number>(-1);
   const playbackTokenRef = useRef(0);
   const playbackStateRef = useRef<"idle" | "playing" | "paused">("idle");
+  const generatedAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     playbackStateRef.current = playbackState;
@@ -146,8 +253,38 @@ export function PlatformFinalCourseReviewer({
     [orderedScenes, selectedSceneId],
   );
 
-  const speakText = useCallback(async (text: string, token: number) => {
+  const speakText = useCallback(async (action: SpeechAction, token: number) => {
+    const text = action.text;
     setActiveSpeech(text);
+
+    if (typeof window !== "undefined" && action.audioUrl) {
+      return new Promise<boolean>((resolve) => {
+        const audio = new Audio(action.audioUrl);
+        generatedAudioRef.current = audio;
+
+        const cleanup = () => {
+          audio.onended = null;
+          audio.onerror = null;
+          if (generatedAudioRef.current === audio) {
+            generatedAudioRef.current = null;
+          }
+        };
+
+        audio.onended = () => {
+          cleanup();
+          resolve(playbackTokenRef.current === token);
+        };
+        audio.onerror = () => {
+          cleanup();
+          resolve(false);
+        };
+
+        audio.play().catch(() => {
+          cleanup();
+          resolve(false);
+        });
+      });
+    }
 
     if (typeof window === "undefined" || !window.speechSynthesis) {
       await wait(speechDuration(text));
@@ -164,6 +301,11 @@ export function PlatformFinalCourseReviewer({
   }, []);
 
   const cancelSpeech = useCallback(() => {
+    if (generatedAudioRef.current) {
+      generatedAudioRef.current.pause();
+      generatedAudioRef.current.currentTime = 0;
+      generatedAudioRef.current = null;
+    }
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
@@ -179,30 +321,30 @@ export function PlatformFinalCourseReviewer({
 
   const playScene = useCallback(
     async (scene: Scene, token: number) => {
-      const slideBlocks = parseSlideBlocks(scene);
+      const slideBeats = buildSlideBeats(scene);
       const speechActions = (scene.actions || []).filter(
-        (action): action is SpeechAction => action.type === "speech",
+        (action): action is SpeechAction => action.type === "speech" && scene.type !== "quiz",
       );
 
       if (scene.type === "slide") {
-        setHighlightedBlockIndex(slideBlocks.length > 0 ? 0 : -1);
+        setHighlightedBlockIndex(-1);
       } else {
         setHighlightedBlockIndex(-1);
       }
 
-      const totalSteps = Math.max(speechActions.length, slideBlocks.length, 1);
+      const totalSteps = Math.max(speechActions.length, slideBeats.length + 1, 1);
 
       for (let index = 0; index < totalSteps; index++) {
         if (playbackTokenRef.current !== token) return false;
         const canContinue = await waitWhilePaused(token);
         if (!canContinue) return false;
 
-        if (scene.type === "slide" && slideBlocks[index]) {
-          setHighlightedBlockIndex(index);
+        if (scene.type === "slide") {
+          setHighlightedBlockIndex(beatIndexForStep(index, totalSteps, slideBeats.length));
         }
 
         if (speechActions[index]) {
-          const spoken = await speakText(speechActions[index].text, token);
+          const spoken = await speakText(speechActions[index], token);
           if (!spoken) return false;
         } else {
           await wait(1200);
@@ -252,6 +394,9 @@ export function PlatformFinalCourseReviewer({
 
     if (playbackStateRef.current === "playing") {
       setPlaybackState("paused");
+      if (generatedAudioRef.current && !generatedAudioRef.current.paused) {
+        generatedAudioRef.current.pause();
+      }
       if (typeof window !== "undefined" && window.speechSynthesis?.speaking) {
         window.speechSynthesis.pause();
       }
@@ -260,6 +405,9 @@ export function PlatformFinalCourseReviewer({
 
     if (playbackStateRef.current === "paused") {
       setPlaybackState("playing");
+      if (generatedAudioRef.current && generatedAudioRef.current.paused) {
+        void generatedAudioRef.current.play().catch(() => null);
+      }
       if (typeof window !== "undefined" && window.speechSynthesis?.paused) {
         window.speechSynthesis.resume();
       }
@@ -304,6 +452,7 @@ export function PlatformFinalCourseReviewer({
   }
 
   const slideBlocks = parseSlideBlocks(selectedScene);
+  const slideBeats = buildSlideBeats(selectedScene);
   const speechBlocks = (selectedScene.actions || []).filter(
     (action): action is SpeechAction => action.type === "speech",
   );
@@ -399,27 +548,42 @@ export function PlatformFinalCourseReviewer({
           {isSlideContent(selectedScene.content) ? (
             <section className="overflow-hidden rounded-3xl border border-sky-200 bg-white text-slate-900 shadow-[0_14px_36px_rgba(15,23,42,0.10)]">
               <div className="bg-[linear-gradient(180deg,rgba(224,242,254,0.58),rgba(236,253,245,0.38),rgba(248,250,252,0.96))] px-5 py-5">
-                <div className="mx-auto flex aspect-[16/9] w-full max-w-5xl flex-col justify-center gap-4 rounded-[24px] border border-slate-200 bg-white p-10 shadow-sm">
-                  {slideBlocks.map((block: { id: string; html: string; text: string }, index: number) => {
-                    const isActive = highlightedBlockIndex === index;
-                    const isVisible =
-                      playbackState === "idle" || highlightedBlockIndex === -1 || index <= highlightedBlockIndex;
-                    return (
-                      <div
-                        key={block.id}
-                        className={`rounded-3xl border px-5 py-4 transition ${
-                          isActive
-                            ? "border-sky-400 bg-[linear-gradient(135deg,rgba(14,165,233,0.20),rgba(16,185,129,0.16))] shadow-[0_12px_30px_rgba(14,165,233,0.20)]"
-                            : "border-slate-200 bg-slate-50"
-                        } ${isVisible ? "opacity-100" : "opacity-30"}`}
-                      >
-                        <div
-                          className="prose prose-slate max-w-none text-sm leading-7"
-                          dangerouslySetInnerHTML={{ __html: block.html }}
-                        />
+                <div className="mx-auto flex aspect-[16/9] w-full max-w-5xl flex-col justify-center rounded-[24px] border border-slate-200 bg-white p-10 shadow-sm">
+                  {playbackState === "idle" || highlightedBlockIndex < 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center text-center">
+                      <div className="text-xs font-semibold uppercase tracking-[0.28em] text-sky-700">
+                        Lesson {selectedSceneIndex + 1}
                       </div>
-                    );
-                  })}
+                      <h3 className="mt-6 max-w-3xl text-4xl font-semibold leading-tight text-slate-950">
+                        {selectedScene.title}
+                      </h3>
+                      <p className="mt-6 max-w-2xl text-base leading-7 text-slate-500">
+                        Press play to begin the lesson overview, then move through the main ideas one by one.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex h-full flex-col">
+                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+                        {selectedScene.title}
+                      </div>
+                      <div className="mt-2 text-sm text-slate-500">
+                        Idea {Math.min(highlightedBlockIndex + 1, slideBeats.length)} / {slideBeats.length}
+                      </div>
+                      {slideBeats[highlightedBlockIndex] ? (
+                        <div className="mt-8 flex-1 rounded-3xl border border-sky-300 bg-[linear-gradient(135deg,rgba(14,165,233,0.16),rgba(16,185,129,0.10))] px-6 py-6 shadow-[0_12px_30px_rgba(14,165,233,0.16)]">
+                          <div className="space-y-4">
+                            {slideBeats[highlightedBlockIndex].htmlParts.map((html: string, partIndex: number) => (
+                              <div
+                                key={`${slideBeats[highlightedBlockIndex].id}_${partIndex}`}
+                                className="prose prose-slate max-w-none text-sm leading-7"
+                                dangerouslySetInnerHTML={{ __html: html }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="border-t border-slate-200 bg-slate-50 px-6 py-4 text-slate-900">

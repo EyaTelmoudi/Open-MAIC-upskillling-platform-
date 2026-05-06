@@ -1,5 +1,6 @@
 import { buildOpenMAICUrl } from "@/app/lib/openmaic-proxy";
 import { runCourseRefinementAgentAction } from "@/app/lib/course-maker-agent";
+import { getActiveGenerationRun } from "@/app/lib/ai-course-active-run-store";
 import {
   safeGetAiCourseDraft,
   safeUpsertAiCourseDraft,
@@ -58,7 +59,25 @@ export async function GET(
         source: "openmaic",
         status: data.draft?.status || null,
       }).catch(() => null);
+      return Response.json(data, { status: 200 });
     }
+
+    if (upstream.status === 404) {
+      const activeRun = await getActiveGenerationRun().catch(() => null);
+      const pendingDraftId = activeRun?.progress?.draftId || activeRun?.result?.draftId;
+      if (activeRun?.active && pendingDraftId === draftId) {
+        return Response.json(
+          {
+            success: false,
+            pending: true,
+            draftId,
+            error: "Draft is still being prepared by OpenMAIC.",
+          },
+          { status: 202 }
+        );
+      }
+    }
+
     return Response.json(data, { status: upstream.status });
   } catch (error) {
     return Response.json(
@@ -153,6 +172,51 @@ export async function PUT(
         success: false,
         error:
           error instanceof Error ? error.message : "Failed to save draft to OpenMAIC",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ draftId: string }> }
+) {
+  try {
+    const { draftId } = await params;
+    const body = await request.json();
+
+    const upstream = await fetch(
+      buildOpenMAICUrl(`/api/learing-expert-agent/drafts/${draftId}`),
+      {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }
+    );
+
+    const data = await upstream.json().catch(() => null);
+
+    if (upstream.ok && data?.success && data?.draft) {
+      await safeUpsertAiCourseDraft(request, { draft: data.draft }).catch(() => null);
+    }
+
+    return Response.json(
+      data || {
+        success: false,
+        error: "The AI revision assistant did not return a valid response.",
+      },
+      { status: upstream.status || 500 }
+    );
+  } catch (error) {
+    return Response.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to revise the selected draft scene with AI",
       },
       { status: 500 }
     );

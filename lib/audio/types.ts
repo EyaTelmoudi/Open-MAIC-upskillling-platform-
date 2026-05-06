@@ -83,6 +83,7 @@ export type BuiltInTTSProviderId =
   | 'azure-tts'
   | 'glm-tts'
   | 'qwen-tts'
+  | 'piper-tts'
   | 'voxcpm-tts'
   | 'doubao-tts'
   | 'elevenlabs-tts'

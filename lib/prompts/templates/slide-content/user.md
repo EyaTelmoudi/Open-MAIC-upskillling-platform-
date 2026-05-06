@@ -20,6 +20,17 @@
 
 Based on the scene information above, generate a complete Canvas/PPT component for one page.
 
+Visual guidance:
+- center the title when appropriate for a normal teaching slide
+- keep bullet points on separate readable lines
+- make code examples look visually distinct from regular text
+- use light, tasteful color accents instead of a plain black-on-white look
+- if this is a content-teaching slide, structure it as 2-4 separate idea beats
+- each beat must present one idea, then its explanation, then its example directly underneath if relevant
+- do not place all lesson ideas in one dense text block
+- do not place one shared example after multiple unrelated ideas
+- a lesson should cover several ideas overall, but each idea must stay clearly separated in its own block or block-pair
+
 ## Language Directive
 {{languageDirective}}
 

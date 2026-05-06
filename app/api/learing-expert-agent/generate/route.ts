@@ -1,12 +1,19 @@
-import { promises as fs } from 'fs';
-import path from 'path';
 import { nanoid } from 'nanoid';
 import { NextRequest } from 'next/server';
 import { parsePDF } from '@/lib/pdf/pdf-providers';
 import { createLogger } from '@/lib/logger';
 import { generateClassroom } from '@/lib/server/classroom-generation';
-import { buildRequestOrigin, CLASSROOMS_DIR, writeJsonFileAtomic } from '@/lib/server/classroom-storage';
-import { createDraft } from '@/lib/learing-expert-agent/draft-store';
+import { buildRequestOrigin } from '@/lib/server/classroom-storage';
+import {
+  createDraft,
+  createDraftWithPlaceholders,
+  updateDraftScene,
+} from '@/lib/learing-expert-agent/draft-store';
+import {
+  deleteLearningSubmission,
+  upsertLearningSubmission,
+} from '@/lib/server/learning-storage';
+import { putObject } from '@/lib/server/object-storage';
 import {
   cancelCourseMakerRun,
   CourseMakerRunCancelledError,
@@ -18,8 +25,6 @@ import {
 const log = createLogger('LearningExpertAgentAPI');
 
 export const maxDuration = 300;
-
-const OUTPUT_ROOT = path.join(process.cwd(), 'learing expert agent', 'outputs');
 
 function slugify(value: string): string {
   const normalized = value
@@ -34,13 +39,54 @@ function safeFileName(value: string): string {
   return value.replace(/[\\/:*?"<>|]/g, '_');
 }
 
-async function pathExists(target: string): Promise<boolean> {
-  try {
-    await fs.access(target);
-    return true;
-  } catch {
-    return false;
-  }
+function buildRequirementFromPdf(pdfName: string): string {
+  const sanitizedName = pdfName.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim();
+  return sanitizedName
+    ? `Create a complete course based on the uploaded PDF "${sanitizedName}". Use the document as the primary source, infer the learning objectives, structure the lessons clearly, and include practical explanations and assessments.`
+    : 'Create a complete course based on the uploaded PDF. Use the document as the primary source, infer the learning objectives, structure the lessons clearly, and include practical explanations and assessments.';
+}
+
+function inferImageExtension(dataUrl: string): string {
+  const mime = dataUrl.match(/^data:([^;]+);base64,/)?.[1] || 'image/png';
+  if (mime === 'image/jpeg') return 'jpg';
+  if (mime === 'image/webp') return 'webp';
+  return 'png';
+}
+
+async function uploadParsedPdfAssets(
+  submissionId: string,
+  parsedPdf: Awaited<ReturnType<typeof parsePDF>>,
+): Promise<Record<string, unknown>> {
+  const pdfImages = parsedPdf.metadata?.pdfImages || [];
+  const uploadedImages = await Promise.all(
+    (parsedPdf.images || []).map(async (dataUrl, index) => {
+      const [header, base64] = dataUrl.split(',', 2);
+      const mime = header?.match(/^data:([^;]+);base64$/)?.[1] || 'image/png';
+      const ext = inferImageExtension(dataUrl);
+      const imageId = pdfImages[index]?.id || `img_${index + 1}`;
+      const objectKey = `submissions/${submissionId}/parsed-images/${imageId}.${ext}`;
+
+      await putObject(objectKey, Buffer.from(base64 || '', 'base64'), {
+        'Content-Type': mime,
+      });
+
+      return {
+        ...(pdfImages[index] || {}),
+        id: imageId,
+        objectKey,
+        mimeType: mime,
+      };
+    }),
+  );
+
+  return {
+    text: parsedPdf.text,
+    imagesCount: parsedPdf.images?.length ?? 0,
+    metadata: {
+      ...(parsedPdf.metadata || {}),
+      pdfImages: uploadedImages,
+    },
+  };
 }
 
 type ProgressEvent =
@@ -51,6 +97,8 @@ type ProgressEvent =
       message: string;
       scenesGenerated?: number;
       totalScenes?: number;
+      draftId?: string;
+      classroomId?: string;
     }
   | {
       type: 'done';
@@ -67,15 +115,20 @@ function jsonLine(event: ProgressEvent): string {
 
 export async function POST(req: NextRequest) {
   let requirementSnippet: string | undefined;
-  let outputDir: string | null = null;
+  let submissionId: string | null = null;
+  let classroomId: string | null = null;
+  let draftId: string | null = null;
 
   try {
     const contentType = req.headers.get('content-type') || '';
-    if (!contentType.includes('multipart/form-data')) {
+    if (
+      !contentType.includes('multipart/form-data') &&
+      !contentType.includes('application/x-www-form-urlencoded')
+    ) {
       return new Response(
         jsonLine({
           type: 'error',
-          error: `Invalid Content-Type: expected multipart/form-data, got "${contentType}"`,
+          error: `Invalid Content-Type: expected form data, got "${contentType}"`,
         }),
         {
           status: 400,
@@ -90,13 +143,17 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const requirement = String(formData.get('requirement') || '').trim();
     const runId = String(formData.get('runId') || '').trim();
-    const pdfFile = formData.get('pdf') as File | null;
+    const pdfEntry = formData.get('pdf');
+    const pdfFile =
+      pdfEntry && typeof pdfEntry === 'object' && 'arrayBuffer' in pdfEntry
+        ? (pdfEntry as File)
+        : null;
 
-    if (!requirement || !pdfFile) {
+    if (!requirement && !pdfFile) {
       return new Response(
         jsonLine({
           type: 'error',
-          error: !requirement ? 'The course request is required' : 'The PDF file is required',
+          error: 'Provide either a course request, a PDF file, or both.',
         }),
         {
           status: 400,
@@ -108,7 +165,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    requirementSnippet = requirement.slice(0, 80);
+    const normalizedRequirement =
+      requirement || buildRequirementFromPdf(pdfFile?.name || 'uploaded-course.pdf');
+    requirementSnippet = normalizedRequirement.slice(0, 80);
 
     const enableWebSearch = String(formData.get('enableWebSearch') || '') === 'true';
     const enableImageGeneration = String(formData.get('enableImageGeneration') || '') === 'true';
@@ -119,10 +178,10 @@ export async function POST(req: NextRequest) {
 
     log.info('OpenMAIC generate endpoint received Course Maker workflow payload', {
       runId: runId || undefined,
-      pdfName: pdfFile.name,
-      pdfSize: pdfFile.size,
-      pdfType: pdfFile.type,
-      requirementPreview: requirement.slice(0, 140),
+      pdfName: pdfFile?.name || null,
+      pdfSize: pdfFile?.size || null,
+      pdfType: pdfFile?.type || null,
+      requirementPreview: normalizedRequirement.slice(0, 140),
       options: {
         enableWebSearch,
         enableImageGeneration,
@@ -132,7 +191,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
+    const pdfBuffer = pdfFile ? Buffer.from(await pdfFile.arrayBuffer()) : null;
     const encoder = new TextEncoder();
     if (runId) {
       startCourseMakerRun(runId);
@@ -203,30 +262,20 @@ export async function POST(req: NextRequest) {
               message: 'Preparing the request for OpenMAIC',
             });
 
-            const parsedPdf = await parsePDF(
-              {
-                providerId: 'unpdf',
-                apiKey: '',
-                baseUrl: undefined,
-              },
-              pdfBuffer,
-            );
+            submissionId = `${new Date().toISOString().replace(/[:.]/g, '-')}_${slugify(normalizedRequirement).slice(0, 40)}_${nanoid(6)}`;
+            const storageLocation = `postgres/submissions/${submissionId}`;
+            let sourcePdfObjectKey: string | null = null;
 
-            enqueue({
-              type: 'progress',
-              step: 'pdf_parsed',
-              progress: 8,
-              message: 'The PDF has been parsed successfully',
-            });
+            if (pdfFile && pdfBuffer) {
+              sourcePdfObjectKey = `submissions/${submissionId}/source/${safeFileName(pdfFile.name)}`;
+              await putObject(sourcePdfObjectKey, pdfBuffer, {
+                'Content-Type': pdfFile.type || 'application/pdf',
+              });
+            }
 
-            const submissionId = `${new Date().toISOString().replace(/[:.]/g, '-')}_${slugify(requirement).slice(0, 40)}_${nanoid(6)}`;
-            outputDir = path.join(OUTPUT_ROOT, submissionId);
-            await fs.mkdir(outputDir, { recursive: true });
-
-            await fs.writeFile(path.join(outputDir, safeFileName(pdfFile.name)), pdfBuffer);
-
-            await writeJsonFileAtomic(path.join(outputDir, 'request.json'), {
-              requirement,
+            await upsertLearningSubmission({
+              submissionId,
+              requirement: normalizedRequirement,
               options: {
                 enableWebSearch,
                 enableImageGeneration,
@@ -234,19 +283,55 @@ export async function POST(req: NextRequest) {
                 enableTTS,
                 agentMode,
               },
-              pdf: {
-                fileName: pdfFile.name,
-                size: pdfFile.size,
-                type: pdfFile.type,
-              },
-              createdAt: new Date().toISOString(),
+              sourcePdfFileName: pdfFile?.name || null,
+              sourcePdfSize: pdfFile?.size || null,
+              sourcePdfType: pdfFile?.type || null,
+              sourcePdfObjectKey,
+              storageLocation,
             });
 
-            await writeJsonFileAtomic(path.join(outputDir, 'parsed-pdf.json'), {
-              text: parsedPdf.text,
-              imagesCount: parsedPdf.images?.length ?? 0,
-              metadata: parsedPdf.metadata ?? {},
-            });
+            const parsedPdf = pdfBuffer
+              ? await parsePDF(
+                  {
+                    providerId: 'unpdf',
+                    apiKey: '',
+                    baseUrl: undefined,
+                  },
+                  pdfBuffer,
+                )
+              : null;
+
+            if (parsedPdf && submissionId) {
+              const parsedPdfRecord = await uploadParsedPdfAssets(submissionId, parsedPdf);
+              await upsertLearningSubmission({
+                submissionId,
+                requirement: normalizedRequirement,
+                options: {
+                  enableWebSearch,
+                  enableImageGeneration,
+                  enableVideoGeneration,
+                  enableTTS,
+                  agentMode,
+                },
+                parsedPdf: parsedPdfRecord,
+              });
+            }
+
+            if (parsedPdf) {
+              enqueue({
+                type: 'progress',
+                step: 'pdf_parsed',
+                progress: 8,
+                message: 'The PDF has been parsed successfully',
+              });
+            } else {
+              enqueue({
+                type: 'progress',
+                step: 'prompt_prepared',
+                progress: 8,
+                message: 'Prompt-only generation request prepared successfully',
+              });
+            }
 
             enqueue({
               type: 'progress',
@@ -255,13 +340,19 @@ export async function POST(req: NextRequest) {
               message: 'OpenMAIC is starting the classroom generation',
             });
 
+            draftId = nanoid(12);
+
             const result = await generateClassroom(
               {
-                requirement,
-                pdfContent: {
-                  text: parsedPdf.text,
-                  images: parsedPdf.images ?? [],
-                },
+                requirement: normalizedRequirement,
+                ...(parsedPdf
+                  ? {
+                      pdfContent: {
+                        text: parsedPdf.text,
+                        images: parsedPdf.images ?? [],
+                      },
+                    }
+                  : {}),
                 enableWebSearch,
                 enableImageGeneration,
                 enableVideoGeneration,
@@ -271,6 +362,63 @@ export async function POST(req: NextRequest) {
               {
                 baseUrl: buildRequestOrigin(req),
                 throwIfCancelled,
+                onOutlinesReady: async ({ stage, outlines }) => {
+                  throwIfCancelled();
+                  classroomId = stage.id;
+
+                  const draft = await createDraftWithPlaceholders({
+                    draftId: draftId!,
+                    submissionId: submissionId!,
+                    classroomId: stage.id,
+                    outputDir: `postgres://openmaic/submissions/${submissionId}`,
+                    outputDirRelative: storageLocation,
+                    stage,
+                    outlines,
+                  });
+
+                  await upsertLearningSubmission({
+                    submissionId: submissionId!,
+                    requirement: normalizedRequirement,
+                    options: {
+                      enableWebSearch,
+                      enableImageGeneration,
+                      enableVideoGeneration,
+                      enableTTS,
+                      agentMode,
+                    },
+                    classroomId: stage.id,
+                    draftId: draft.draftId,
+                    storageLocation,
+                  });
+
+                  enqueue({
+                    type: 'progress',
+                    step: 'draft_initialized',
+                    progress: 32,
+                    message: 'Draft created. You can open ready scenes as they arrive.',
+                    scenesGenerated: 0,
+                    totalScenes: outlines.length,
+                    draftId: draft.draftId,
+                    classroomId: stage.id,
+                  });
+                },
+                onSceneReady: async ({ scene, generatedScenes, totalScenes }) => {
+                  throwIfCancelled();
+                  await updateDraftScene({
+                    draftId: draftId!,
+                    scene,
+                  });
+                  enqueue({
+                    type: 'progress',
+                    step: 'scene_ready',
+                    progress: Math.min(90, 30 + Math.floor((generatedScenes / Math.max(totalScenes, 1)) * 60)),
+                    message: `Scene ${scene.order + 1} is ready for review.`,
+                    scenesGenerated: generatedScenes,
+                    totalScenes,
+                    draftId: draftId!,
+                    classroomId: scene.stageId,
+                  });
+                },
                 onProgress: async (progress) => {
                   throwIfCancelled();
                   enqueue({
@@ -280,37 +428,37 @@ export async function POST(req: NextRequest) {
                     message: progress.message,
                     scenesGenerated: progress.scenesGenerated,
                     totalScenes: progress.totalScenes,
+                    draftId: draftId || undefined,
+                    classroomId: classroomId || undefined,
                   });
                 },
               },
             );
 
-            const classroomJsonPath = path.join(CLASSROOMS_DIR, `${result.id}.json`);
             throwIfCancelled();
-            if (await pathExists(classroomJsonPath)) {
-              await fs.copyFile(classroomJsonPath, path.join(outputDir, 'classroom.json'));
-            }
-
-            const classroomAssetsDir = path.join(CLASSROOMS_DIR, result.id);
-            throwIfCancelled();
-            if (await pathExists(classroomAssetsDir)) {
-              await fs.cp(classroomAssetsDir, path.join(outputDir, 'classroom-assets'), {
-                recursive: true,
-              });
-            }
-
-            await writeJsonFileAtomic(path.join(outputDir, 'openmaic-response.json'), result);
-
-            throwIfCancelled();
-            const draftId = nanoid(12);
+            classroomId = result.id;
             const draft = await createDraft({
-              draftId,
-              submissionId,
+              draftId: draftId!,
+              submissionId: submissionId!,
               classroomId: result.id,
-              outputDir,
-              outputDirRelative: path.relative(process.cwd(), outputDir),
+              outputDir: `postgres://openmaic/submissions/${submissionId}`,
+              outputDirRelative: storageLocation,
               stage: result.stage,
               scenes: result.scenes,
+            });
+            await upsertLearningSubmission({
+              submissionId,
+              requirement: normalizedRequirement,
+              options: {
+                enableWebSearch,
+                enableImageGeneration,
+                enableVideoGeneration,
+                enableTTS,
+                agentMode,
+              },
+              classroomId: result.id,
+              draftId: draft.draftId,
+              openmaicResponse: result as unknown as Record<string, unknown>,
             });
 
             enqueue({
@@ -319,8 +467,8 @@ export async function POST(req: NextRequest) {
                 success: true,
                 draftId: draft.draftId,
                 submissionId,
-                outputDir,
-                outputDirRelative: path.relative(process.cwd(), outputDir),
+                outputDir: draft.outputDir,
+                outputDirRelative: draft.outputDirRelative,
                 classroomId: result.id,
                 classroomUrl: result.url,
                 scenesCount: result.scenesCount,
@@ -339,8 +487,8 @@ export async function POST(req: NextRequest) {
                 type: 'error',
                 error: 'Generation was cancelled by the learning expert.',
               });
-              if (outputDir) {
-                await fs.rm(outputDir, { recursive: true, force: true }).catch(() => undefined);
+              if (submissionId) {
+                await deleteLearningSubmission(submissionId, classroomId).catch(() => undefined);
               }
               return;
             }
@@ -371,8 +519,8 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    if (outputDir) {
-      await fs.rm(outputDir, { recursive: true, force: true }).catch(() => undefined);
+    if (submissionId) {
+      await deleteLearningSubmission(submissionId, classroomId).catch(() => undefined);
     }
     log.error(
       `Learning expert generation failed [requirement="${requirementSnippet ?? 'unknown'}..."]:`,

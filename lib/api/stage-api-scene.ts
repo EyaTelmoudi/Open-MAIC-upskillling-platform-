@@ -40,7 +40,7 @@ export function createSceneAPI(store: StageStore) {
           };
         }
 
-        const sceneId = generateId('scene');
+        const sceneId = params.id || generateId('scene');
 
         // Determine order
         const order = params.order ?? state.scenes.length;

@@ -24,9 +24,8 @@ import { persistClassroom } from '@/lib/server/classroom-storage';
 import {
   generateMediaForClassroom,
   replaceMediaPlaceholders,
-  generateTTSForClassroom,
 } from '@/lib/server/classroom-media-generation';
-import type { UserRequirements } from '@/lib/types/generation';
+import type { SceneOutline, UserRequirements } from '@/lib/types/generation';
 import type { Scene, Stage } from '@/lib/types/stage';
 import { AGENT_COLOR_PALETTE, AGENT_DEFAULT_AVATARS } from '@/lib/constants/agent-defaults';
 
@@ -161,6 +160,15 @@ export async function generateClassroom(
   options: {
     baseUrl: string;
     onProgress?: (progress: ClassroomGenerationProgress) => Promise<void> | void;
+    onOutlinesReady?: (payload: {
+      stage: Stage;
+      outlines: SceneOutline[];
+    }) => Promise<void> | void;
+    onSceneReady?: (payload: {
+      scene: Scene;
+      generatedScenes: number;
+      totalScenes: number;
+    }) => Promise<void> | void;
     throwIfCancelled?: () => void;
   },
 ): Promise<GenerateClassroomResult> {
@@ -360,6 +368,12 @@ export async function generateClassroom(
   const store = createInMemoryStore(stage);
   const api = createStageAPI(store);
 
+  ensureActive();
+  await options.onOutlinesReady?.({
+    stage,
+    outlines,
+  });
+
   log.info('Stage 2: Generating scene content and actions...');
   let generatedScenes = 0;
 
@@ -392,13 +406,28 @@ export async function generateClassroom(
     log.info(`Scene "${safeOutline.title}": ${actions.length} actions`);
 
     ensureActive();
-    const sceneId = createSceneWithActions(safeOutline, content, actions, api);
+    const sceneId = createSceneWithActions(
+      safeOutline,
+      content,
+      actions,
+      api,
+      `scene_slot_${safeOutline.order}`,
+    );
     if (!sceneId) {
       log.warn(`Skipping scene "${safeOutline.title}" — scene creation failed`);
       continue;
     }
 
     generatedScenes += 1;
+    const readyScene = store.getState().scenes.find((scene) => scene.id === sceneId);
+    if (readyScene) {
+      ensureActive();
+      await options.onSceneReady?.({
+        scene: readyScene,
+        generatedScenes,
+        totalScenes: outlines.length,
+      });
+    }
     const progressEnd = 30 + Math.floor(((index + 1) / Math.max(outlines.length, 1)) * 60);
     ensureActive();
     await options.onProgress?.({
@@ -436,27 +465,6 @@ export async function generateClassroom(
       log.info(`Media generation complete: ${Object.keys(mediaMap).length} files`);
     } catch (err) {
       log.warn('Media generation phase failed, continuing:', err);
-    }
-  }
-
-  // Phase: TTS generation
-  if (input.enableTTS) {
-    ensureActive();
-    await options.onProgress?.({
-      step: 'generating_tts',
-      progress: 94,
-      message: 'Generating TTS audio',
-      scenesGenerated: scenes.length,
-      totalScenes: outlines.length,
-    });
-
-    try {
-      ensureActive();
-      await generateTTSForClassroom(scenes, stageId, options.baseUrl);
-      ensureActive();
-      log.info('TTS generation complete');
-    } catch (err) {
-      log.warn('TTS generation phase failed, continuing:', err);
     }
   }
 

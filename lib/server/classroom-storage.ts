@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { NextRequest } from 'next/server';
 import type { Scene, Stage } from '@/lib/types/stage';
+import { ensureOpenMAICTables, getOpenMAICPool } from './openmaic-db';
 
 export const CLASSROOMS_DIR = path.join(process.cwd(), 'data', 'classrooms');
 export const CLASSROOM_JOBS_DIR = path.join(process.cwd(), 'data', 'classroom-jobs');
@@ -46,16 +47,26 @@ export function isValidClassroomId(id: string): boolean {
 }
 
 export async function readClassroom(id: string): Promise<PersistedClassroomData | null> {
-  const filePath = path.join(CLASSROOMS_DIR, `${id}.json`);
-  try {
-    const content = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(content) as PersistedClassroomData;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return null;
-    }
-    throw error;
+  await ensureOpenMAICTables();
+  const result = await getOpenMAICPool().query<{
+    id: string;
+    stage_data: Stage;
+    scenes_data: Scene[];
+    created_at: Date | string;
+  }>(`SELECT * FROM openmaic_classrooms WHERE id = $1 LIMIT 1`, [id]);
+
+  if (!result.rows[0]) {
+    return null;
   }
+
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    stage: row.stage_data,
+    scenes: row.scenes_data,
+    createdAt:
+      row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString(),
+  };
 }
 
 export async function persistClassroom(
@@ -73,9 +84,19 @@ export async function persistClassroom(
     createdAt: new Date().toISOString(),
   };
 
-  await ensureClassroomsDir();
-  const filePath = path.join(CLASSROOMS_DIR, `${data.id}.json`);
-  await writeJsonFileAtomic(filePath, classroomData);
+  await ensureOpenMAICTables();
+  await getOpenMAICPool().query(
+    `
+      INSERT INTO openmaic_classrooms (id, stage_data, scenes_data, created_at, updated_at)
+      VALUES ($1, $2::jsonb, $3::jsonb, $4, NOW())
+      ON CONFLICT (id)
+      DO UPDATE SET
+        stage_data = EXCLUDED.stage_data,
+        scenes_data = EXCLUDED.scenes_data,
+        updated_at = NOW()
+    `,
+    [data.id, JSON.stringify(data.stage), JSON.stringify(data.scenes), classroomData.createdAt],
+  );
 
   return {
     ...classroomData,

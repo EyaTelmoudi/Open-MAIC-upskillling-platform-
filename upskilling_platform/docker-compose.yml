@@ -58,6 +58,54 @@ services:
       timeout: 5s
       retries: 5
 
+  piper:
+    build:
+      context: ./piper
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PIPER_VOICE: ${PIPER_VOICE:-en_US-lessac-medium}
+      PIPER_PORT: 5000
+      PIPER_HOST: 0.0.0.0
+      PIPER_DATA_DIR: /voices
+    ports:
+      - "5005:5000"
+    volumes:
+      - piper_voices:/voices
+    networks:
+      - upskilling_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/voices"]
+      interval: 20s
+      timeout: 10s
+      retries: 6
+
+  comfyui:
+    build:
+      context: ./comfyui
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      COMFYUI_HOST: 0.0.0.0
+      COMFYUI_PORT: 8188
+      COMFYUI_MODEL_NAME: ${COMFYUI_MODEL_NAME:-sd-v1-5-tiny.safetensors}
+      COMFYUI_MODEL_REPO: ${COMFYUI_MODEL_REPO:-ehristoforu/stable-diffusion-v1-5-tiny}
+      COMFYUI_MODEL_FILE: ${COMFYUI_MODEL_FILE:-sd-v1-5-tiny.safetensors}
+      COMFYUI_ARGS: ${COMFYUI_ARGS:---cpu}
+    ports:
+      - "8188:8188"
+    volumes:
+      - comfyui_models:/opt/ComfyUI/models
+      - comfyui_input:/opt/ComfyUI/input
+      - comfyui_output:/opt/ComfyUI/output
+    networks:
+      - upskilling_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8188/system_stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
   traefik:
     image: traefik:v3.1
     restart: unless-stopped
@@ -197,6 +245,10 @@ volumes:
   postgres_data:
   rabbitmq_data:
   minio_data:
+  piper_voices:
+  comfyui_models:
+  comfyui_input:
+  comfyui_output:
 
 networks:
   upskilling_network:
