@@ -112,6 +112,9 @@ def upload_file(
     if client is None:
         client = get_minio_client()
 
+    if not client.bucket_exists(bucket_name):
+        client.make_bucket(bucket_name)
+
     client.put_object(
         bucket_name=bucket_name,
         object_name=object_name,

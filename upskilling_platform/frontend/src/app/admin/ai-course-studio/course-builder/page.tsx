@@ -236,7 +236,6 @@ export default function AiCourseBuilderPage() {
   const [drafts, setDrafts] = useState<DraftSummary[]>([]);
   const [draft, setDraft] = useState<LearningExpertDraft | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
-  const [enableWebSearch, setEnableWebSearch] = useState(false);
   const [enableImageGeneration, setEnableImageGeneration] = useState(false);
   const [enableVideoGeneration, setEnableVideoGeneration] = useState(false);
   const [enableTTS] = useState(true);
@@ -549,7 +548,7 @@ export default function AiCourseBuilderPage() {
         formData.append("pdf", pdfFile);
       }
       formData.append("requirement", prompt.trim());
-      formData.append("enableWebSearch", String(enableWebSearch));
+      formData.append("enableWebSearch", "true");
       formData.append("enableImageGeneration", String(enableImageGeneration));
       formData.append("enableVideoGeneration", String(enableVideoGeneration));
       formData.append("enableTTS", "true");
@@ -845,14 +844,6 @@ export default function AiCourseBuilderPage() {
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">
-                  <label className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-slate-800">
-                    <span>Enable web search</span>
-                    <input
-                      type="checkbox"
-                      checked={enableWebSearch}
-                      onChange={(event) => setEnableWebSearch(event.target.checked)}
-                    />
-                  </label>
                   <label className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-slate-800">
                     <span>Generate images</span>
                     <input

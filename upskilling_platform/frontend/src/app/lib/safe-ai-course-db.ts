@@ -18,6 +18,16 @@ export async function safeListAiCourseDrafts() {
   }
 }
 
+export async function safeHasAnyAiCourseDraftRecords() {
+  const db = await loadAiCourseDb();
+  if (!db || !("hasAnyAiCourseDraftRecords" in db)) return false;
+  try {
+    return await db.hasAnyAiCourseDraftRecords();
+  } catch {
+    return false;
+  }
+}
+
 export async function safeGetAiCourseDraft(draftId: string) {
   const db = await loadAiCourseDb();
   if (!db) return null;
@@ -70,6 +80,30 @@ export async function safeDeleteAiCourseDraft(draftId: string) {
   if (!db) return null;
   try {
     return await db.deleteAiCourseDraft(draftId);
+  } catch {
+    return null;
+  }
+}
+
+export async function safeGetAiPlatformLessonQuiz(request: Request, lessonId: string) {
+  const db = await loadAiCourseDb();
+  if (!db || !("getAiPlatformLessonQuiz" in db)) return null;
+  try {
+    return await db.getAiPlatformLessonQuiz(request, lessonId);
+  } catch {
+    return null;
+  }
+}
+
+export async function safeSubmitAiPlatformLessonQuiz(
+  request: Request,
+  lessonId: string,
+  answers: Record<string, string | string[]>,
+) {
+  const db = await loadAiCourseDb();
+  if (!db || !("submitAiPlatformLessonQuiz" in db)) return null;
+  try {
+    return await db.submitAiPlatformLessonQuiz(request, lessonId, answers);
   } catch {
     return null;
   }

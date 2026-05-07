@@ -46,6 +46,7 @@ type EditableScriptBlock = {
   type: "script";
   actionId: string;
   text: string;
+  linkedElementId?: string;
 };
 
 type EditableQuizQuestionBlock = {
@@ -123,16 +124,60 @@ function isScriptBlock(block: EditableBlock): block is EditableScriptBlock {
   return block.type === "script";
 }
 
+function tokenizeForMatching(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 2);
+}
+
 function buildSlideScriptMap(blocks: EditableBlock[]) {
   const slideBlocks = blocks.filter(isSlideTextBlock);
   const scriptBlocks = blocks.filter(isScriptBlock);
   const scriptMap = new Map<string, EditableScriptBlock[]>();
 
-  slideBlocks.forEach((block, index) => {
-    const start = Math.floor((index * scriptBlocks.length) / slideBlocks.length);
-    const end = Math.floor(((index + 1) * scriptBlocks.length) / slideBlocks.length);
-    scriptMap.set(block.id, scriptBlocks.slice(start, end));
+  slideBlocks.forEach((block) => {
+    scriptMap.set(block.id, []);
   });
+
+  const slideBlockByElementId = new Map(slideBlocks.map((block) => [block.elementId, block]));
+  const unassignedScripts: EditableScriptBlock[] = [];
+
+  scriptBlocks.forEach((scriptBlock) => {
+    const linkedBlock = scriptBlock.linkedElementId
+      ? slideBlockByElementId.get(scriptBlock.linkedElementId)
+      : undefined;
+
+    if (linkedBlock) {
+      scriptMap.set(linkedBlock.id, [...(scriptMap.get(linkedBlock.id) || []), scriptBlock]);
+      return;
+    }
+
+    unassignedScripts.push(scriptBlock);
+  });
+
+  if (unassignedScripts.length > 0 && slideBlocks.length > 0) {
+    unassignedScripts.forEach((scriptBlock, index) => {
+      const scriptTokens = new Set(tokenizeForMatching(scriptBlock.text));
+      let bestBlock = slideBlocks[0];
+      let bestScore = -1;
+
+      slideBlocks.forEach((slideBlock) => {
+        const blockTokens = tokenizeForMatching(slideBlock.plainText);
+        const overlap = blockTokens.filter((token) => scriptTokens.has(token)).length;
+        if (overlap > bestScore) {
+          bestScore = overlap;
+          bestBlock = slideBlock;
+        }
+      });
+
+      const fallbackBlock =
+        bestScore > 0 ? bestBlock : slideBlocks[Math.min(index, slideBlocks.length - 1)];
+      scriptMap.set(fallbackBlock.id, [...(scriptMap.get(fallbackBlock.id) || []), scriptBlock]);
+    });
+  }
 
   return scriptMap;
 }

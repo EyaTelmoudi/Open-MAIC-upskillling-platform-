@@ -208,50 +208,6 @@ async def list_bucket_content(
         )
 
 
-@router.delete("/{bucket_name}/{object_name:path}")
-async def delete_content(
-    bucket_name: str,
-    object_name: str,
-    db: Session = Depends(get_db),
-) -> JSONResponse:
-    """Delete content from MinIO.
-
-    Args:
-        bucket_name: Bucket containing the object
-        object_name: Object key to delete
-
-    Returns:
-        JSON with deletion result
-    """
-    valid_buckets = [
-        "course-videos",
-        "course-pdfs",
-        "course-slides",
-        "course-images",
-        "course-files",
-        "quiz-media",
-    ]
-
-    if bucket_name not in valid_buckets:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid bucket. Valid: {valid_buckets}",
-        )
-
-    try:
-        service = ContentIngestionService(db)
-        service.delete_content(bucket_name, object_name)
-        return JSONResponse(
-            content={"message": "Content deleted", "object_name": object_name}
-        )
-    except Exception as e:
-        logger.error(f"Failed to delete content: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete content: {str(e)}",
-        )
-
-
 @router.get("/url/{bucket_name}/{object_name:path}")
 async def get_content_url(
     bucket_name: str,
@@ -372,4 +328,48 @@ async def proxy_content_media(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Media file not found",
+        )
+
+
+@router.delete("/{bucket_name}/{object_name:path}")
+async def delete_content(
+    bucket_name: str,
+    object_name: str,
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    """Delete content from MinIO.
+
+    Args:
+        bucket_name: Bucket containing the object
+        object_name: Object key to delete
+
+    Returns:
+        JSON with deletion result
+    """
+    valid_buckets = [
+        "course-videos",
+        "course-pdfs",
+        "course-slides",
+        "course-images",
+        "course-files",
+        "quiz-media",
+    ]
+
+    if bucket_name not in valid_buckets:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid bucket. Valid: {valid_buckets}",
+        )
+
+    try:
+        service = ContentIngestionService(db)
+        service.delete_content(bucket_name, object_name)
+        return JSONResponse(
+            content={"message": "Content deleted", "object_name": object_name}
+        )
+    except Exception as e:
+        logger.error(f"Failed to delete content: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete content: {str(e)}",
         )

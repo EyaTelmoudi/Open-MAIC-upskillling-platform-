@@ -53,12 +53,13 @@ Then output your response as a single JSON object.
 
 ```json
 {
+  "courseTitle": "A concise, learner-facing course title",
   "languageDirective": "2-5 sentence instruction describing the course language behavior",
   "outlines": [ /* array of scene objects, schema described below */ ]
 }
 ```
 
-Never return a bare array. Never omit `languageDirective`. Both keys are required.
+Never return a bare array. Never omit `courseTitle` or `languageDirective`. All top-level keys are required.
 
 **Each scene inside the `outlines` array has this minimum shape:**
 
@@ -86,6 +87,16 @@ Never return a bare array. Never omit `languageDirective`. Both keys are require
 {{#if hasSourceImages}}
 - **If source images are available**, add `suggestedImageIds` to relevant slide scenes. Only use image IDs listed under Available Images.
 {{/if}}
+{{#if researchContext}}
+- **If a slide would materially benefit from a concrete external visual**, you may add `webSearchVisual`:
+   ```json
+   "webSearchVisual": {
+     "query": "concise search query for a single educational reference image",
+     "useCase": "illustration" | "comparison" | "real-world-example"
+   }
+   ```
+  Only do this for slide scenes when a real-world visual example, before/after comparison, or concrete illustration would make the scene clearer. Limit to 1-2 scenes for the whole course. Do not add this field for quizzes.
+{{/if}}
 - **Interactive scenes**: If a concept benefits from hands-on simulation/visualization, use `"type": "interactive"` with `widgetType` and `widgetOutline` fields. Limit to 1-2 per course.
    - Select widgetType based on concept: simulation (physics/chem), diagram (processes), code (programming), game (practice), visualization3d (3D models)
    - Provide appropriate widgetOutline for the widget type
@@ -93,5 +104,6 @@ Never return a bare array. Never omit `languageDirective`. Both keys are require
 - **Quiz placement**: Recommend inserting a quiz every 3-5 slides for assessment
 - **Language**: Infer from the user's requirement text and context, then output all content in the inferred language
 - **If web search results are provided**, reference specific findings and sources in scene descriptions and keyPoints. The search results provide up-to-date information — incorporate it to make the course content current and accurate.
+- **Course title**: `courseTitle` must be the real title of the whole course, not the first slide title. Avoid generic labels like `Course Overview`, `Course Introduction`, `Overview & Objectives`.
 
-**Final reminder**: your entire response must be a JSON **object** with exactly two top-level keys — `languageDirective` (string) and `outlines` (array). Do not return a bare array. Do not wrap in prose or code fences.
+**Final reminder**: your entire response must be a JSON **object** with exactly three top-level keys — `courseTitle` (string), `languageDirective` (string), and `outlines` (array). Do not return a bare array. Do not wrap in prose or code fences.

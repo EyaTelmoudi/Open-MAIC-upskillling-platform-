@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Card } from "@/app/components/ui/Card";
 import { Badge } from "@/app/components/ui/Badge";
@@ -49,7 +49,7 @@ interface QuizProps {
   lessonId: string;
   courseId: string;
   assessmentId?: string;
-  onComplete?: () => void;
+  onComplete?: () => void | Promise<void>;
 }
 
 export function Quiz({ lessonId, courseId, assessmentId, onComplete }: QuizProps) {
@@ -60,6 +60,7 @@ export function Quiz({ lessonId, courseId, assessmentId, onComplete }: QuizProps
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
+  const completionTriggeredRef = useRef(false);
 
   const getAssessmentId = () => {
     return assessmentId || lessonId;
@@ -68,6 +69,15 @@ export function Quiz({ lessonId, courseId, assessmentId, onComplete }: QuizProps
   useEffect(() => {
     loadQuestions();
   }, [lessonId, courseId]);
+
+  useEffect(() => {
+    if (!result?.passed || !onComplete || completionTriggeredRef.current) {
+      return;
+    }
+
+    completionTriggeredRef.current = true;
+    void onComplete();
+  }, [onComplete, result]);
 
   const loadQuestions = async () => {
     setIsLoading(true);
@@ -240,11 +250,11 @@ export function Quiz({ lessonId, courseId, assessmentId, onComplete }: QuizProps
           ))}
         </div>
 
-        {onComplete && (
-          <Button className="w-full" onClick={onComplete}>
-            Continue
-          </Button>
-        )}
+        {result.passed ? (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            Quiz passed. Marking lesson complete and preparing the next step.
+          </div>
+        ) : null}
       </div>
     );
   }

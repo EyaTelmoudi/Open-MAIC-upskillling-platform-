@@ -5,7 +5,7 @@
     "name": "Welcome & Course Overview",
     "style": "interactive",
     "createdAt": 1777630569319,
-    "updatedAt": 1777758597972,
+    "updatedAt": 1777901865338,
     "languageDirective": "Deliver the entire course in English. Use clear, beginner‑friendly terminology and include brief explanations for all HTML tags. Keep any code examples in original HTML syntax while all surrounding narration remains in English.",
     "generatedAgentConfigs": [
       {
@@ -60,7 +60,7 @@
         },
         {
           "id": "action_Veu8WxL4",
-          "text": "Good morning, aya my dear student! I’m Ms. Clara Hart, and I’m thrilled to welcome you to our Introduction to HTML course. Over the next few weeks we’ll build real web pages together, step by step.",
+          "text": "Hello, I’m Clara Hart, and I’m excited to guide you through this Introduction to HTML series. Over the next few weeks we’ll create real web pages together, taking one small, confident step at a time.",
           "type": "speech"
         },
         {
@@ -70,7 +70,7 @@
         },
         {
           "id": "action_EbRY3pLe",
-          "text": "First, let’s look at why HTML is the foundation of every web page. HTML provides the structure—think of it as the skeleton that holds all the content together.",
+          "text": "Let’s start with a simple question: why does HTML matter? HTML provides the basic structure that browsers need to display a page correctly, so everything you add—text, images, links—appears where you intend.",
           "type": "speech"
         },
         {
@@ -80,7 +80,7 @@
         },
         {
           "id": "action_W1TVWnmP",
-          "text": "Next, our course objectives: by the end of this class you’ll be able to write valid HTML tags, create page layouts, and publish a simple personal website.",
+          "text": "By the end of this course you’ll feel comfortable writing core HTML tags, arranging elements on a page, and publishing a small personal website you can proudly share with friends and family.",
           "type": "speech"
         },
         {
@@ -90,12 +90,12 @@
         },
         {
           "id": "action_GhCguCWZ",
-          "text": "Finally, the structure of our upcoming lessons: we’ll start with basic tags, move on to lists and links, then explore images and forms, wrapping up with a mini‑project.",
+          "text": "Here’s our roadmap: we’ll begin with essential tags, then explore lists and links, move on to images and simple forms, and finish with a short project that brings everything together.",
           "type": "speech"
         },
         {
           "id": "action_vYGiAxLu",
-          "text": "That’s our roadmap for today—let’s dive in and start building the web together!",
+          "text": "That’s what we’ll cover today—let’s dive in and start building the web together!",
           "type": "speech"
         }
       ],
@@ -135,7 +135,7 @@
               "width": 880,
               "height": 70,
               "rotate": 0,
-              "content": "<p>Welcome &amp; Course Overviewwwwwwwwwwwwwwwwwwwwww222222222222222222222222aya</p>",
+              "content": "<p>Welcome &amp; Course Overview</p>",
               "defaultColor": "#333333",
               "defaultFontName": "Microsoft YaHei"
             },
@@ -147,7 +147,7 @@
               "width": 880,
               "height": 118,
               "rotate": 0,
-              "content": "<p>• Why HTML is the foundation of web pages • Course objectives and learning outcomes • Structure of the upcoming lessons</p>",
+              "content": "<p>• Why HTML is the foundation of web pages</p><p>• Course objectives and learning outcomes</p><p>• Structure of the upcoming lessons</p>",
               "defaultColor": "#333333",
               "defaultFontName": "Microsoft YaHei"
             }
@@ -177,7 +177,7 @@
         },
         {
           "id": "action_NeaG_9v8",
-          "text": "Alright everyone, let's dive into the basic structure of an HTML document.",
+          "text": "Welcome! In the next few minutes we’ll look at the handful of tags that form the foundation of every HTML page. Mastering these basics lets you build a functional web page from scratch.",
           "type": "speech"
         },
         {
@@ -187,7 +187,7 @@
         },
         {
           "id": "action_EJTFeG6U",
-          "text": "First, we always start with the doctype declaration, which tells the browser that this is an HTML5 document. Then come the opening <html> tag, followed by the <head> section where we place metadata, and finally the <body> where all the visible content lives.",
+          "text": "First, the <!DOCTYPE html> declaration tells the browser we’re using the current HTML standard. The <html> element then wraps the whole document. Inside <html> we have two sections: the <head>, which holds meta‑information such as the page title, and the <body>, which contains everything visitors see on the screen.",
           "type": "speech"
         },
         {
@@ -197,7 +197,7 @@
         },
         {
           "id": "action_q1i9TlKt",
-          "text": "Here’s a simple, complete example: we declare <!DOCTYPE html>, open the <html> tag, add a <head> with a <title>, and then the <body> with any page content. This minimal skeleton is the foundation for every web page you’ll build.",
+          "text": "Let’s walk through a minimal example step by step. After the doctype we open <html>, add a <head> with a <title> element—this text appears on the browser tab. We close the head, open <body>, place the visible content, and finally close both </body> and </html>. This simple structure is the starting point for every web page you’ll create.",
           "type": "speech"
         }
       ],
@@ -249,7 +249,7 @@
               "width": 880,
               "height": 103,
               "rotate": 0,
-              "content": "<p>• Doctype declaration • &amp;lt;html&amp;gt;, &amp;lt;head&amp;gt;, &amp;lt;title&amp;gt;, &amp;lt;body&amp;gt; tags • Simple complete page example</p>",
+              "content": "<p>• Doctype declaration • &lt;html&gt;, &lt;head&gt;, &lt;title&gt;, &lt;body&gt; tags • Simple complete page example</p>",
               "defaultColor": "#333333",
               "defaultFontName": "Microsoft YaHei"
             },
@@ -261,7 +261,7 @@
               "width": 840,
               "height": 94,
               "rotate": 0,
-              "content": "<p>&amp;lt;!DOCTYPE html&amp;gt; &amp;lt;html&amp;gt; &amp;lt;head&amp;gt; &amp;lt;title&amp;gt;Page Title&amp;lt;/title&amp;gt; &amp;lt;/head&amp;gt; &amp;lt;body&amp;gt; Content goes here &amp;lt;/body&amp;gt; &amp;lt;/html&amp;gt;</p>",
+              "content": "<p>&lt;!DOCTYPE html&gt; &lt;html&gt; &lt;head&gt; &lt;title&gt;Page Title&lt;/title&gt; &lt;/head&gt; &lt;body&gt; Content goes here &lt;/body&gt; &lt;/html&gt;</p>",
               "defaultColor": "#333333",
               "defaultFontName": "Microsoft YaHei"
             }
@@ -1343,5 +1343,5 @@
       "updatedAt": 1777630989930
     }
   ],
-  "generatedAt": "2026-05-02T21:49:57.972Z"
+  "generatedAt": "2026-05-04T13:37:45.338Z"
 }

@@ -6,7 +6,7 @@
  */
 
 import { proxyFetch } from '@/lib/server/proxy-fetch';
-import type { WebSearchResult, WebSearchSource } from '@/lib/types/web-search';
+import type { WebSearchImage, WebSearchResult, WebSearchSource } from '@/lib/types/web-search';
 
 const TAVILY_API_URL = 'https://api.tavily.com/search';
 
@@ -19,8 +19,16 @@ export async function searchWithTavily(params: {
   query: string;
   apiKey: string;
   maxResults?: number;
+  includeImages?: boolean;
+  includeImageDescriptions?: boolean;
 }): Promise<WebSearchResult> {
-  const { query, apiKey, maxResults = 5 } = params;
+  const {
+    query,
+    apiKey,
+    maxResults = 5,
+    includeImages = false,
+    includeImageDescriptions = false,
+  } = params;
 
   // Tavily rejects queries over 400 characters with a 400 error
   const truncatedQuery = query.slice(0, TAVILY_MAX_QUERY_LENGTH);
@@ -36,6 +44,8 @@ export async function searchWithTavily(params: {
       search_depth: 'basic',
       max_results: maxResults,
       include_answer: 'basic',
+      include_images: includeImages,
+      include_image_descriptions: includeImages && includeImageDescriptions,
     }),
   });
 
@@ -48,6 +58,7 @@ export async function searchWithTavily(params: {
     answer?: string;
     query: string;
     response_time: number;
+    images?: Array<string | { url: string; description?: string }>;
     results: Array<{
       title: string;
       url: string;
@@ -63,9 +74,18 @@ export async function searchWithTavily(params: {
     score: r.score,
   }));
 
+  const images: WebSearchImage[] = (data.images || [])
+    .map((image) =>
+      typeof image === 'string'
+        ? { url: image }
+        : { url: image.url, description: image.description },
+    )
+    .filter((image) => typeof image.url === 'string' && image.url.length > 0);
+
   return {
     answer: data.answer || '',
     sources,
+    images,
     query: data.query,
     responseTime: data.response_time,
   };

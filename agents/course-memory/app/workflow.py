@@ -26,6 +26,7 @@ class CourseMemoryAssemblyInput(BaseModel):
     requesterName: str | None = None
     hindsightApiUrl: str | None = None
     hindsightApiKey: str | None = None
+    supplementalSources: list[dict[str, str]] | None = None
 
 
 def _log(message: str) -> None:
@@ -53,6 +54,32 @@ def _sanitize_string_dict(source: dict[str, Any]) -> dict[str, str]:
     return result
 
 
+def _normalize_supplemental_sources(raw_sources: Any) -> list[dict[str, str]]:
+    normalized: list[dict[str, str]] = []
+    if not isinstance(raw_sources, list):
+        return normalized
+
+    for index, raw_source in enumerate(raw_sources):
+        if not isinstance(raw_source, dict):
+            continue
+
+        text = _normalize_text(raw_source.get("text") or "")
+        if not text:
+            continue
+
+        title = _normalize_text(raw_source.get("title") or "") or f"Supplemental Source {index + 1}"
+        kind = _normalize_text(raw_source.get("kind") or "") or "supplemental_course_source"
+        normalized.append(
+            {
+                "title": title,
+                "kind": kind,
+                "text": text,
+            }
+        )
+
+    return normalized
+
+
 def _parse_lesson_content(raw_content: Any) -> Any:
     if isinstance(raw_content, (dict, list)):
         return raw_content
@@ -67,6 +94,23 @@ def _parse_lesson_content(raw_content: Any) -> Any:
         return raw_content
 
     return raw_content
+
+
+def _looks_like_ai_generated_content(parsed_content: Any) -> bool:
+    if not isinstance(parsed_content, dict):
+        return False
+
+    if parsed_content.get("type") in {"slide", "quiz", "interactive"}:
+        return True
+
+    if isinstance(parsed_content.get("actions"), list):
+        return True
+
+    content_block = parsed_content.get("content")
+    if isinstance(content_block, dict) and content_block.get("type") in {"slide", "quiz", "interactive"}:
+        return True
+
+    return False
 
 
 def _extract_slide_explanations(content: dict[str, Any]) -> list[str]:
@@ -155,12 +199,27 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
     assembled_quizzes: list[dict[str, Any]] = []
     teacher_paroles: list[str] = []
     explanations: list[str] = []
+    supplemental_sources = _normalize_supplemental_sources(payload.supplementalSources)
+    modules_summary: list[dict[str, Any]] = []
+    is_ai_generated = False
 
     for module in modules:
         module_id = module.get("id")
         module_title = module.get("title")
-        for lesson in module.get("lessons") or []:
+        module_lessons = module.get("lessons") or []
+        modules_summary.append(
+            {
+                "moduleId": module_id,
+                "title": module_title,
+                "description": _normalize_text(module.get("description") or ""),
+                "order": module.get("order"),
+                "lessonCount": len(module_lessons),
+            }
+        )
+        for lesson in module_lessons:
             parsed_content = _parse_lesson_content(lesson.get("content"))
+            if _looks_like_ai_generated_content(parsed_content):
+                is_ai_generated = True
             lesson_teacher_paroles: list[str] = []
             lesson_explanations: list[str] = []
             lesson_quizzes: list[dict[str, Any]] = []
@@ -241,15 +300,20 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
         "description": course.get("description"),
         "category": course.get("category"),
         "difficulty": course.get("difficulty"),
+        "duration": course.get("duration"),
+        "xpReward": course.get("xp_reward"),
         "modulesCount": len(modules),
+        "modules": modules_summary,
         "lessonsCount": len(assembled_lessons),
         "quizzesCount": len(assembled_quizzes),
         "teacherParolesCount": len(teacher_paroles),
         "explanationsCount": len(explanations),
+        "contentStrategy": "ai_generated" if is_ai_generated else "traditional",
         "lessons": assembled_lessons,
         "quizzes": assembled_quizzes,
         "teacherParoles": teacher_paroles,
         "explanations": explanations,
+        "supplementalSources": supplemental_sources,
     }
 
     _log("[Agno Course Memory Agent] Step 1 complete: course content assembled.")
@@ -348,7 +412,15 @@ def clean_course_content(step_input: StepInput) -> StepOutput:
         "description": _normalize_text(assembled_payload.get("description") or ""),
         "category": assembled_payload.get("category"),
         "difficulty": assembled_payload.get("difficulty"),
+        "duration": assembled_payload.get("duration"),
+        "xpReward": assembled_payload.get("xpReward"),
+        "modulesCount": assembled_payload.get("modulesCount"),
+        "modules": assembled_payload.get("modules") or [],
+        "contentStrategy": assembled_payload.get("contentStrategy") or "traditional",
         "lessons": cleaned_lessons,
+        "supplementalSources": _normalize_supplemental_sources(
+            assembled_payload.get("supplementalSources")
+        ),
     }
 
     total_quiz_questions = sum(
@@ -390,8 +462,14 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
     tenant_id = str(cleaned_payload.get("tenantId") or "").strip()
     course_id = str(cleaned_payload.get("courseId") or "").strip()
     course_title = str(cleaned_payload.get("title") or "").strip()
+    content_strategy = str(cleaned_payload.get("contentStrategy") or "traditional").strip()
 
     documents: list[dict[str, Any]] = []
+    module_titles = [
+        _normalize_text(module.get("title") or "")
+        for module in (cleaned_payload.get("modules") or [])
+        if isinstance(module, dict) and _normalize_text(module.get("title") or "")
+    ]
 
     overview_lines = [
         f"Course Title: {course_title}",
@@ -401,6 +479,15 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
     description = str(cleaned_payload.get("description") or "").strip()
     if description:
         overview_lines.append(f"Course Description: {description}")
+    if cleaned_payload.get("duration") is not None:
+        overview_lines.append(f"Course Duration (minutes): {cleaned_payload.get('duration')}")
+    if cleaned_payload.get("xpReward") is not None:
+        overview_lines.append(f"XP Reward: {cleaned_payload.get('xpReward')}")
+    if cleaned_payload.get("modulesCount") is not None:
+        overview_lines.append(f"Modules Count: {cleaned_payload.get('modulesCount')}")
+    if module_titles:
+        overview_lines.append("Module Titles:")
+        overview_lines.extend(f"- {title}" for title in module_titles)
     overview_lines.append("This course belongs to the company-specific learning catalog.")
 
     documents.append(
@@ -423,6 +510,64 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
             ],
         }
     )
+
+    for index, source in enumerate(cleaned_payload.get("supplementalSources") or []):
+        if not isinstance(source, dict):
+            continue
+
+        source_title = _normalize_text(source.get("title") or "") or f"Supplemental Source {index + 1}"
+        source_kind = _normalize_text(source.get("kind") or "") or "supplemental_course_source"
+        source_text = _normalize_text(source.get("text") or "")
+        if not source_text:
+            continue
+
+        documents.append(
+            {
+                "content": "\n".join(
+                    [
+                        f"Course Title: {course_title}",
+                        f"Supplemental Course Source: {source_title}",
+                        source_text,
+                    ]
+                ),
+                "context": "supplemental course source knowledge",
+                "document_id": f"course:{course_id}:source:{index + 1}",
+                "metadata": _sanitize_string_dict(
+                    {
+                        "tenantId": tenant_id,
+                        "courseId": course_id,
+                        "courseTitle": course_title,
+                        "sourceTitle": source_title,
+                        "contentType": source_kind,
+                    }
+                ),
+                "tags": [
+                    f"tenant:{tenant_id}",
+                    f"course:{course_id}",
+                    "content:supplemental_course_source",
+                ],
+            }
+        )
+
+    if content_strategy != "ai_generated":
+        _log("[Agno Course Memory Agent] Traditional course detected: retaining course metadata and private source documents.")
+        _log(f"- Supplemental sources: {len(cleaned_payload.get('supplementalSources') or [])}")
+        _log(f"- Modules: {len(module_titles)}")
+        _log(f"- XP reward: {cleaned_payload.get('xpReward')}")
+        _log(f"- Duration: {cleaned_payload.get('duration')}")
+        _log("[Agno Course Memory Agent] Step 3 complete: retention documents prepared.")
+        _log(f"- Documents prepared for retain: {len(documents)}")
+        _log("[Agno Course Memory Agent] Retention documents preview:")
+        _log(json.dumps(documents, ensure_ascii=False, indent=2))
+
+        return StepOutput(
+            content={
+                **previous_content,
+                "action": "build_retention_documents",
+                "retentionDocuments": documents,
+            },
+            success=True,
+        )
 
     for lesson in cleaned_payload.get("lessons") or []:
         if not isinstance(lesson, dict):

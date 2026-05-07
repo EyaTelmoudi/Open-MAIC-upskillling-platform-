@@ -1,4 +1,4 @@
-import type { Action, SpeechAction } from '@/lib/types/action';
+import type { Action, SpeechAction, SpotlightAction, LaserAction } from '@/lib/types/action';
 import type { SceneOutline } from '@/lib/types/generation';
 import type { PPTElement, Slide, SlideTheme } from '@/lib/types/slides';
 import type { QuizQuestion, Scene, Stage } from '@/lib/types/stage';
@@ -234,14 +234,29 @@ function textBlockLabel(index: number): string {
 }
 
 function speechBlocks(actions: Action[] | undefined): EditableScriptBlock[] {
-  return (actions || [])
-    .filter((action): action is SpeechAction => action.type === 'speech')
-    .map((action, index) => ({
-      id: `script_${index + 1}`,
+  const blocks: EditableScriptBlock[] = [];
+  let currentLinkedElementId: string | undefined;
+
+  for (const action of actions || []) {
+    if (action.type === 'spotlight' || action.type === 'laser') {
+      currentLinkedElementId = (action as SpotlightAction | LaserAction).elementId;
+      continue;
+    }
+
+    if (action.type !== 'speech') {
+      continue;
+    }
+
+    blocks.push({
+      id: `script_${blocks.length + 1}`,
       type: 'script',
       actionId: action.id,
       text: action.text,
-    }));
+      linkedElementId: currentLinkedElementId,
+    });
+  }
+
+  return blocks;
 }
 
 function normalizeSlideScene(scene: Scene): EditableSceneDraft {

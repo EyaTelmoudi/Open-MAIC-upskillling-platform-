@@ -2,6 +2,7 @@ import { buildOpenMAICUrl } from "@/app/lib/openmaic-proxy";
 import { runCourseRefinementAgentAction } from "@/app/lib/course-maker-agent";
 import { getActiveGenerationRun } from "@/app/lib/ai-course-active-run-store";
 import {
+  safeDeleteAiCourseDraft,
   safeGetAiCourseDraft,
   safeUpsertAiCourseDraft,
 } from "@/app/lib/safe-ai-course-db";
@@ -217,6 +218,55 @@ export async function POST(
           error instanceof Error
             ? error.message
             : "Failed to revise the selected draft scene with AI",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ draftId: string }> }
+) {
+  try {
+    const { draftId } = await params;
+
+    const upstream = await fetch(
+      buildOpenMAICUrl(`/api/learing-expert-agent/drafts/${draftId}`),
+      {
+        method: "DELETE",
+        cache: "no-store",
+      }
+    );
+
+    const data = await upstream.json().catch(() => null);
+
+    if (!upstream.ok) {
+      return Response.json(
+        data || {
+          success: false,
+          error: "Failed to delete draft from OpenMAIC",
+        },
+        { status: upstream.status || 500 }
+      );
+    }
+
+    await safeDeleteAiCourseDraft(draftId).catch(() => null);
+
+    return Response.json(
+      {
+        success: true,
+        deleted: true,
+        draftId,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    return Response.json(
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to delete generated draft",
       },
       { status: 500 }
     );

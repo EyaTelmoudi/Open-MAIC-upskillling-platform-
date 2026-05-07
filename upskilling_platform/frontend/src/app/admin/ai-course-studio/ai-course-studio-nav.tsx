@@ -49,23 +49,25 @@ export function AiCourseStudioNav({ currentDraftId }: { currentDraftId?: string 
       key: "editor",
       href: editorDraftId
         ? routes.adminAiCourseEditor(editorDraftId)
-        : routes.adminAiCourseDrafts,
+        : routes.adminAiCourseEditorHome,
       label: "Course Editor",
-      description: editorDraftId ? "Edit generated draft" : "Choose a draft first",
+      description: editorDraftId ? "Edit generated draft" : "Choose a draft here",
       icon: FilePenLine,
       match: (currentPath: string) =>
-        currentPath.startsWith("/admin/ai-course-studio/drafts/") &&
-        currentPath.endsWith("/editor"),
+        currentPath === routes.adminAiCourseEditorHome ||
+        (currentPath.startsWith("/admin/ai-course-studio/drafts/") &&
+          currentPath.endsWith("/editor")),
     },
     {
       key: "final-preview",
       href: editorDraftId
         ? routes.adminAiCourseReview(editorDraftId)
-        : routes.adminAiCourseDrafts,
+        : routes.adminAiCourseReviewHome,
       label: "Final Course Preview",
-      description: editorDraftId ? "Animated final revision" : "Choose a draft first",
+      description: editorDraftId ? "Animated final revision" : "Choose a finalized course here",
       icon: PlaySquare,
       match: (currentPath: string) =>
+        currentPath === routes.adminAiCourseReviewHome ||
         currentPath.startsWith("/admin/ai-course-studio/course-builder/review/"),
     },
   ];

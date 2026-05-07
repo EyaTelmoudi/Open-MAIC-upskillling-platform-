@@ -131,6 +131,7 @@ class ApiClient {
     const res = await fetch(this.buildUrl(path), {
       headers,
       redirect: "follow",
+      cache: "no-store",
     });
     if (!res.ok) {
       const errorBody = await res.text();
@@ -153,6 +154,7 @@ class ApiClient {
     const res = await fetch(this.buildUrl(path), {
       headers,
       redirect: "follow",
+      cache: "no-store",
     });
     if (!res.ok) {
       throw new Error("Download failed");
@@ -1340,7 +1342,38 @@ export async function uploadCourseContent(
   if (options?.moduleId) {
     formData.append("module_id", options.moduleId);
   }
+  if (isBrowser()) {
+    const token = getAuthToken();
+    const headers: HeadersInit = {};
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${LEARNING_URL}/api/v1/content/upload`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(error.detail || "Request failed");
+    }
+    return response.json();
+  }
   return api.postForm<ContentUploadResponse>("/api/v1/learning/content/upload", formData);
+}
+
+export async function retainTraditionalCourseMemoryPdf(
+  courseId: string,
+  file: File,
+  tenantId?: string | null,
+): Promise<{ success: boolean }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("courseId", courseId);
+  if (tenantId) {
+    formData.append("tenantId", tenantId);
+  }
+  return api.postForm<{ success: boolean }>("/api/course-memory-agent/course-source-pdf", formData);
 }
 
 export async function getAICourseDraftByPlatformCourseId(

@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 
 const THEME_PREF_VERSION = 2;
+const SF_PREFERENCES_STORAGE_KEY = "sf_preferences";
 const GLOBAL_BADGE_BURSTS = [
   { kind: "sparkles", left: "10%", top: "18%", delay: "0s", duration: "3.1s" },
   { kind: "trophy", left: "22%", top: "76%", delay: "0.2s", duration: "3.5s" },
@@ -79,7 +80,20 @@ export function AppShell({
   fullBleed?: boolean;
 }) {
   const pathname = usePathname();
-  const [isCompactSidebar, setIsCompactSidebar] = useState(false);
+  const [isCompactSidebar, setIsCompactSidebar] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(SF_PREFERENCES_STORAGE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw) as { compactSidebar?: boolean };
+      return parsed.compactSidebar ?? false;
+    } catch {
+      return false;
+    }
+  });
   const [currentStreak, setCurrentStreak] = useState(0);
   const [totalXp, setTotalXp] = useState(0);
   const [goalReminder, setGoalReminder] = useState<GoalReminder | null>(null);
@@ -112,7 +126,7 @@ export function AppShell({
       return;
     }
 
-    const raw = window.localStorage.getItem("sf_preferences");
+    const raw = window.localStorage.getItem(SF_PREFERENCES_STORAGE_KEY);
 
     try {
       const parsed = raw
@@ -134,10 +148,10 @@ export function AppShell({
         themeVersion: THEME_PREF_VERSION,
       };
 
-      window.localStorage.setItem("sf_preferences", JSON.stringify(migrated));
+      window.localStorage.setItem(SF_PREFERENCES_STORAGE_KEY, JSON.stringify(migrated));
     } catch {
       window.localStorage.setItem(
-        "sf_preferences",
+        SF_PREFERENCES_STORAGE_KEY,
         JSON.stringify({
           darkMode: false,
           compactSidebar: nextCompactSidebar,
@@ -160,7 +174,7 @@ export function AppShell({
     if (typeof window === "undefined") return;
 
     const syncPreferences = () => {
-      const raw = window.localStorage.getItem("sf_preferences");
+      const raw = window.localStorage.getItem(SF_PREFERENCES_STORAGE_KEY);
       if (!raw) {
         document.documentElement.classList.remove("dark");
         return;
@@ -183,7 +197,7 @@ export function AppShell({
               };
 
         if (migrated !== parsed) {
-          window.localStorage.setItem("sf_preferences", JSON.stringify(migrated));
+          window.localStorage.setItem(SF_PREFERENCES_STORAGE_KEY, JSON.stringify(migrated));
         }
 
         const darkMode = migrated.darkMode ?? false;
@@ -297,12 +311,40 @@ export function AppShell({
     return () => clearTimeout(timer);
   }, [courseMemoryNotice]);
 
-  useGamificationRealtime(user?.id, Boolean(user), (event, payload) => {
-    if (pathname.startsWith("/learn/")) {
+  useEffect(() => {
+    if (typeof window === "undefined") {
       return;
     }
 
+    const handleGamificationSync = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        totalXp?: number;
+        currentStreak?: number;
+      }>).detail;
+
+      if (typeof detail?.totalXp === "number" && Number.isFinite(detail.totalXp)) {
+        setTotalXp(detail.totalXp);
+      }
+
+      if (
+        typeof detail?.currentStreak === "number" &&
+        Number.isFinite(detail.currentStreak)
+      ) {
+        setCurrentStreak(detail.currentStreak);
+      }
+    };
+
+    window.addEventListener("learning.gamification.sync", handleGamificationSync as EventListener);
+    return () => {
+      window.removeEventListener("learning.gamification.sync", handleGamificationSync as EventListener);
+    };
+  }, []);
+
+  useGamificationRealtime(user?.id, Boolean(user), (event, payload) => {
     if (event === "badge.earned") {
+      if (pathname.startsWith("/learn/")) {
+        return;
+      }
       const name = typeof payload.badge_name === "string" ? payload.badge_name : "";
       const tier = typeof payload.tier === "string" ? payload.tier : "badge";
       if (!name) {
@@ -318,6 +360,17 @@ export function AppShell({
     }
 
     if (event === "level.up") {
+      if (pathname.startsWith("/learn/")) {
+        const newTotalXp =
+          typeof payload.total_xp === "number"
+            ? payload.total_xp
+            : Number(payload.total_xp);
+        if (Number.isFinite(newTotalXp)) {
+          setTotalXp(newTotalXp);
+        }
+        return;
+      }
+
       const newLevel =
         typeof payload.new_level === "number"
           ? payload.new_level
@@ -367,6 +420,9 @@ export function AppShell({
     }
 
     if (event === "course_memory.completed") {
+      if (pathname.startsWith("/learn/")) {
+        return;
+      }
       const courseId = typeof payload.courseId === "string" ? payload.courseId : "unknown";
       setCourseMemoryNotice({
         kind: "success",
@@ -377,6 +433,9 @@ export function AppShell({
     }
 
     if (event === "course_memory.failed") {
+      if (pathname.startsWith("/learn/")) {
+        return;
+      }
       const errorMessage =
         typeof payload.error === "string" && payload.error.trim().length > 0
           ? payload.error

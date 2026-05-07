@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from common.database import get_db
 from common.auth import decode_token
 from common.models import Lesson, Module, Course, User
+from services.learning.utils.course_duration import sync_course_duration
 from services.learning.utils.media import normalize_media_reference, resolve_media_url
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
@@ -62,6 +63,16 @@ def _validate_course_access_by_module(
             detail="Access denied: course belongs to another tenant"
         )
     if not course.is_published and not _can_view_unpublished_course(user):
+        raise HTTPException(status_code=404, detail="Course not found")
+    return course
+
+
+def _get_course_by_module_id(module_id: UUID, db: Session) -> Course:
+    module = db.query(Module).filter(Module.id == module_id).first()
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    course = db.query(Course).filter(Course.id == module.course_id).first()
+    if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     return course
 
@@ -160,6 +171,9 @@ def create_lesson(
         order=lesson_data["order"],
     )
     db.add(lesson)
+    db.flush()
+    course = _get_course_by_module_id(module_id, db)
+    sync_course_duration(course.id, db)
     db.commit()
     db.refresh(lesson)
 
@@ -200,6 +214,8 @@ def update_lesson(
             else:
                 setattr(lesson, field, lesson_data[field])
 
+    course = _get_course_by_module_id(lesson.module_id, db)
+    sync_course_duration(course.id, db)
     db.commit()
     db.refresh(lesson)
 
@@ -232,5 +248,8 @@ def delete_lesson(
             status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found"
         )
 
+    course = _get_course_by_module_id(lesson.module_id, db)
     db.delete(lesson)
+    db.flush()
+    sync_course_duration(course.id, db)
     db.commit()

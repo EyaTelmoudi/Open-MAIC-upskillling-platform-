@@ -22,8 +22,12 @@ import {
   createCourse,
   createCourseModule,
   createModuleLesson,
+  deleteCourseById,
+  retainTraditionalCourseMemoryPdf,
+  updateCourseById,
   uploadCourseContent,
   type ContentUploadResponse,
+  type Course,
 } from "@/app/lib/api";
 import { routes } from "@/app/lib/routes";
 
@@ -81,6 +85,51 @@ function createEmptyModule(index: number): ModuleDraft {
     lessonCount: 1,
     lessons: [createEmptyLesson(index, 0)],
   };
+}
+
+function calculateCourseDuration(modules: ModuleDraft[]) {
+  return modules.reduce(
+    (courseTotal, module) =>
+      courseTotal +
+      module.lessons.reduce(
+        (lessonTotal, lesson) => lessonTotal + Math.max(lesson.duration || 0, 0),
+        0
+      ),
+    0
+  );
+}
+
+async function getVideoDurationInMinutes(file: File) {
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  const video = document.createElement("video");
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const durationSeconds = await new Promise<number>((resolve, reject) => {
+      video.preload = "metadata";
+      video.onloadedmetadata = () => resolve(video.duration || 0);
+      video.onerror = () => reject(new Error("Failed to read video metadata."));
+      video.src = objectUrl;
+    });
+
+    return Math.max(1, Math.ceil(durationSeconds / 60));
+  } catch {
+    return 0;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function resolveLessonDuration(lesson: LessonDraft) {
+  if (!lesson.videoFile) {
+    return Math.max(lesson.duration || 0, 0);
+  }
+
+  const detectedDuration = await getVideoDurationInMinutes(lesson.videoFile);
+  return detectedDuration || Math.max(lesson.duration || 0, 0);
 }
 
 function escapeHtml(value: string): string {
@@ -214,22 +263,22 @@ export default function AdminCreateCoursePage() {
   const [moduleCount, setModuleCount] = useState(1);
   const [activeModuleIndex, setActiveModuleIndex] = useState(0);
   const [activeLessonIndex, setActiveLessonIndex] = useState(0);
+  const [courseMemoryPdf, setCourseMemoryPdf] = useState<File | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
     category: "Technology",
     difficulty: "Beginner",
-    duration: 60,
     xp_reward: 100,
   });
   const [modules, setModules] = useState<ModuleDraft[]>([createEmptyModule(0)]);
+  const computedCourseDuration = calculateCourseDuration(modules);
 
   const canMoveToModules = Boolean(
     form.title.trim() &&
       form.description.trim() &&
       form.category &&
       form.difficulty &&
-      form.duration > 0 &&
       form.xp_reward >= 0
   );
 
@@ -347,22 +396,36 @@ export default function AdminCreateCoursePage() {
       return;
     }
 
+    let createdCourse: Course | null = null;
     try {
       setSubmitting(true);
       setError(null);
       setSuccess(null);
 
-      const createdCourse = await createCourse({
+      const preparedModules = await Promise.all(
+        modules.map(async (module) => ({
+          ...module,
+          lessons: await Promise.all(
+            module.lessons.map(async (lesson) => ({
+              ...lesson,
+              duration: await resolveLessonDuration(lesson),
+            }))
+          ),
+        }))
+      );
+      const preparedCourseDuration = calculateCourseDuration(preparedModules);
+
+      createdCourse = await createCourse({
         title: form.title.trim(),
         description: form.description.trim() || null,
         category: form.category,
         difficulty: form.difficulty,
-        duration: Number(form.duration),
+        duration: preparedCourseDuration,
         xp_reward: Number(form.xp_reward),
         is_published: false,
       });
 
-      for (const [moduleIndex, module] of modules.entries()) {
+      for (const [moduleIndex, module] of preparedModules.entries()) {
         const createdModule = await createCourseModule(createdCourse.id, {
           title: module.title.trim(),
           description: module.description.trim() || null,
@@ -404,13 +467,20 @@ export default function AdminCreateCoursePage() {
         }
       }
 
+      await updateCourseById(createdCourse.id, {
+        duration: preparedCourseDuration,
+      });
+
+      if (courseMemoryPdf) {
+        await retainTraditionalCourseMemoryPdf(createdCourse.id, courseMemoryPdf);
+      }
+
       setSuccess("Course created successfully.");
       setForm({
         title: "",
         description: "",
         category: "Technology",
         difficulty: "Beginner",
-        duration: 60,
         xp_reward: 100,
       });
       setStep(1);
@@ -418,8 +488,16 @@ export default function AdminCreateCoursePage() {
       setModules([createEmptyModule(0)]);
       setActiveModuleIndex(0);
       setActiveLessonIndex(0);
+      setCourseMemoryPdf(null);
       router.push(routes.adminCourses);
     } catch (err: any) {
+      if (createdCourse?.id) {
+        try {
+          await deleteCourseById(createdCourse.id);
+        } catch {
+          // Keep the original creation error as the user-facing failure.
+        }
+      }
       setError(err?.message || "Failed to create course.");
     } finally {
       setSubmitting(false);
@@ -448,6 +526,8 @@ export default function AdminCreateCoursePage() {
                 <Sparkles className="h-5 w-5" />
               ) : step === 3 ? (
                 <ListOrdered className="h-5 w-5" />
+              ) : step === 5 ? (
+                <FileText className="h-5 w-5" />
               ) : (
                 <Layers3 className="h-5 w-5" />
               )}
@@ -460,7 +540,9 @@ export default function AdminCreateCoursePage() {
                     ? "Step 2: Module Count"
                     : step === 3
                       ? `Step 3: Module Details (${activeModuleIndex + 1}/${modules.length})`
-                      : `Step 4: Lesson Details (${activeModuleIndex + 1}/${modules.length} modules, lesson ${activeLessonIndex + 1}/${currentModule?.lessonCount || 1})`}
+                      : step === 4
+                        ? `Step 4: Lesson Details (${activeModuleIndex + 1}/${modules.length} modules, lesson ${activeLessonIndex + 1}/${currentModule?.lessonCount || 1})`
+                        : "Step 5: Course Memory Source"}
               </h2>
               <p className="text-sm text-slate-600">
                 {step === 1
@@ -469,7 +551,9 @@ export default function AdminCreateCoursePage() {
                     ? "Decide how many modules the course should contain."
                     : step === 3
                       ? "Fill the module details and define how many lessons each module contains."
-                      : "Complete each lesson one by one and attach the learning content."}
+                      : step === 4
+                        ? "Complete each lesson one by one and attach the learning content."
+                        : "Add the private course-content PDF that will help the AI coach answer detailed questions about this course."}
               </p>
             </div>
           </div>
@@ -480,6 +564,7 @@ export default function AdminCreateCoursePage() {
               { index: 2, label: "Modules" },
               { index: 3, label: "Structure" },
               { index: 4, label: "Lessons" },
+              { index: 5, label: "Memory" },
             ].map((item) => (
               <div
                 key={item.index}
@@ -536,16 +621,6 @@ export default function AdminCreateCoursePage() {
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="space-y-2">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Duration (min)</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={form.duration}
-                  onChange={(e) => setForm((current) => ({ ...current, duration: Number(e.target.value) }))}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                />
               </label>
               <label className="space-y-2">
                 <span className="text-xs font-medium uppercase tracking-wide text-slate-500">XP Reward</span>
@@ -743,20 +818,6 @@ export default function AdminCreateCoursePage() {
                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                   />
                 </label>
-                <label className="space-y-2 max-w-xs">
-                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Lesson Duration (min)</span>
-                  <input
-                    type="number"
-                    min={1}
-                    value={currentLesson.duration}
-                    onChange={(e) =>
-                      updateLesson(activeModuleIndex, activeLessonIndex, {
-                        duration: Number(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                  />
-                </label>
                 <label className="space-y-2">
                   <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Lesson Summary</span>
                   <textarea
@@ -781,11 +842,21 @@ export default function AdminCreateCoursePage() {
                     emptyLabel="No video selected"
                     inputId={`module-${currentModule.id}-lesson-${currentLesson.id}-video`}
                     helperText="Upload the main video that represents the core learning content for this lesson."
-                    onChange={(files) =>
+                    onChange={async (files) => {
+                      const nextVideo = files?.[0] || null;
+                      if (!nextVideo) {
+                        updateLesson(activeModuleIndex, activeLessonIndex, {
+                          videoFile: null,
+                        });
+                        return;
+                      }
+
+                      const detectedDuration = await getVideoDurationInMinutes(nextVideo);
                       updateLesson(activeModuleIndex, activeLessonIndex, {
-                        videoFile: files?.[0] || null,
-                      })
-                    }
+                        videoFile: nextVideo,
+                        duration: detectedDuration || currentLesson.duration,
+                      });
+                    }}
                   />
                   <FilePickerCard
                     icon={<FileImage className="h-4 w-4" />}
@@ -819,6 +890,31 @@ export default function AdminCreateCoursePage() {
             </div>
           )}
 
+          {step === 5 && (
+            <div className="space-y-5">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
+                <p className="text-sm font-semibold text-slate-900">Private Course Memory Source</p>
+                <p className="mt-2 text-sm text-slate-600">
+                  Upload one PDF that contains the full transcript, detailed course script, or the complete
+                  teaching content of this traditional course. It will not be shown to learners in the platform.
+                  It will only be used by the AI coach agent to answer detailed questions about this course.
+                </p>
+              </div>
+
+              <FilePickerCard
+                icon={<FileText className="h-4 w-4" />}
+                title="Course Content PDF"
+                accept="application/pdf,.pdf"
+                buttonLabel="Choose PDF"
+                files={courseMemoryPdf ? [courseMemoryPdf] : []}
+                emptyLabel="No memory-source PDF selected"
+                inputId="course-memory-source-pdf"
+                helperText="Recommended: upload the PDF that contains the full spoken content or transcript of the course so the coaching agent can answer detailed questions later."
+                onChange={(files) => setCourseMemoryPdf(files?.[0] || null)}
+              />
+            </div>
+          )}
+
           <div className="mt-6 flex flex-wrap justify-end gap-3">
             <Link
               href={routes.adminCourses}
@@ -839,7 +935,7 @@ export default function AdminCreateCoursePage() {
                 Previous
               </button>
             )}
-            {step < 4 ? (
+            {step < 5 ? (
               <button
                 type="button"
                 onClick={() => {
@@ -856,12 +952,20 @@ export default function AdminCreateCoursePage() {
                     setStep(3);
                     return;
                   }
-                  if (!allModuleDetailsValid) {
-                    setError("Please complete every module and define its lesson count before continuing.");
+                  if (step === 3) {
+                    if (!allModuleDetailsValid) {
+                      setError("Please complete every module and define its lesson count before continuing.");
                       return;
                     }
                     setActiveLessonIndex(0);
                     setStep(4);
+                    return;
+                  }
+                  if (!allLessonsValid) {
+                    setError("Please complete every lesson and attach a main video or support files before continuing.");
+                    return;
+                  }
+                  setStep(5);
                 }}
                 className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
               >

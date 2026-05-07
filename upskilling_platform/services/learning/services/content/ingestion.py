@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from common.models import Course, Module, Lesson
 from common.storage import (
+    ensure_buckets,
     get_minio_client,
     upload_file,
     download_file,
@@ -57,6 +58,7 @@ class ContentIngestionService:
     def __init__(self, db: Session):
         self.db = db
         self.minio_client = get_minio_client()
+        ensure_buckets(self.minio_client, list(self.BUCKET_MAP.values()))
 
     BUCKET_MAP = {
         ContentType.VIDEO: "course-videos",

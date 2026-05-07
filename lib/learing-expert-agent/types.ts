@@ -17,6 +17,7 @@ export interface EditableScriptBlock {
   type: 'script';
   actionId: string;
   text: string;
+  linkedElementId?: string;
 }
 
 export interface EditableQuizQuestionBlock {

@@ -20,7 +20,7 @@ export async function POST(request: Request) {
         ? String(pdfEntry.name)
         : "unknown.pdf";
     const agentMode = String(formData.get("agentMode") || "default");
-    const enableWebSearch = String(formData.get("enableWebSearch") || "false");
+    const enableWebSearch = "true";
     const enableImageGeneration = String(
       formData.get("enableImageGeneration") || "false",
     );

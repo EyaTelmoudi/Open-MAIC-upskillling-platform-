@@ -20,12 +20,13 @@ import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
 import { resolveModel } from '@/lib/server/resolve-model';
 import { buildSearchQuery } from '@/lib/server/search-query-builder';
 import { searchWithTavily, formatSearchResultsAsContext } from '@/lib/web-search/tavily';
+import { collectSceneReferenceImages } from '@/lib/server/scene-reference-images';
 import { persistClassroom } from '@/lib/server/classroom-storage';
 import {
   generateMediaForClassroom,
   replaceMediaPlaceholders,
 } from '@/lib/server/classroom-media-generation';
-import type { SceneOutline, UserRequirements } from '@/lib/types/generation';
+import type { ImageMapping, PdfImage, SceneOutline, UserRequirements } from '@/lib/types/generation';
 import type { Scene, Stage } from '@/lib/types/stage';
 import { AGENT_COLOR_PALETTE, AGENT_DEFAULT_AVATARS } from '@/lib/constants/agent-defaults';
 
@@ -249,8 +250,8 @@ export async function generateClassroom(
 
   // Web search (optional, graceful degradation)
   let researchContext: string | undefined;
+  const tavilyKey = input.enableWebSearch ? resolveWebSearchApiKey() : undefined;
   if (input.enableWebSearch) {
-    const tavilyKey = resolveWebSearchApiKey();
     if (tavilyKey) {
       try {
         const searchQuery = await buildSearchQuery(requirement, pdfText, searchQueryAiCall);
@@ -307,8 +308,10 @@ export async function generateClassroom(
     throw new Error(outlinesResult.error || 'Failed to generate scene outlines');
   }
 
-  const { languageDirective, outlines } = outlinesResult.data;
-  log.info(`Generated ${outlines.length} scene outlines (languageDirective: ${languageDirective})`);
+  const { courseTitle, languageDirective, outlines } = outlinesResult.data;
+  log.info(
+    `Generated ${outlines.length} scene outlines (courseTitle: ${courseTitle}, languageDirective: ${languageDirective})`,
+  );
 
   ensureActive();
   await options.onProgress?.({
@@ -339,7 +342,7 @@ export async function generateClassroom(
   const stageId = nanoid(10);
   const stage: Stage = {
     id: stageId,
-    name: outlines[0]?.title || requirement.slice(0, 50),
+    name: courseTitle?.trim() || outlines[0]?.title || requirement.slice(0, 50),
     description: undefined,
     languageDirective,
     style: 'interactive',
@@ -368,6 +371,27 @@ export async function generateClassroom(
   const store = createInMemoryStore(stage);
   const api = createStageAPI(store);
 
+  let referenceImageMap = new Map<string, { assignedImages: PdfImage[]; imageMapping: ImageMapping }>();
+
+  if (input.enableWebSearch && tavilyKey) {
+    ensureActive();
+    await options.onProgress?.({
+      step: 'generating_outlines',
+      progress: 32,
+      message: 'Collecting web reference images',
+      scenesGenerated: 0,
+      totalScenes: outlines.length,
+    });
+
+    referenceImageMap = await collectSceneReferenceImages({
+      outlines,
+      requirement,
+      apiKey: tavilyKey,
+      classroomId: stageId,
+      baseUrl: options.baseUrl,
+    });
+  }
+
   ensureActive();
   await options.onOutlinesReady?.({
     stage,
@@ -392,7 +416,13 @@ export async function generateClassroom(
     });
 
     ensureActive();
-    const content = await generateSceneContent(safeOutline, aiCall, { agents, languageDirective });
+    const sceneReferenceImages = referenceImageMap.get(safeOutline.id);
+    const content = await generateSceneContent(safeOutline, aiCall, {
+      assignedImages: sceneReferenceImages?.assignedImages,
+      imageMapping: sceneReferenceImages?.imageMapping,
+      agents,
+      languageDirective,
+    });
     if (!content) {
       log.warn(`Skipping scene "${safeOutline.title}" — content generation failed`);
       continue;

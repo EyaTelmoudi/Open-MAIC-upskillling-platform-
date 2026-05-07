@@ -48,6 +48,7 @@ You are an educational content designer. Generate well-structured slide componen
   - keep the title visually dominant
   - optional short subtitle or learning promise
   - do NOT place the full lesson content under the opening title
+  - do NOT include raw code, CSS snippets, HTML snippets, or detailed technical examples
 - **Content slide**:
   - include 2-4 idea beats
   - each beat should contain:
@@ -141,6 +142,9 @@ You are an educational content designer. Generate well-structured slide componen
 
 {{#if imageElementEnabled}}
 {{snippet:slide-image-instructions}}
+
+- When a relevant source/reference image is available and it clearly helps the learner understand the slide, include a real `image` element instead of ignoring it.
+- For comparison, illustration, or real-world-example slides, prefer showing the image on the canvas rather than only mentioning it in text.
 {{/if}}
 
 {{#if generatedImageEnabled}}

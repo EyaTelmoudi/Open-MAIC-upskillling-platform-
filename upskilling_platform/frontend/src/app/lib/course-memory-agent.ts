@@ -14,6 +14,11 @@ type CourseMemoryPayload = {
   tenantId?: string | null;
   requesterUserId?: string | null;
   requesterName?: string | null;
+  supplementalSources?: Array<{
+    kind?: string | null;
+    title?: string | null;
+    text: string;
+  }>;
 };
 
 type CourseMemoryResult = {
@@ -198,6 +203,11 @@ export async function assemblePublishedCourseForMemory(
   request: Request,
   courseId: string,
   tenantId?: string | null,
+  supplementalSources?: Array<{
+    kind?: string | null;
+    title?: string | null;
+    text: string;
+  }>,
 ): Promise<CourseMemoryResult> {
   console.log(
     `[Agno Course Memory Agent] Starting action "retain_published_course_knowledge" for course ${courseId}.`,
@@ -220,6 +230,12 @@ export async function assemblePublishedCourseForMemory(
     tenantId,
     requesterUserId: claims?.sub ?? null,
     requesterName: claims?.email ?? null,
+    supplementalSources:
+      supplementalSources?.filter((source) => source.text.trim()).map((source) => ({
+        kind: source.kind?.trim() || "supplemental_course_source",
+        title: source.title?.trim() || null,
+        text: source.text.trim(),
+      })) || [],
   };
 
   const response = await fetch(`${DEFAULT_SERVICE_URL}/v1/course-memory/assemble`, {

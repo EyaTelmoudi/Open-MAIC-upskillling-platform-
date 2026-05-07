@@ -115,7 +115,12 @@ class Course(Base):
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    modules = relationship("Module", back_populates="course", order_by="Module.order")
+    modules = relationship(
+        "Module",
+        back_populates="course",
+        order_by="Module.order",
+        passive_deletes=True,
+    )
     enrollments = relationship("Enrollment", back_populates="course")
     reviews = relationship("CourseReview", back_populates="course")
     certificates = relationship("Certificate", back_populates="course")

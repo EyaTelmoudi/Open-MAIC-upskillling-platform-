@@ -10,6 +10,7 @@ import type {
   SceneOutline,
   PdfImage,
   ImageMapping,
+  GeneratedCourseOutlinePlan,
 } from '@/lib/types/generation';
 import { buildPrompt, PROMPT_IDS } from '@/lib/prompts';
 import { formatImageDescription, formatImagePlaceholder } from './prompt-formatters';
@@ -46,7 +47,7 @@ export async function generateSceneOutlinesFromRequirements(
     researchContext?: string;
     teacherContext?: string;
   },
-): Promise<GenerationResult<{ languageDirective: string; outlines: SceneOutline[] }>> {
+): Promise<GenerationResult<{ courseTitle: string; languageDirective: string; outlines: SceneOutline[] }>> {
   // Build available images description for the prompt
   let availableImagesText = 'No images available';
   let visionImages: Array<{ id: string; src: string }> | undefined;
@@ -120,18 +121,22 @@ export async function generateSceneOutlinesFromRequirements(
     });
 
     const response = await aiCall(prompts.system, prompts.user, visionImages);
-    const parsed = parseJsonResponse<
-      { languageDirective: string; outlines: SceneOutline[] } | SceneOutline[]
-    >(response);
+    const parsed = parseJsonResponse<GeneratedCourseOutlinePlan | SceneOutline[]>(response);
 
+    let courseTitle: string;
     let languageDirective: string;
     let rawOutlines: SceneOutline[];
 
     if (Array.isArray(parsed)) {
       // Fallback: LLM returned old flat array format
+      courseTitle = requirements.requirement.slice(0, 80).trim() || 'Generated Course';
       languageDirective = DEFAULT_LANGUAGE_DIRECTIVE;
       rawOutlines = parsed;
     } else if (parsed && parsed.outlines) {
+      courseTitle =
+        typeof parsed.courseTitle === 'string' && parsed.courseTitle.trim()
+          ? parsed.courseTitle.trim()
+          : requirements.requirement.slice(0, 80).trim() || 'Generated Course';
       languageDirective = parsed.languageDirective || DEFAULT_LANGUAGE_DIRECTIVE;
       rawOutlines = parsed.outlines;
     } else {
@@ -161,7 +166,7 @@ export async function generateSceneOutlinesFromRequirements(
       totalScenes: result.length,
     });
 
-    return { success: true, data: { languageDirective, outlines: result } };
+    return { success: true, data: { courseTitle, languageDirective, outlines: result } };
   } catch (error) {
     return { success: false, error: String(error) };
   }

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from common.database import get_db
 from common.auth import decode_token
 from common.models import Course, Module, User
+from services.learning.utils.course_duration import sync_course_duration
 
 router = APIRouter(prefix="/modules", tags=["modules"])
 security = HTTPBearer()
@@ -202,5 +203,8 @@ def delete_module(
 
     _validate_course_access(module.course_id, user_info, db)
 
+    course_id = module.course_id
     db.delete(module)
+    db.flush()
+    sync_course_duration(course_id, db)
     db.commit()

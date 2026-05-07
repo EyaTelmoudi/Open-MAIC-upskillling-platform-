@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Archive, CheckCircle2, Clock3, DownloadCloud, Loader2 } from "lucide-react";
+import { Archive, CheckCircle2, Clock3, DownloadCloud, Loader2, Trash2 } from "lucide-react";
 
 import { AdminShell } from "@/app/components/layout/AdminShell";
 import { Badge } from "@/app/components/ui/Badge";
@@ -54,6 +54,7 @@ export default function AiCourseDraftsPage() {
   const [loadingDrafts, setLoadingDrafts] = useState(true);
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && user?.role !== "LearningExpert") {
@@ -122,6 +123,43 @@ export default function AiCourseDraftsPage() {
       );
     } finally {
       setImporting(false);
+    }
+  };
+
+  const deleteDraft = async (draftId: string, title: string) => {
+    const confirmed = window.confirm(
+      `Delete the generated draft "${title}"?\n\nThis will remove it from PostgreSQL and also delete its OpenMAIC metadata/assets from MinIO.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingDraftId(draftId);
+    setImportMessage(null);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/ai-course-builder/drafts/${draftId}`, {
+        method: "DELETE",
+      });
+      const data = (await response.json()) as {
+        success?: boolean;
+        deleted?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to delete generated draft");
+      }
+
+      setDrafts((current) => current.filter((draft) => draft.draftId !== draftId));
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error ? deleteError.message : "Failed to delete generated draft",
+      );
+    } finally {
+      setDeletingDraftId(null);
     }
   };
 
@@ -245,6 +283,25 @@ export default function AiCourseDraftsPage() {
                             </Button>
                           </Link>
                         ) : null}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800"
+                          disabled={deletingDraftId === draft.draftId}
+                          onClick={() => void deleteDraft(draft.draftId, draft.title)}
+                        >
+                          {deletingDraftId === draft.draftId ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Deleting
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="h-4 w-4" />
+                              Delete Draft
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>

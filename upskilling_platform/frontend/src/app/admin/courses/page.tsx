@@ -173,6 +173,27 @@ function buildLessonContent(
   );
 }
 
+function formatCourseDuration(totalMinutes: number) {
+  const roundedMinutes = Math.max(0, Math.ceil(totalMinutes || 0));
+
+  if (roundedMinutes <= 0) {
+    return "0 min";
+  }
+
+  if (roundedMinutes < 60) {
+    return `${roundedMinutes} min`;
+  }
+
+  const hours = Math.floor(roundedMinutes / 60);
+  const minutes = roundedMinutes % 60;
+
+  if (minutes === 0) {
+    return `${hours}h`;
+  }
+
+  return `${hours}h ${minutes}min`;
+}
+
 function buildStoredVideoReference(upload: ContentUploadResponse | null): string | null {
   if (!upload) {
     return null;
@@ -848,7 +869,7 @@ export default function AdminCoursesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-4 text-sm text-slate-700">
-                      {Math.round(course.duration / 60)}h
+                      {formatCourseDuration(course.duration)}
                     </td>
                     <td className="px-4 py-4 text-sm font-medium text-primary">
                       +{course.xp_reward}

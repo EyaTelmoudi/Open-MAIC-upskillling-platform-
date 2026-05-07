@@ -76,6 +76,13 @@ export function formatTeacherPersonaForPrompt(agents?: AgentInfo[]): string {
  * Includes dimension/aspect-ratio info when available.
  */
 export function formatImageDescription(img: PdfImage): string {
+  if (img.sourceType === 'web') {
+    const sourceParts = [img.sourceTitle, img.sourceUrl].filter(Boolean).join(' | ');
+    const sourceSuffix = sourceParts ? ` | source: ${sourceParts}` : '';
+    const desc = img.description ? ` | ${img.description}` : '';
+    return `- **${img.id}**: web reference image${desc}${sourceSuffix}`;
+  }
+
   let dimInfo = '';
   if (img.width && img.height) {
     const ratio = (img.width / img.height).toFixed(2);
@@ -90,6 +97,12 @@ export function formatImageDescription(img: PdfImage): string {
  * Only ID + page + dimensions + aspect ratio (no description), since the model can see the actual image.
  */
 export function formatImagePlaceholder(img: PdfImage): string {
+  if (img.sourceType === 'web') {
+    const sourceParts = [img.sourceTitle, img.sourceUrl].filter(Boolean).join(' | ');
+    const sourceSuffix = sourceParts ? ` | source: ${sourceParts}` : '';
+    return `- **${img.id}**: web reference image${sourceSuffix} [see attached]`;
+  }
+
   let dimInfo = '';
   if (img.width && img.height) {
     const ratio = (img.width / img.height).toFixed(2);

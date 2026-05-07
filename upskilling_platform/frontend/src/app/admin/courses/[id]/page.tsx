@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -24,6 +24,7 @@ import {
 import { AdminShell } from "@/app/components/layout/AdminShell";
 import { CourseManagementNav } from "@/app/admin/courses/course-management-nav";
 import { AiCourseModulePlayer } from "@/app/components/admin/AiCourseModulePlayer";
+import { AiGeneratedLessonPlayer } from "@/app/components/learn/AiGeneratedLessonPlayer";
 import { Button, buttonVariants } from "@/app/components/ui/Button";
 import { Input } from "@/app/components/ui/Input";
 import {
@@ -75,6 +76,19 @@ type EditableCourse = {
   xp_reward: number;
   is_published: boolean;
   modules: EditableModule[];
+};
+
+type PreviewLesson = {
+  moduleId: string;
+  moduleTitle: string;
+  moduleOrder: number;
+  id: string;
+  title: string;
+  content: string | null;
+  video_url: string | null;
+  content_type: string;
+  duration: number;
+  order: number;
 };
 
 const difficultyStyles: Record<string, string> = {
@@ -333,10 +347,64 @@ function dedupeResources(resources: ResourceLink[]) {
   });
 }
 
+function calculateCourseDuration(
+  modules: Array<{ lessons: Array<{ duration: number }> }>
+) {
+  return modules.reduce(
+    (courseTotal, module) =>
+      courseTotal +
+      module.lessons.reduce(
+        (lessonTotal, lesson) => lessonTotal + Math.max(lesson.duration || 0, 0),
+        0
+      ),
+    0
+  );
+}
+
+function formatCourseDuration(totalMinutes: number) {
+  const roundedMinutes = Math.max(0, Math.ceil(totalMinutes || 0));
+
+  if (roundedMinutes <= 0) {
+    return "0 min";
+  }
+
+  if (roundedMinutes < 60) {
+    return `${roundedMinutes} min`;
+  }
+
+  const hours = Math.floor(roundedMinutes / 60);
+  const minutes = roundedMinutes % 60;
+  return minutes > 0 ? `${hours}h ${minutes}min` : `${hours}h`;
+}
+
+async function getVideoDurationInMinutes(file: File) {
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  const video = document.createElement("video");
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const durationSeconds = await new Promise<number>((resolve, reject) => {
+      video.preload = "metadata";
+      video.onloadedmetadata = () => resolve(video.duration || 0);
+      video.onerror = () => reject(new Error("Failed to read video metadata."));
+      video.src = objectUrl;
+    });
+
+    return Math.max(1, Math.ceil(durationSeconds / 60));
+  } catch {
+    return 0;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 function encodeObjectPath(objectName: string) {
   return objectName
     .split("/")
-    .map((part) => encodeURIComponent(part))
+    .map((part) => encodeURIComponent(decodeURIComponent(part)))
     .join("/");
 }
 
@@ -445,6 +513,33 @@ function isDuplicateOfMainVideo(resource: ResourceLink, videoUrl: string | null)
   );
 }
 
+function flattenCourseLessons(course: CourseDetailResponse | null): PreviewLesson[] {
+  if (!course) {
+    return [];
+  }
+
+  return course.modules
+    .slice()
+    .sort((left, right) => left.order - right.order)
+    .flatMap((module) =>
+      module.lessons
+        .slice()
+        .sort((left, right) => left.order - right.order)
+        .map((lesson) => ({
+          moduleId: module.id,
+          moduleTitle: module.title,
+          moduleOrder: module.order,
+          id: lesson.id,
+          title: lesson.title,
+          content: lesson.content || null,
+          video_url: lesson.video_url || null,
+          content_type: lesson.content_type,
+          duration: lesson.duration,
+          order: lesson.order,
+        }))
+    );
+}
+
 function SelectedFilesList({
   files,
   emptyLabel,
@@ -479,6 +574,7 @@ export default function AdminCourseDetailPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [selectedPreviewLessonId, setSelectedPreviewLessonId] = useState<string | null>(null);
 
   async function loadCourse() {
     if (!courseId) {
@@ -491,6 +587,7 @@ export default function AdminCourseDetailPage() {
       setLoading(true);
       setError(null);
       const detail = await getCourseById(courseId);
+      const computedDuration = calculateCourseDuration(detail.modules);
       setCourse(detail);
       setEditingCourse({
         id: detail.id,
@@ -498,7 +595,7 @@ export default function AdminCourseDetailPage() {
         description: detail.description || "",
         category: detail.category,
         difficulty: detail.difficulty,
-        duration: detail.duration,
+        duration: computedDuration,
         xp_reward: detail.xp_reward,
         is_published: detail.is_published,
         modules: detail.modules.map((module) => ({
@@ -540,6 +637,45 @@ export default function AdminCourseDetailPage() {
     }
   }, [course, editingCourse, startInEditMode]);
 
+  const previewLessons = useMemo(() => flattenCourseLessons(course), [course]);
+
+  useEffect(() => {
+    if (previewLessons.length === 0) {
+      setSelectedPreviewLessonId(null);
+      return;
+    }
+
+    setSelectedPreviewLessonId((current) =>
+      current && previewLessons.some((lesson) => lesson.id === current)
+        ? current
+        : previewLessons[0].id
+    );
+  }, [previewLessons]);
+
+  const selectedPreviewLesson = useMemo(
+    () =>
+      previewLessons.find((lesson) => lesson.id === selectedPreviewLessonId) ||
+      previewLessons[0] ||
+      null,
+    [previewLessons, selectedPreviewLessonId]
+  );
+
+  const selectedPreviewLessonData = useMemo(
+    () => getLessonPreviewData(selectedPreviewLesson?.content),
+    [selectedPreviewLesson]
+  );
+  const selectedPreviewVideoUrl = useMemo(
+    () => normalizeResourceUrl(selectedPreviewLesson?.video_url || ""),
+    [selectedPreviewLesson]
+  );
+  const selectedPreviewResources = useMemo(() => {
+    const resources = dedupeResources(selectedPreviewLessonData.resources).map((resource) => ({
+      ...resource,
+      url: normalizeResourceUrl(resource.url),
+    }));
+    return resources.filter((resource) => !isDuplicateOfMainVideo(resource, selectedPreviewLesson?.video_url || null));
+  }, [selectedPreviewLesson, selectedPreviewLessonData.resources]);
+
   const updateEditingCourse = (changes: Partial<EditableCourse>) => {
     setEditingCourse((current) => (current ? { ...current, ...changes } : current));
   };
@@ -564,9 +700,8 @@ export default function AdminCourseDetailPage() {
   ) => {
     setEditingCourse((current) =>
       current
-        ? {
-            ...current,
-            modules: current.modules.map((module) =>
+        ? (() => {
+            const nextModules = current.modules.map((module) =>
               module.id === moduleId
                 ? {
                     ...module,
@@ -575,8 +710,14 @@ export default function AdminCourseDetailPage() {
                     ),
                   }
                 : module
-            ),
-          }
+            );
+
+            return {
+              ...current,
+              modules: nextModules,
+              duration: calculateCourseDuration(nextModules),
+            };
+          })()
         : current
     );
   };
@@ -591,15 +732,6 @@ export default function AdminCourseDetailPage() {
     setSuccess(null);
 
     try {
-      await updateCourseById(editingCourse.id, {
-        title: editingCourse.title,
-        description: editingCourse.description || null,
-        category: editingCourse.category,
-        difficulty: editingCourse.difficulty,
-        duration: editingCourse.duration,
-        xp_reward: editingCourse.xp_reward,
-      });
-
       for (const module of editingCourse.modules) {
         await updateCourseModule(module.id, {
           title: module.title,
@@ -638,6 +770,15 @@ export default function AdminCourseDetailPage() {
           });
         }
       }
+
+      await updateCourseById(editingCourse.id, {
+        title: editingCourse.title,
+        description: editingCourse.description || null,
+        category: editingCourse.category,
+        difficulty: editingCourse.difficulty,
+        duration: calculateCourseDuration(editingCourse.modules),
+        xp_reward: editingCourse.xp_reward,
+      });
 
       await loadCourse();
       setIsEditMode(false);
@@ -869,15 +1010,10 @@ export default function AdminCourseDetailPage() {
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-medium text-slate-600">Duration (minutes)</label>
-                        <Input
-                          type="number"
-                          value={editingCourse.duration}
-                          onChange={(e) =>
-                            updateEditingCourse({ duration: parseInt(e.target.value, 10) || 0 })
-                          }
-                          className="border-slate-200 bg-white text-slate-900"
-                        />
+                        <label className="text-xs font-medium text-slate-600">Course Duration</label>
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900">
+                          {formatCourseDuration(editingCourse.duration)}, calculated automatically from the lessons
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-medium text-slate-600">XP Reward</label>
@@ -900,7 +1036,7 @@ export default function AdminCourseDetailPage() {
                         Duration
                       </div>
                       <p className="mt-2 text-lg font-semibold text-slate-950">
-                        {Math.round(editingCourse.duration / 60)}h
+                          {formatCourseDuration(editingCourse.duration)}
                       </p>
                     </div>
                     <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
@@ -968,7 +1104,7 @@ export default function AdminCourseDetailPage() {
                       </div>
                       <div className="mt-4 text-sm font-semibold text-white">Duration</div>
                       <p className="mt-1 text-sm leading-6 text-slate-200">
-                        {Math.round(course.duration / 60)}h of learner-facing content
+                          {formatCourseDuration(course.duration)} of learner-facing content
                       </p>
                     </div>
                   </div>
@@ -1009,6 +1145,188 @@ export default function AdminCourseDetailPage() {
               </section>
             )}
 
+            {!isEditMode && course && previewLessons.length > 0 ? (
+              <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+                <div className="border-b border-slate-200 bg-[linear-gradient(135deg,rgba(248,250,252,0.98),rgba(236,253,245,0.9),rgba(224,242,254,0.92))] px-6 py-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                    Learner Preview
+                  </p>
+                  <h3 className="mt-2 text-2xl font-semibold text-slate-950">
+                    Review the course the way a learner experiences it
+                  </h3>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    Select any lesson from the curriculum and inspect the exact learning flow, instead of reading raw lesson blocks one by one.
+                  </p>
+                </div>
+
+                <div className="grid xl:grid-cols-[320px_minmax(0,1fr)]">
+                  <aside className="border-r border-slate-200 bg-slate-50/80 p-4">
+                    <div className="space-y-4">
+                      {course.modules
+                        .slice()
+                        .sort((left, right) => left.order - right.order)
+                        .map((module, moduleIndex) => (
+                          <div key={module.id} className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                            <div className="mb-2">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                Module {moduleIndex + 1}
+                              </p>
+                              <h4 className="mt-1 text-sm font-semibold text-slate-950">{module.title}</h4>
+                            </div>
+                            <div className="space-y-2">
+                              {module.lessons
+                                .slice()
+                                .sort((left, right) => left.order - right.order)
+                                .map((lesson, lessonIndex) => {
+                                  const isSelected = selectedPreviewLesson?.id === lesson.id;
+                                  return (
+                                    <button
+                                      key={lesson.id}
+                                      type="button"
+                                      onClick={() => setSelectedPreviewLessonId(lesson.id)}
+                                      className={`w-full rounded-2xl border px-3 py-3 text-left transition ${
+                                        isSelected
+                                          ? "border-sky-300 bg-[linear-gradient(135deg,rgba(224,242,254,0.95),rgba(236,253,245,0.9))] shadow-[0_10px_24px_rgba(14,165,233,0.12)]"
+                                          : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between gap-3">
+                                        <div className="min-w-0">
+                                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                            Lesson {lessonIndex + 1}
+                                          </p>
+                                          <p className="mt-1 truncate text-sm font-medium text-slate-900">
+                                            {lesson.title}
+                                          </p>
+                                        </div>
+                                        <span className="shrink-0 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+                                          {formatCourseDuration(lesson.duration)}
+                                        </span>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </aside>
+
+                  <div className="bg-slate-100/70 p-5">
+                    {selectedPreviewLesson ? (
+                      <div className="space-y-5">
+                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">
+                              {selectedPreviewLesson.moduleTitle}
+                            </span>
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                              {formatCourseDuration(selectedPreviewLesson.duration)}
+                            </span>
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                              {selectedPreviewLesson.content_type}
+                            </span>
+                          </div>
+                          <h4 className="mt-4 text-2xl font-semibold text-slate-950">
+                            {selectedPreviewLesson.title}
+                          </h4>
+                        </div>
+
+                        {isAiSceneLesson(selectedPreviewLesson.content) ? (
+                          <AiGeneratedLessonPlayer
+                            lesson={{
+                              id: selectedPreviewLesson.id,
+                              title: selectedPreviewLesson.title,
+                              duration: selectedPreviewLesson.duration,
+                              content: selectedPreviewLesson.content,
+                            }}
+                            completed
+                          />
+                        ) : selectedPreviewLesson.content_type === "video" && selectedPreviewVideoUrl ? (
+                          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                            <div className="aspect-video bg-slate-950">
+                              <video controls className="h-full w-full" src={selectedPreviewVideoUrl} />
+                            </div>
+                            <div className="p-6">
+                              <h5 className="text-lg font-semibold text-slate-950">Lesson Overview</h5>
+                              <p className="mt-3 text-sm leading-7 text-slate-700">
+                                {selectedPreviewLessonData.summary || "No lesson summary provided."}
+                              </p>
+                            </div>
+                          </div>
+                        ) : selectedPreviewLesson.content_type === "quiz" ? (
+                          <div className="rounded-3xl border border-amber-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,251,235,0.94))] p-6 shadow-sm">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+                              Quiz Preview
+                            </p>
+                            <h5 className="mt-2 text-lg font-semibold text-slate-950">
+                              This lesson is an assessed quiz
+                            </h5>
+                            <p className="mt-3 text-sm leading-7 text-slate-700">
+                              Open the learner experience to answer it interactively. The admin review keeps it in read-only preview mode.
+                            </p>
+                            {selectedPreviewLessonData.summary ? (
+                              <p className="mt-4 text-sm leading-7 text-slate-700">
+                                {selectedPreviewLessonData.summary}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <h5 className="text-lg font-semibold text-slate-950">Lesson Overview</h5>
+                            <p className="mt-3 text-sm leading-7 text-slate-700">
+                              {selectedPreviewLessonData.summary || selectedPreviewLesson.content || "No lesson content provided."}
+                            </p>
+                          </div>
+                        )}
+
+                        {selectedPreviewResources.length > 0 ? (
+                          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <h5 className="text-lg font-semibold text-slate-950">Support Material</h5>
+                            <div className="mt-4 space-y-3">
+                              {selectedPreviewResources.map((resource) => {
+                                const kind = getResourceKind(resource);
+                                return (
+                                  <div
+                                    key={`${resource.url}-${resource.title}`}
+                                    className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                                  >
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <p className="truncate text-sm font-semibold text-slate-900">
+                                          {resource.title}
+                                        </p>
+                                        <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-500">
+                                          {kind} resource
+                                        </p>
+                                      </div>
+                                      <a
+                                        href={resource.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center justify-center rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-medium text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-800"
+                                      >
+                                        Open in browser
+                                      </a>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white text-sm text-slate-500">
+                        Select a lesson to preview its learner-facing presentation.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
+            {isEditMode ? (
             <div className="space-y-4">
               {(isEditMode ? editingCourse.modules : course.modules).map((module, moduleIndex) => (
                 <div
@@ -1128,6 +1446,9 @@ export default function AdminCourseDetailPage() {
                                     }
                                     className="border-slate-200 bg-white text-slate-900"
                                   />
+                                  <p className="text-xs text-slate-500">
+                                    Auto-filled from the main video when available. Adjust it only for non-video lessons.
+                                  </p>
                                 </div>
                                 <div className="space-y-2 md:col-span-2">
                                   <label className="text-xs font-medium text-slate-600">Lesson Summary</label>
@@ -1183,11 +1504,21 @@ export default function AdminCourseDetailPage() {
                                     type="file"
                                     accept="video/mp4,video/webm,video/ogg"
                                     className="sr-only"
-                                    onChange={(e) =>
+                                    onChange={async (e) => {
+                                      const nextVideo = e.target.files?.[0] || null;
+                                      if (!nextVideo) {
+                                        updateEditingLesson(module.id, lesson.id, {
+                                          newVideoFile: null,
+                                        });
+                                        return;
+                                      }
+
+                                      const detectedDuration = await getVideoDurationInMinutes(nextVideo);
                                       updateEditingLesson(module.id, lesson.id, {
-                                        newVideoFile: e.target.files?.[0] || null,
-                                      })
-                                    }
+                                        newVideoFile: nextVideo,
+                                        duration: detectedDuration || (lesson as EditableLesson).duration,
+                                      });
+                                    }}
                                   />
                                   <SelectedFilesList
                                     files={(lesson as EditableLesson).newVideoFile ? [(lesson as EditableLesson).newVideoFile as File] : []}
@@ -1234,7 +1565,7 @@ export default function AdminCourseDetailPage() {
                                     Lesson {lessonIndex + 1}: {lesson.title}
                                   </p>
                                   <p className="mt-1 text-xs text-slate-600">
-                                    {lesson.duration} min
+                                      {formatCourseDuration(lesson.duration)}
                                   </p>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -1477,6 +1808,7 @@ export default function AdminCourseDetailPage() {
                 </div>
               ))}
             </div>
+            ) : null}
                 </>
               );
             })()}

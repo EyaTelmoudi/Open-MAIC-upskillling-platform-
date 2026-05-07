@@ -3,6 +3,7 @@
 ## Scene Information
 
 - **Title**: {{title}}
+- **Slide Role**: {{slideRole}}
 - **Description**: {{description}}
 - **Key Points**:
   {{keyPoints}}
@@ -13,6 +14,7 @@
 
 {{#if imageElementEnabled}}
 - **Available Media**: {{assignedImages}}
+- If a useful source/reference image is provided, include at least one visible image element on the slide when it improves understanding.
 {{/if}}
 - **Canvas Size**: {{canvas_width}} × {{canvas_height}} px
 
@@ -30,6 +32,9 @@ Visual guidance:
 - do not place all lesson ideas in one dense text block
 - do not place one shared example after multiple unrelated ideas
 - a lesson should cover several ideas overall, but each idea must stay clearly separated in its own block or block-pair
+- if the slide role is `opening` or `overview`, keep the slide focused on orientation, roadmap, learning goals, and motivation
+- for `opening` or `overview`, do NOT include raw code snippets, CSS rules, technical syntax, or deep concept examples on the slide
+- for `content`, make sure examples stay directly under the idea they illustrate
 
 ## Language Directive
 {{languageDirective}}

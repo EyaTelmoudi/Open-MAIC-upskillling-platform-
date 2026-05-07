@@ -10,7 +10,16 @@ from sqlalchemy.orm import Session
 from common.database import get_db
 from common.enums import UserRole, QuestionType
 from common.auth import decode_token
-from common.models import Assessment, Question, Module, Enrollment, AssessmentAttempt, User
+from common.models import (
+    Assessment,
+    Question,
+    Module,
+    Enrollment,
+    AssessmentAttempt,
+    User,
+    Lesson,
+    UserProgress,
+)
 from common.messaging import RabbitMQClient
 
 from services.learning.schemas.assessment import (
@@ -482,15 +491,36 @@ def submit_assessment(
                 check_enrollment_completion,
             )
             from services.learning.gamification.badges import BadgeManager
-            from common.models import Lesson, Module
 
+            user_uuid = UUID(user_id)
             lesson = (
                 db.query(Lesson).filter(Lesson.assessment_id == assessment_id).first()
             )
             if lesson:
+                lesson_progress = (
+                    db.query(UserProgress)
+                    .filter(
+                        UserProgress.user_id == user_uuid,
+                        UserProgress.lesson_id == lesson.id,
+                    )
+                    .first()
+                )
+                if not lesson_progress:
+                    lesson_progress = UserProgress(
+                        user_id=user_uuid,
+                        lesson_id=lesson.id,
+                        status="completed",
+                        completed_at=datetime.utcnow(),
+                    )
+                    db.add(lesson_progress)
+                else:
+                    lesson_progress.status = "completed"
+                    lesson_progress.completed_at = lesson_progress.completed_at or datetime.utcnow()
+
+                db.commit()
+
                 module = db.query(Module).filter(Module.id == lesson.module_id).first()
                 if module:
-                    user_uuid = UUID(user_id)
                     check_enrollment_completion(db, user_uuid, module.course_id)
                     badge_manager = BadgeManager(db, rabbitmq)
                     badge_manager.check_and_award_badges(

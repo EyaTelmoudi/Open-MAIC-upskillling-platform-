@@ -40,6 +40,7 @@ type LearningExpertDraft = {
 type ReviewRecord = {
   draftId: string;
   status: "pending_review" | "draft_saved";
+  platformCourseId?: string;
   approvedBy?: string;
   approvedAt?: string;
   createdAt: string;
@@ -183,8 +184,8 @@ export default function AiCourseReviewPage() {
             </div>
             <h2 className="mt-2 text-2xl font-semibold text-white">Final Course Review</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-200">
-              Review the fully animated OpenMAIC course in your platform workspace, then save it as
-              a draft that can be published later for learners.
+              Review the fully animated OpenMAIC course in your platform workspace, then approve it
+              into the platform catalog so authorized teams can see it and enroll learners.
             </p>
           </div>
         </div>
@@ -221,11 +222,21 @@ export default function AiCourseReviewPage() {
                     <Badge
                       variant={reviewRecord?.status === "draft_saved" ? "default" : "outline"}
                     >
-                      {reviewRecord?.status === "draft_saved" ? "draft saved" : "pending review"}
+                      {reviewRecord?.status === "draft_saved" ? "saved to platform" : "pending review"}
                     </Badge>
+                    {reviewRecord?.platformCourseId ? (
+                      <Button
+                        variant="outline"
+                        className="border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-50 hover:text-emerald-900"
+                        onClick={() => router.push(routes.courses)}
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Open Platform Course
+                      </Button>
+                    ) : null}
                     <Button
                       onClick={() => void saveAsPlatformDraft()}
-                      disabled={savingDraft}
+                      disabled={savingDraft || reviewRecord?.status === "draft_saved"}
                       className="text-white"
                     >
                       {savingDraft ? (

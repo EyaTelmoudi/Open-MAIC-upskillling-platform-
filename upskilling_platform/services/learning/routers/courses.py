@@ -6,12 +6,31 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
 from common.database import get_db
 from common.auth import decode_token
 from common.messaging import RabbitMQClient
-from common.models import Course, Module, Lesson, User, Tenant
+from common.models import (
+    AICourseDraft,
+    Assessment,
+    AssessmentAttempt,
+    Bookmark,
+    Certificate,
+    Course,
+    CourseAssignment,
+    CoursePreviewToken,
+    CourseReview,
+    Enrollment,
+    Lesson,
+    Module,
+    Question,
+    User,
+    UserProgress,
+    Tenant,
+)
+from services.learning.utils.course_duration import sync_course_duration
 from services.learning.utils.media import resolve_media_url
 
 router = APIRouter(prefix="/courses", tags=["courses"])
@@ -70,6 +89,7 @@ def _can_view_unpublished_course(user: User) -> bool:
     return user.role in DRAFT_VIEW_ROLES
 
 
+@router.get("", response_model=dict)
 @router.get("/", response_model=dict)
 def list_courses(
     category: Optional[str] = Query(None),
@@ -254,6 +274,7 @@ def get_course_curriculum(
     }
 
 
+@router.post("", response_model=dict, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=dict, status_code=status.HTTP_201_CREATED)
 def create_course(
     course_data: dict,
@@ -275,13 +296,15 @@ def create_course(
         thumbnail=course_data.get("thumbnail"),
         category=course_data["category"],
         difficulty=course_data["difficulty"],
-        duration=course_data["duration"],
+        duration=0,
         xp_reward=course_data.get("xp_reward", 100),
         is_published=course_data.get("is_published", False),
         author_id=_normalize_uuid(course_data.get("author_id")) or UUID(current_user["sub"]),
         tenant_id=_normalize_uuid(tenant_id),
     )
     db.add(course)
+    db.flush()
+    sync_course_duration(course.id, db)
     db.commit()
     db.refresh(course)
 
@@ -330,13 +353,13 @@ def update_course(
         "thumbnail",
         "category",
         "difficulty",
-        "duration",
         "xp_reward",
         "is_published",
     ]:
         if field in course_data and course_data[field] is not None:
             setattr(course, field, course_data[field])
 
+    sync_course_duration(course.id, db)
     db.commit()
     db.refresh(course)
 
@@ -371,20 +394,92 @@ def delete_course(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only LearningExpert, Manager, or Admin can delete courses",
         )
-    course = db.query(Course).filter(Course.id == course_id).first()
-    if not course:
+    course_row = (
+        db.query(Course.id, Course.tenant_id)
+        .filter(Course.id == course_id)
+        .first()
+    )
+    if not course_row:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
         )
 
-    if user_info.role != "SuperAdmin" and course.tenant_id != user_info.tenant_id:
+    _, course_tenant_id = course_row
+    if user_info.role != "SuperAdmin" and course_tenant_id != user_info.tenant_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied: course belongs to another tenant"
         )
 
-    db.delete(course)
-    db.commit()
+    try:
+        module_ids = [
+            module_id
+            for (module_id,) in db.query(Module.id).filter(Module.course_id == course_id).all()
+        ]
+        lesson_ids = (
+            [
+                lesson_id
+                for (lesson_id,) in db.query(Lesson.id)
+                .filter(Lesson.module_id.in_(module_ids))
+                .all()
+            ]
+            if module_ids
+            else []
+        )
+        assessment_ids = (
+            [
+                assessment_id
+                for (assessment_id,) in db.query(Assessment.id)
+                .filter(Assessment.module_id.in_(module_ids))
+                .all()
+            ]
+            if module_ids
+            else []
+        )
+
+        db.execute(
+            update(AICourseDraft)
+            .where(AICourseDraft.platform_course_id == course_id)
+            .values(
+                platform_course_id=None,
+                review_status="final_review_ready",
+            )
+        )
+        db.execute(delete(CoursePreviewToken).where(CoursePreviewToken.course_id == course_id))
+        db.execute(delete(Bookmark).where(Bookmark.course_id == course_id))
+        db.execute(delete(CourseReview).where(CourseReview.course_id == course_id))
+        db.execute(delete(CourseAssignment).where(CourseAssignment.course_id == course_id))
+        db.execute(delete(Certificate).where(Certificate.course_id == course_id))
+        db.execute(delete(Enrollment).where(Enrollment.course_id == course_id))
+
+        if lesson_ids:
+            db.execute(delete(Bookmark).where(Bookmark.lesson_id.in_(lesson_ids)))
+            db.execute(delete(UserProgress).where(UserProgress.lesson_id.in_(lesson_ids)))
+
+        if assessment_ids:
+            db.execute(delete(AssessmentAttempt).where(AssessmentAttempt.assessment_id.in_(assessment_ids)))
+            db.execute(delete(Question).where(Question.assessment_id.in_(assessment_ids)))
+            db.execute(
+                update(Lesson)
+                .where(Lesson.assessment_id.in_(assessment_ids))
+                .values(assessment_id=None)
+            )
+            db.execute(delete(Assessment).where(Assessment.id.in_(assessment_ids)))
+
+        if lesson_ids:
+            db.execute(delete(Lesson).where(Lesson.id.in_(lesson_ids)))
+        if module_ids:
+            db.execute(delete(Module).where(Module.id.in_(module_ids)))
+
+        db.expunge_all()
+        db.execute(delete(Course).where(Course.id == course_id))
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete course: {exc}",
+        ) from exc
 
 
 @router.patch("/{course_id}/publish", response_model=dict)

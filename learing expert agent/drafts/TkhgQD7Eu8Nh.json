@@ -49,7 +49,7 @@
   "draftId": "TkhgQD7Eu8Nh",
   "createdAt": "2026-05-01T10:23:09.962Z",
   "outputDir": "D:\\PFE\\OpenMAIC\\learing expert agent\\outputs\\2026-05-01T10-15-09-447Z_do-this-html-course_ZiN0fm",
-  "updatedAt": "2026-05-02T21:49:57.980Z",
+  "updatedAt": "2026-05-04T13:37:45.342Z",
   "classroomId": "F18Lh7ofxJ",
   "sourceScenes": [
     {
@@ -1355,47 +1355,47 @@
       "blocks": [
         {
           "id": "slide_text_1",
-          "html": "<p>Welcome &amp; Course Overviewwwwwwwwwwwwwwwwwwwwww222222222222222222222222aya</p>",
+          "html": "<p>Welcome &amp; Course Overview</p>",
           "type": "slide_text",
           "label": "Slide title/content block 1",
           "elementId": "text_RaJrGUTa",
-          "plainText": "Welcome & Course Overviewwwwwwwwwwwwwwwwwwwwww222222222222222222222222aya "
+          "plainText": "Welcome & Course Overview"
         },
         {
           "id": "slide_text_2",
-          "html": "<p>• Why HTML is the foundation of web pages • Course objectives and learning outcomes • Structure of the upcoming lessons</p>",
+          "html": "<p>• Why HTML is the foundation of web pages</p><p>• Course objectives and learning outcomes</p><p>• Structure of the upcoming lessons</p>",
           "type": "slide_text",
           "label": "Slide content block 2",
           "elementId": "text_8eo54Omm",
-          "plainText": "• Why HTML is the foundation of web pages • Course objectives and learning outcomes • Structure of the upcoming lessons"
+          "plainText": "• Why HTML is the foundation of web pages\n• Course objectives and learning outcomes\n• Structure of the upcoming lessons"
         },
         {
           "id": "script_1",
-          "text": "Good morning, aya my dear student! I’m Ms. Clara Hart, and I’m thrilled to welcome you to our Introduction to HTML course. Over the next few weeks we’ll build real web pages together, step by step.",
+          "text": "Hello, I’m Clara Hart, and I’m excited to guide you through this Introduction to HTML series. Over the next few weeks we’ll create real web pages together, taking one small, confident step at a time.",
           "type": "script",
           "actionId": "action_Veu8WxL4"
         },
         {
           "id": "script_2",
-          "text": "First, let’s look at why HTML is the foundation of every web page. HTML provides the structure—think of it as the skeleton that holds all the content together.",
+          "text": "Let’s start with a simple question: why does HTML matter? HTML provides the basic structure that browsers need to display a page correctly, so everything you add—text, images, links—appears where you intend.",
           "type": "script",
           "actionId": "action_EbRY3pLe"
         },
         {
           "id": "script_3",
-          "text": "Next, our course objectives: by the end of this class you’ll be able to write valid HTML tags, create page layouts, and publish a simple personal website.",
+          "text": "By the end of this course you’ll feel comfortable writing core HTML tags, arranging elements on a page, and publishing a small personal website you can proudly share with friends and family.",
           "type": "script",
           "actionId": "action_W1TVWnmP"
         },
         {
           "id": "script_4",
-          "text": "Finally, the structure of our upcoming lessons: we’ll start with basic tags, move on to lists and links, then explore images and forms, wrapping up with a mini‑project.",
+          "text": "Here’s our roadmap: we’ll begin with essential tags, then explore lists and links, move on to images and simple forms, and finish with a short project that brings everything together.",
           "type": "script",
           "actionId": "action_GhCguCWZ"
         },
         {
           "id": "script_5",
-          "text": "That’s our roadmap for today—let’s dive in and start building the web together!",
+          "text": "That’s what we’ll cover today—let’s dive in and start building the web together!",
           "type": "script",
           "actionId": "action_vYGiAxLu"
         }
@@ -1419,35 +1419,35 @@
         },
         {
           "id": "slide_text_2",
-          "html": "<p>• Doctype declaration • &amp;lt;html&amp;gt;, &amp;lt;head&amp;gt;, &amp;lt;title&amp;gt;, &amp;lt;body&amp;gt; tags • Simple complete page example</p>",
+          "html": "<p>• Doctype declaration • &lt;html&gt;, &lt;head&gt;, &lt;title&gt;, &lt;body&gt; tags • Simple complete page example</p>",
           "type": "slide_text",
           "label": "Slide content block 2",
           "elementId": "text_IoXSRRhf",
-          "plainText": "• Doctype declaration • &lt;html&gt;, &lt;head&gt;, &lt;title&gt;, &lt;body&gt; tags • Simple complete page example"
+          "plainText": "• Doctype declaration • <html>, <head>, <title>, <body> tags • Simple complete page example"
         },
         {
           "id": "slide_text_3",
-          "html": "<p>&amp;lt;!DOCTYPE html&amp;gt; &amp;lt;html&amp;gt; &amp;lt;head&amp;gt; &amp;lt;title&amp;gt;Page Title&amp;lt;/title&amp;gt; &amp;lt;/head&amp;gt; &amp;lt;body&amp;gt; Content goes here &amp;lt;/body&amp;gt; &amp;lt;/html&amp;gt;</p>",
+          "html": "<p>&lt;!DOCTYPE html&gt; &lt;html&gt; &lt;head&gt; &lt;title&gt;Page Title&lt;/title&gt; &lt;/head&gt; &lt;body&gt; Content goes here &lt;/body&gt; &lt;/html&gt;</p>",
           "type": "slide_text",
           "label": "Slide content block 3",
           "elementId": "text_bNNBlSzK",
-          "plainText": "&lt;!DOCTYPE html&gt; &lt;html&gt; &lt;head&gt; &lt;title&gt;Page Title&lt;/title&gt; &lt;/head&gt; &lt;body&gt; Content goes here &lt;/body&gt; &lt;/html&gt;"
+          "plainText": "<!DOCTYPE html> <html> <head> <title>Page Title</title> </head> <body> Content goes here </body> </html>"
         },
         {
           "id": "script_1",
-          "text": "Alright everyone, let's dive into the basic structure of an HTML document.",
+          "text": "Welcome! In the next few minutes we’ll look at the handful of tags that form the foundation of every HTML page. Mastering these basics lets you build a functional web page from scratch.",
           "type": "script",
           "actionId": "action_NeaG_9v8"
         },
         {
           "id": "script_2",
-          "text": "First, we always start with the doctype declaration, which tells the browser that this is an HTML5 document. Then come the opening <html> tag, followed by the <head> section where we place metadata, and finally the <body> where all the visible content lives.",
+          "text": "First, the <!DOCTYPE html> declaration tells the browser we’re using the current HTML standard. The <html> element then wraps the whole document. Inside <html> we have two sections: the <head>, which holds meta‑information such as the page title, and the <body>, which contains everything visitors see on the screen.",
           "type": "script",
           "actionId": "action_EJTFeG6U"
         },
         {
           "id": "script_3",
-          "text": "Here’s a simple, complete example: we declare <!DOCTYPE html>, open the <html> tag, add a <head> with a <title>, and then the <body> with any page content. This minimal skeleton is the foundation for every web page you’ll build.",
+          "text": "Let’s walk through a minimal example step by step. After the doctype we open <html>, add a <head> with a <title> element—this text appears on the browser tab. We close the head, open <body>, place the visible content, and finally close both </body> and </html>. This simple structure is the starting point for every web page you’ll create.",
           "type": "script",
           "actionId": "action_q1i9TlKt"
         }

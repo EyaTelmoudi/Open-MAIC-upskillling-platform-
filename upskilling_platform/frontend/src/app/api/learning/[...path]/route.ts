@@ -5,10 +5,17 @@ import {
 } from "@/app/lib/learning-service-proxy";
 
 function buildTargetUrl(pathSegments: string[], request: Request) {
-  const path = `/${pathSegments.join("/")}`;
-  const apiPath = buildLearningApiPath(path);
-  const url = new URL(buildLearningServiceUrl(apiPath));
   const incomingUrl = new URL(request.url);
+  const incomingPathname = incomingUrl.pathname;
+  const path = `/${pathSegments.join("/")}`;
+  const shouldKeepTrailingSlash =
+    incomingPathname.endsWith("/") ||
+    path === "/courses";
+  const normalizedPath = shouldKeepTrailingSlash && !path.endsWith("/")
+    ? `${path}/`
+    : path;
+  const apiPath = buildLearningApiPath(normalizedPath);
+  const url = new URL(buildLearningServiceUrl(apiPath));
   url.search = incomingUrl.search;
   return url.toString();
 }
@@ -32,16 +39,25 @@ async function proxyToLearning(request: Request, pathSegments: string[]) {
 
   if (!["GET", "HEAD"].includes(method)) {
     const contentType = request.headers.get("content-type") || "";
-    if (contentType.includes("multipart/form-data")) {
-      init.body = await request.formData();
+    if (contentType.toLowerCase().includes("multipart/form-data")) {
+      const incomingFormData = await request.formData();
+      const outboundFormData = new FormData();
+      for (const [key, value] of incomingFormData.entries()) {
+        if (typeof value === "string") {
+          outboundFormData.append(key, value);
+        } else {
+          outboundFormData.append(key, value, value.name);
+        }
+      }
+      init.body = outboundFormData;
     } else {
-      const bodyText = await request.text();
-      if (bodyText) {
-        init.body = bodyText;
+      const bodyBuffer = await request.arrayBuffer();
+      if (bodyBuffer.byteLength > 0) {
+        init.body = bodyBuffer;
       }
-      if (contentType) {
-        outboundHeaders.set("Content-Type", contentType);
-      }
+    }
+    if (contentType && !contentType.toLowerCase().includes("multipart/form-data")) {
+      outboundHeaders.set("Content-Type", contentType);
     }
   }
 

@@ -7,6 +7,11 @@ import { Button } from "@/app/components/ui/Button";
 import { Badge } from "@/app/components/ui/Badge";
 import { Card } from "@/app/components/ui/Card";
 import { BookmarkButton } from "@/app/components/ui/BookmarkButton";
+import {
+  AiGeneratedLessonPlayer,
+  parseAiGeneratedLesson,
+} from "@/app/components/learn/AiGeneratedLessonPlayer";
+import { AiPlatformQuiz } from "@/app/components/learn/AiPlatformQuiz";
 import { api, type GamificationProfileResponse } from "@/app/lib/api";
 import { useAuth } from "@/app/context/AuthContext";
 import { Quiz } from "@/app/components/learn/Quiz";
@@ -85,6 +90,98 @@ interface GamificationSnapshot {
     tier: string;
     icon: string;
   }>;
+  currentStreak?: number;
+}
+
+function pendingProgressStorageKey(courseId: string) {
+  return `learn-pending-progress:${courseId}`;
+}
+
+function completedProgressStorageKey(courseId: string) {
+  return `learn-completed-progress:${courseId}`;
+}
+
+function readPendingCompletedLessons(courseId: string): string[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(pendingProgressStorageKey(courseId));
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw) as string[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingCompletedLessons(courseId: string, lessonIds: string[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(
+      pendingProgressStorageKey(courseId),
+      JSON.stringify(Array.from(new Set(lessonIds)))
+    );
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function markPendingCompletedLesson(courseId: string, lessonId: string) {
+  const current = readPendingCompletedLessons(courseId);
+  if (!current.includes(lessonId)) {
+    writePendingCompletedLessons(courseId, [...current, lessonId]);
+  }
+}
+
+function clearPendingCompletedLesson(courseId: string, lessonId: string) {
+  const next = readPendingCompletedLessons(courseId).filter((id) => id !== lessonId);
+  writePendingCompletedLessons(courseId, next);
+}
+
+function readCompletedLessons(courseId: string): string[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(completedProgressStorageKey(courseId));
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw) as string[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCompletedLessons(courseId: string, lessonIds: string[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      completedProgressStorageKey(courseId),
+      JSON.stringify(Array.from(new Set(lessonIds)))
+    );
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function rememberCompletedLesson(courseId: string, lessonId: string) {
+  const current = readCompletedLessons(courseId);
+  if (!current.includes(lessonId)) {
+    writeCompletedLessons(courseId, [...current, lessonId]);
+  }
 }
 
 const CELEBRATION_BURSTS = [
@@ -186,6 +283,11 @@ export default function LearnPage() {
     icon: string;
   } | null>(null);
   const [certificatePromptOpen, setCertificatePromptOpen] = useState(false);
+  const [nextLessonPrompt, setNextLessonPrompt] = useState<{
+    lessonId: string;
+    title: string;
+    countdown: number;
+  } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressTrackerRef = useRef<ProgressTracker | null>(null);
   const completionSequenceRunningRef = useRef(false);
@@ -193,18 +295,31 @@ export default function LearnPage() {
   const xpCelebrationResolverRef = useRef<(() => void) | null>(null);
   const levelCelebrationResolverRef = useRef<(() => void) | null>(null);
   const badgeCelebrationResolverRef = useRef<(() => void) | null>(null);
+  const nextLessonTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (user) {
       loadCourse();
     }
-  }, [courseId, user]);
+  }, [courseId, lessonId, user]);
+
+  useEffect(() => {
+    return () => {
+      if (nextLessonTimerRef.current !== null) {
+        window.clearInterval(nextLessonTimerRef.current);
+        nextLessonTimerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (course && lessonId) {
+      setNextLessonPrompt(null);
       const lesson = findLesson(lessonId);
       setCurrentLesson(lesson);
       setSupportOpen(false);
+      setVideoProgressPercent(0);
+      setCompletionLocked(lesson?.content_type === "video");
       // Expand module containing current lesson
       for (const mod of course.modules) {
         if (mod.lessons.some((l) => l.id === lessonId)) {
@@ -273,14 +388,26 @@ export default function LearnPage() {
     };
   }, [user, lessonId]);
 
-  const handleVideoProgressUpdate = useCallback((percent: number, unlocked: boolean) => {
+  const handleVideoProgressUpdate = useCallback((percent: number, _unlocked: boolean) => {
     setVideoProgressPercent(percent);
-    setCompletionLocked(!unlocked);
   }, []);
 
   const lessonContent = useMemo(
     () => extractLessonContentParts(currentLesson?.content),
     [currentLesson?.content]
+  );
+
+  const aiGeneratedLesson = useMemo(
+    () =>
+      currentLesson
+        ? parseAiGeneratedLesson({
+            id: currentLesson.id,
+            title: currentLesson.title,
+            duration: currentLesson.duration,
+            content: currentLesson.content,
+          })
+        : null,
+    [currentLesson]
   );
 
   const wait = useCallback((ms: number) => {
@@ -297,6 +424,7 @@ export default function LearnPage() {
     return {
       totalXp: profile.xp.total,
       level: profile.level.level,
+      currentStreak: profile.streak?.current_streak ?? 0,
       badges: profile.badges.user.map((badge) => ({
         badge_id: badge.badge_id,
         name: badge.name,
@@ -350,6 +478,7 @@ export default function LearnPage() {
       );
       const before = gamificationBaselineRef.current;
       let after: GamificationSnapshot | null = null;
+      const expectedCourseXp = Math.max(Number(course?.xp_reward || 0), 0);
 
       for (let attempt = 0; attempt < 4; attempt += 1) {
         try {
@@ -380,6 +509,9 @@ export default function LearnPage() {
         if (xpGained > 0) {
           await waitForCourseXpDismiss(xpGained);
           await wait(150);
+        } else if (expectedCourseXp > 0) {
+          await waitForCourseXpDismiss(expectedCourseXp);
+          await wait(150);
         }
 
         if (leveledUp) {
@@ -393,6 +525,19 @@ export default function LearnPage() {
         }
 
         gamificationBaselineRef.current = after;
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("learning.gamification.sync", {
+              detail: {
+                totalXp: after.totalXp,
+                currentStreak: after.currentStreak ?? 0,
+              },
+            })
+          );
+        }
+      } else if (expectedCourseXp > 0) {
+        await waitForCourseXpDismiss(expectedCourseXp);
+        await wait(150);
       }
 
       setCertificatePromptOpen(true);
@@ -402,7 +547,7 @@ export default function LearnPage() {
     } finally {
       completionSequenceRunningRef.current = false;
     }
-  }, [fetchGamificationSnapshot, wait, waitForBadgeDismiss, waitForCourseXpDismiss, waitForLevelDismiss]);
+  }, [course?.xp_reward, fetchGamificationSnapshot, wait, waitForBadgeDismiss, waitForCourseXpDismiss, waitForLevelDismiss]);
 
   const handleLessonCompletionFlow = useCallback(
     async (completedProgress: Record<string, boolean>) => {
@@ -437,11 +582,62 @@ export default function LearnPage() {
       }
 
       if (next) {
-        router.push(`/learn/${courseId}/${next.lessonId}`);
+        const nextLesson = findLesson(next.lessonId);
+        if (nextLessonTimerRef.current !== null) {
+          window.clearInterval(nextLessonTimerRef.current);
+          nextLessonTimerRef.current = null;
+        }
+
+        setNextLessonPrompt({
+          lessonId: next.lessonId,
+          title: nextLesson?.title || "Next lesson",
+          countdown: 5,
+        });
       }
     },
-    [course?.modules, courseId, lessonId, router, runCourseCompletionSequence, totalLessonCount]
+    [course?.modules, runCourseCompletionSequence, totalLessonCount]
   );
+
+  useEffect(() => {
+    if (!nextLessonPrompt) {
+      if (nextLessonTimerRef.current !== null) {
+        window.clearInterval(nextLessonTimerRef.current);
+        nextLessonTimerRef.current = null;
+      }
+      return;
+    }
+
+    nextLessonTimerRef.current = window.setInterval(() => {
+      setNextLessonPrompt((current) => {
+        if (!current) return null;
+        if (current.countdown <= 1) {
+          if (nextLessonTimerRef.current !== null) {
+            window.clearInterval(nextLessonTimerRef.current);
+            nextLessonTimerRef.current = null;
+          }
+          return { ...current, countdown: 0 };
+        }
+        return { ...current, countdown: current.countdown - 1 };
+      });
+    }, 1000);
+
+    return () => {
+      if (nextLessonTimerRef.current !== null) {
+        window.clearInterval(nextLessonTimerRef.current);
+        nextLessonTimerRef.current = null;
+      }
+    };
+  }, [courseId, nextLessonPrompt, router]);
+
+  useEffect(() => {
+    if (!nextLessonPrompt || nextLessonPrompt.countdown !== 0) {
+      return;
+    }
+
+    const targetLessonId = nextLessonPrompt.lessonId;
+    setNextLessonPrompt(null);
+    router.push(`/learn/${courseId}/${targetLessonId}`);
+  }, [courseId, nextLessonPrompt, router]);
 
   const loadCourse = async () => {
     if (!user) return;
@@ -471,11 +667,26 @@ export default function LearnPage() {
         progressData.forEach((p) => {
           if (p.status === "completed") {
             progressMap[p.lesson_id] = true;
+            clearPendingCompletedLesson(courseId, p.lesson_id);
+            rememberCompletedLesson(courseId, p.lesson_id);
           }
+        });
+        readCompletedLessons(courseId).forEach((completedLessonId) => {
+          progressMap[completedLessonId] = true;
+        });
+        readPendingCompletedLessons(courseId).forEach((pendingLessonId) => {
+          progressMap[pendingLessonId] = true;
         });
         setProgress(progressMap);
       } catch {
-        setProgress({});
+        const fallbackProgress: Record<string, boolean> = {};
+        readCompletedLessons(courseId).forEach((completedLessonId) => {
+          fallbackProgress[completedLessonId] = true;
+        });
+        readPendingCompletedLessons(courseId).forEach((pendingLessonId) => {
+          fallbackProgress[pendingLessonId] = true;
+        });
+        setProgress(fallbackProgress);
       }
 
       // Set initial expanded modules
@@ -499,6 +710,60 @@ export default function LearnPage() {
     }
     return null;
   };
+
+  const loadProgress = useCallback(async () => {
+    if (!user) {
+      return {};
+    }
+
+    try {
+      const progressData = await api.get<Progress[]>(
+        `/api/v1/learning/progress/?course_id=${courseId}&user_id=${user.id}`
+      );
+      const progressMap: Record<string, boolean> = {};
+      progressData.forEach((p) => {
+        if (p.status === "completed") {
+          progressMap[p.lesson_id] = true;
+          clearPendingCompletedLesson(courseId, p.lesson_id);
+          rememberCompletedLesson(courseId, p.lesson_id);
+        }
+      });
+      readCompletedLessons(courseId).forEach((completedLessonId) => {
+        progressMap[completedLessonId] = true;
+      });
+      readPendingCompletedLessons(courseId).forEach((pendingLessonId) => {
+        progressMap[pendingLessonId] = true;
+      });
+      setProgress(progressMap);
+      return progressMap;
+    } catch {
+      const fallbackProgress: Record<string, boolean> = {};
+      readCompletedLessons(courseId).forEach((completedLessonId) => {
+        fallbackProgress[completedLessonId] = true;
+      });
+      readPendingCompletedLessons(courseId).forEach((pendingLessonId) => {
+        fallbackProgress[pendingLessonId] = true;
+      });
+      setProgress(fallbackProgress);
+      return fallbackProgress;
+    }
+  }, [courseId, user]);
+
+  const isCourseCompletedInBackend = useCallback(async () => {
+    if (!user) {
+      return false;
+    }
+
+    try {
+      const enrollments = await api.get<{ id: string; course_id: string; status: string }[]>(
+        `/api/v1/learning/enrollments/?user_id=${user.id}`
+      );
+      const enrollment = enrollments.find((item) => item.course_id === courseId);
+      return enrollment?.status === "completed";
+    } catch {
+      return false;
+    }
+  }, [courseId, user]);
 
   const getCurrentModule = (): Module | null => {
     if (!course?.modules) return null;
@@ -535,13 +800,28 @@ export default function LearnPage() {
   const handleMarkComplete = async () => {
     if (!user) return;
     try {
+      markPendingCompletedLesson(courseId, lessonId);
       await api.post(`/api/v1/learning/progress/${lessonId}/complete`, {
         user_id: user.id,
         status: "completed",
       });
-      const nextProgress = { ...progress, [lessonId]: true };
+      const persistedProgress = await loadProgress();
+      const nextProgress = {
+        ...persistedProgress,
+        [lessonId]: true,
+      };
+      rememberCompletedLesson(courseId, lessonId);
+      setProgress(nextProgress);
+
+      const backendCourseCompleted = await isCourseCompletedInBackend();
+      if (backendCourseCompleted) {
+        await runCourseCompletionSequence();
+        return;
+      }
+
       await handleLessonCompletionFlow(nextProgress);
     } catch (err) {
+      clearPendingCompletedLesson(courseId, lessonId);
       console.error("Failed to mark complete:", err);
     }
   };
@@ -769,7 +1049,35 @@ export default function LearnPage() {
 
           {/* Video/Content Area */}
           <div className="flex-1 overflow-y-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            {currentLesson?.content_type === "video" ? (
+            {currentLesson?.content_type === "quiz" && aiGeneratedLesson?.type === "quiz" ? (
+              <div className="p-6">
+                <div className="mx-auto max-w-2xl">
+                  <AiPlatformQuiz
+                    lessonId={lessonId}
+                    onComplete={handleMarkComplete}
+                  />
+                </div>
+              </div>
+            ) : aiGeneratedLesson ? (
+              <AiGeneratedLessonPlayer
+                lesson={{
+                  id: currentLesson!.id,
+                  title: currentLesson!.title,
+                  duration: currentLesson!.duration,
+                  content: currentLesson!.content,
+                }}
+                completed={!!progress[lessonId]}
+                onComplete={handleMarkComplete}
+                onPrevious={() => {
+                  const prev = getPrevLesson();
+                  if (prev) router.push(`/learn/${courseId}/${prev.lessonId}`);
+                }}
+                onNext={() => {
+                  const next = getNextLesson();
+                  if (next) router.push(`/learn/${courseId}/${next.lessonId}`);
+                }}
+              />
+            ) : currentLesson?.content_type === "video" ? (
               <div className="relative aspect-video bg-slate-950 flex items-center justify-center">
                 {currentLesson?.video_url ? (
                   <>
@@ -821,12 +1129,7 @@ export default function LearnPage() {
                     lessonId={lessonId}
                     courseId={courseId}
                     assessmentId={currentLesson?.assessment_id}
-                    onComplete={() =>
-                      handleLessonCompletionFlow({
-                        ...progress,
-                        [lessonId]: true,
-                      })
-                    }
+                    onComplete={handleMarkComplete}
                   />
                 </div>
               </div>
@@ -844,7 +1147,7 @@ export default function LearnPage() {
             )}
 
             {/* Lesson Info - only for non-quiz content */}
-            {currentLesson?.content_type !== "quiz" && (
+            {currentLesson?.content_type !== "quiz" && !aiGeneratedLesson && (
               <div className="p-6">
                 <h1 className="text-2xl font-bold text-text-primary">
                   {currentLesson?.title}
@@ -908,7 +1211,7 @@ export default function LearnPage() {
           </div>
 
           {/* Bottom Navigation - hide for quiz content */}
-          {currentLesson?.content_type !== "quiz" && (
+          {currentLesson?.content_type !== "quiz" && !aiGeneratedLesson && (
             <div className="flex items-center justify-between border-t border-border bg-card px-4 py-3">
               <Button
                 variant="outline"
@@ -923,8 +1226,15 @@ export default function LearnPage() {
 
               <Button
                 onClick={handleMarkComplete}
-                disabled={progress[lessonId] || (currentLesson?.content_type !== "quiz" && completionLocked)}
-                title={completionLocked ? "Watch at least 90% of the video to unlock completion" : ""}
+                disabled={
+                  progress[lessonId] ||
+                  (currentLesson?.content_type === "video" && completionLocked)
+                }
+                title={
+                  currentLesson?.content_type === "video" && completionLocked
+                    ? "Finish the entire video to unlock completion"
+                    : ""
+                }
               >
                 {progress[lessonId] ? (
                   <>
@@ -958,6 +1268,38 @@ export default function LearnPage() {
           )}
         </div>
       </div>
+      {nextLessonPrompt && (
+        <div className="fixed bottom-6 right-6 z-[110] w-full max-w-md px-4 sm:px-0">
+          <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+            <div className="bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.96))] px-6 py-5 text-white">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-200">
+                Up Next
+              </p>
+              <h3 className="mt-2 text-xl font-bold">{nextLessonPrompt.title}</h3>
+              <p className="mt-2 text-sm text-slate-300">
+                Starting automatically in {nextLessonPrompt.countdown}s unless you cancel.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-3 px-6 py-4">
+              <Button
+                variant="outline"
+                onClick={() => setNextLessonPrompt(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  const targetLessonId = nextLessonPrompt.lessonId;
+                  setNextLessonPrompt(null);
+                  router.push(`/learn/${courseId}/${targetLessonId}`);
+                }}
+              >
+                Play next lesson
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       {courseXpCelebration !== null && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm">
           {CELEBRATION_BURSTS.map((burst, index) => (

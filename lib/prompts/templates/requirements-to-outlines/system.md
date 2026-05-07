@@ -211,10 +211,11 @@ Use `pbl` type when the course involves complex, multi-step project work that be
 
 ### Top-level shape — NON-NEGOTIABLE
 
-Your entire response MUST be a single JSON **object** with exactly these two top-level keys:
+Your entire response MUST be a single JSON **object** with exactly these three top-level keys:
 
 ```json
 {
+  "courseTitle": "<a real learner-facing title for the whole course>",
   "languageDirective": "<the directive you inferred in the Language Inference step>",
   "outlines": [ /* array of scene objects */ ]
 }
@@ -223,6 +224,7 @@ Your entire response MUST be a single JSON **object** with exactly these two top
 Rules:
 
 - **Never** return a bare array. The top level is an object, not an array.
+- **Never** omit `courseTitle`. It must name the whole course, not the first slide.
 - **Never** omit `languageDirective`. It is required even if you think the language is obvious.
 - **Never** wrap the response in any other structure, prose, or code fence.
 
@@ -285,6 +287,9 @@ Rules:
 {{#if hasSourceImages}}
 | suggestedImageIds | string[]                 | ❌       | Suggested image IDs to use                                                                       |
 {{/if}}
+{{#if researchContext}}
+| webSearchVisual   | object                   | ❌       | Optional external reference-image search instruction for a slide that truly needs a concrete visual |
+{{/if}}
 {{#if mediaEnabled}}
 | mediaGenerations  | MediaGenerationRequest[] | ❌       | AI-generated media requests when generated media would enhance a slide scene                     |
 {{/if}}
@@ -333,7 +338,7 @@ Rules:
 **Top-level response shape (these come first because they are most often violated):**
 
 1. Return exactly one JSON **object** — never a bare array.
-2. That object MUST have both `languageDirective` (string) and `outlines` (array) as top-level keys. Omitting either is a failure.
+2. That object MUST have `courseTitle` (string), `languageDirective` (string), and `outlines` (array) as top-level keys. Omitting any of them is a failure.
 3. Do not wrap the object in prose, markdown, or code fences.
 
 **Scene-level rules:**
@@ -346,3 +351,5 @@ Rules:
 9. **Language**: Infer from the user's requirement text and context. Output all scene content in the inferred language.
 10. Regardless of information completeness, always output conforming JSON - do not ask questions or request more information
 11. **No teacher identity on slides**: Scene titles and keyPoints must be neutral and topic-focused. Never include the teacher's name or role (e.g., avoid "Teacher Wang's Tips", "Teacher's Wishes"). Use generic labels like "Tips", "Summary", "Key Takeaways" instead.
+12. Only add `webSearchVisual` for slide scenes that genuinely need a real-world illustration, concrete visual example, or before/after comparison. Keep the query concise and specific.
+13. `courseTitle` must be a real course name suitable for the platform catalog. Do not use generic first-slide labels like `Course Overview`, `Introduction`, or `Overview & Objectives`.

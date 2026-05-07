@@ -276,6 +276,46 @@ function isContentSpeechAcceptable(role: SlideRole, speechTexts: string[]): bool
   return !speechTexts.some((text) => CONTENT_BAD_PATTERNS.some((pattern) => pattern.test(text)));
 }
 
+function isTechnicalExampleText(text: string): boolean {
+  return (
+    /[{;}<>:=]/.test(text) ||
+    /\b(style|color|background|font|padding|margin|selector|html|css)\b/i.test(text)
+  );
+}
+
+function isOpeningOverviewSlideAcceptable(
+  role: SlideRole,
+  elements: GeneratedSlideData['elements'],
+): boolean {
+  if (role !== 'opening' && role !== 'overview') return true;
+
+  const textContents = elements
+    .filter((element) => element.type === 'text' && 'content' in element)
+    .map((element) => stripGeneratedHtml(String(element.content || '')))
+    .filter(Boolean);
+
+  const bodyBlocks = textContents.slice(1);
+  const codeLikeCount = bodyBlocks.filter((text) => isCodeLikeGeneratedText(text)).length;
+  const technicalExampleCount = bodyBlocks.filter((text) => isTechnicalExampleText(text)).length;
+
+  return codeLikeCount === 0 && technicalExampleCount <= 2;
+}
+
+function isContentSlideAcceptable(
+  role: SlideRole,
+  elements: GeneratedSlideData['elements'],
+): boolean {
+  if (role !== 'content') return true;
+
+  const textContents = elements
+    .filter((element) => element.type === 'text' && 'content' in element)
+    .map((element) => stripGeneratedHtml(String(element.content || '')))
+    .filter(Boolean);
+
+  const bodyBlocks = textContents.slice(1);
+  return bodyBlocks.length >= 2;
+}
+
 // ==================== Stage 2: Full Scenes (Two-Step) ====================
 
 /**
@@ -677,6 +717,9 @@ function fixElementDefaults(
   elements: GeneratedSlideData['elements'],
   assignedImages?: PdfImage[],
 ): GeneratedSlideData['elements'] {
+  const maxCanvasWidth = 900;
+  const maxCanvasHeight = 462;
+
   return elements.map((el) => {
     // Fix line elements
     if (el.type === 'line') {
@@ -739,21 +782,68 @@ function fixElementDefaults(
         const imgMeta = assignedImages.find((img) => img.id === imageEl.src);
         if (imgMeta?.width && imgMeta?.height) {
           const knownRatio = imgMeta.width / imgMeta.height;
-          const curW = (el.width || 400) as number;
-          const curH = (el.height || 300) as number;
+          let curW = (el.width || 400) as number;
+          let curH = (el.height || 300) as number;
           if (Math.abs(curW / curH - knownRatio) / knownRatio > 0.1) {
             // Keep width, correct height
             const newH = Math.round(curW / knownRatio);
-            if (newH > 462) {
-              // canvas 562.5 - margins 50×2
-              const newW = Math.round(462 * knownRatio);
+            if (newH > maxCanvasHeight) {
+              const newW = Math.round(maxCanvasHeight * knownRatio);
               imageEl.width = newW;
-              imageEl.height = 462;
+              imageEl.height = maxCanvasHeight;
+              curW = newW;
+              curH = maxCanvasHeight;
             } else {
               imageEl.height = newH;
+              curH = newH;
             }
           }
+
+          if (curW > maxCanvasWidth) {
+            curW = maxCanvasWidth;
+            curH = Math.round(curW / knownRatio);
+            imageEl.width = curW;
+            imageEl.height = curH;
+          }
+
+          if (curH > maxCanvasHeight) {
+            curH = maxCanvasHeight;
+            curW = Math.round(curH * knownRatio);
+            imageEl.width = curW;
+            imageEl.height = curH;
+          }
         }
+      }
+
+      const fallbackRatio =
+        typeof imageEl.width === 'number' && typeof imageEl.height === 'number' && imageEl.height > 0
+          ? imageEl.width / imageEl.height
+          : 4 / 3;
+
+      if (typeof imageEl.width === 'number' && imageEl.width > maxCanvasWidth) {
+        imageEl.width = maxCanvasWidth;
+        imageEl.height =
+          typeof imageEl.height === 'number'
+            ? Math.round(maxCanvasWidth / fallbackRatio)
+            : Math.round(maxCanvasWidth / (4 / 3));
+      }
+
+      if (typeof imageEl.height === 'number' && imageEl.height > maxCanvasHeight) {
+        imageEl.height = maxCanvasHeight;
+        imageEl.width =
+          typeof imageEl.width === 'number'
+            ? Math.round(maxCanvasHeight * fallbackRatio)
+            : Math.round(maxCanvasHeight * (4 / 3));
+      }
+
+      if (typeof imageEl.left === 'number') {
+        imageEl.left = Math.min(Math.max(imageEl.left, 50), 1000 - 50 - ((imageEl.width as number) || 0));
+      }
+      if (typeof imageEl.top === 'number') {
+        imageEl.top = Math.min(
+          Math.max(imageEl.top, 50),
+          562.5 - 50 - ((imageEl.height as number) || 0),
+        );
       }
 
       return imageEl as typeof el;
@@ -824,6 +914,72 @@ function processLatexElements(
     .filter((el): el is NonNullable<typeof el> => el !== null);
 }
 
+function ensureAssignedImageUsage(
+  elements: GeneratedSlideData['elements'],
+  assignedImages?: PdfImage[],
+): GeneratedSlideData['elements'] {
+  if (!assignedImages || assignedImages.length === 0) return elements;
+
+  const existingImage = elements.some(
+    (element) =>
+      element.type === 'image' &&
+      typeof (element as Record<string, unknown>).src === 'string' &&
+      assignedImages.some((img) => img.id === (element as Record<string, unknown>).src),
+  );
+
+  if (existingImage) {
+    return elements;
+  }
+
+  const preferredImage = assignedImages.find((image) => image.sourceType === 'web') || assignedImages[0];
+  if (!preferredImage) return elements;
+
+  const ratio =
+    preferredImage.width && preferredImage.height && preferredImage.height > 0
+      ? preferredImage.width / preferredImage.height
+      : 4 / 3;
+  let width = 320;
+  let height = Math.round(width / ratio);
+  if (height > 260) {
+    height = 260;
+    width = Math.round(height * ratio);
+  }
+
+  const imageLeft = 1000 - 60 - width;
+  const imageTop = 150;
+
+  const adjustedElements = elements.map((element) => {
+    if (element.type !== 'text') return element;
+    const maybeText = element as Record<string, unknown>;
+    const top = typeof maybeText.top === 'number' ? maybeText.top : 0;
+    const left = typeof maybeText.left === 'number' ? maybeText.left : 0;
+    const widthValue = typeof maybeText.width === 'number' ? maybeText.width : 0;
+
+    if (top >= 130 && left < imageLeft && left + widthValue > imageLeft - 20) {
+      return {
+        ...element,
+        width: Math.max(320, imageLeft - left - 30),
+      };
+    }
+
+    return element;
+  });
+
+  return [
+    ...adjustedElements,
+    {
+      id: `image_ref_${nanoid(6)}`,
+      type: 'image',
+      left: imageLeft,
+      top: imageTop,
+      width,
+      height,
+      src: preferredImage.id,
+      fixedRatio: true,
+    },
+  ];
+}
+
 /**
  * Generate slide content
  */
@@ -837,6 +993,7 @@ async function generateSlideContent(
   agents?: AgentInfo[],
   languageDirective?: string,
 ): Promise<GeneratedSlideContent | null> {
+  const slideRole = deriveSlideRole(outline);
   // Build assigned images description for the prompt
   let assignedImagesText = '无可用图片，禁止插入任何 image 元素';
   let visionImages: Array<{ id: string; src: string }> | undefined;
@@ -909,6 +1066,7 @@ async function generateSlideContent(
 
   const prompts = buildPrompt(PROMPT_IDS.SLIDE_CONTENT, {
     title: outline.title,
+    slideRole,
     description: outline.description,
     keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join('\n'),
     elements: '（根据要点自动生成）',
@@ -935,8 +1093,28 @@ async function generateSlideContent(
     log.debug(`Vision images: ${visionImages.map((img) => img.id).join(', ')}`);
   }
 
-  const response = await aiCall(prompts.system, prompts.user, visionImages);
-  const generatedData = parseJsonResponse<GeneratedSlideData>(response);
+  let generatedData: GeneratedSlideData | null = null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await aiCall(prompts.system, prompts.user, visionImages);
+    generatedData = parseJsonResponse<GeneratedSlideData>(response);
+
+    if (!generatedData || !generatedData.elements || !Array.isArray(generatedData.elements)) {
+      continue;
+    }
+
+    if (
+      isOpeningOverviewSlideAcceptable(slideRole, generatedData.elements) &&
+      isContentSlideAcceptable(slideRole, generatedData.elements)
+    ) {
+      break;
+    }
+
+    log.warn(
+      `[Slide Content] Rejected generated slide for "${outline.title}" due to role-specific structure rules. Retrying...`,
+    );
+    generatedData = null;
+  }
 
   if (!generatedData || !generatedData.elements || !Array.isArray(generatedData.elements)) {
     log.error(`Failed to parse AI response for: ${outline.title}`);
@@ -961,7 +1139,8 @@ async function generateSlideContent(
   }
 
   // Fix elements with missing required fields + aspect ratio correction (while src is still img_id)
-  const fixedElements = fixElementDefaults(generatedData.elements, assignedImages);
+  const imageCompletedElements = ensureAssignedImageUsage(generatedData.elements, assignedImages);
+  const fixedElements = fixElementDefaults(imageCompletedElements, assignedImages);
   log.debug(`After element fixing: ${fixedElements.length} elements`);
 
   // Process LaTeX elements: render latex string → HTML via KaTeX

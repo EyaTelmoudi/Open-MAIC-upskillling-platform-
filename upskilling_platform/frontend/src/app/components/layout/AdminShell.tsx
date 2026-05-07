@@ -70,6 +70,15 @@ const adminHeaderContent: Array<{
 ];
 
 const allowedRoles = new Set(["Admin", "Manager", "LearningExpert"]);
+const ADMIN_SIDEBAR_STORAGE_KEY = "admin-sidebar-compact";
+
+function readAdminSidebarCompactPreference() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem(ADMIN_SIDEBAR_STORAGE_KEY) === "true";
+}
 
 function resolveAdminHeader(pathname: string) {
   return (
@@ -86,7 +95,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [isSidebarCompact, setIsSidebarCompact] = useState(false);
+  const [isSidebarCompact, setIsSidebarCompact] = useState(readAdminSidebarCompactPreference);
   const isLearningExpert = user?.role === "LearningExpert";
   const header = isLearningExpert
     ? pathname.startsWith(routes.adminAiCourseStudio)
@@ -121,16 +130,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") {
       return;
     }
-
-    const storedValue = window.localStorage.getItem("admin-sidebar-compact");
-    setIsSidebarCompact(storedValue === "true");
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    window.localStorage.setItem("admin-sidebar-compact", String(isSidebarCompact));
+    window.localStorage.setItem(ADMIN_SIDEBAR_STORAGE_KEY, String(isSidebarCompact));
   }, [isSidebarCompact]);
 
   useEffect(() => {

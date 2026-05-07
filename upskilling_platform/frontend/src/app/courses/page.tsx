@@ -9,7 +9,8 @@ import { Input } from "@/app/components/ui/Input";
 import { Badge } from "@/app/components/ui/Badge";
 import { Card } from "@/app/components/ui/Card";
 import { BookmarkButton } from "@/app/components/ui/BookmarkButton";
-import { api, getCourseBookmarks } from "@/app/lib/api";
+import { api, getCourseBookmarks, getEnrollments } from "@/app/lib/api";
+import { useAuth } from "@/app/context/AuthContext";
 import {
   Search,
   Filter,
@@ -25,6 +26,7 @@ import {
   PlayCircle,
   Eye,
   Loader2,
+  CheckCircle2,
 } from "lucide-react";
 
 interface Course {
@@ -59,8 +61,25 @@ const difficultyColors: Record<string, { bg: string; text: string }> = {
   Advanced: { bg: "bg-red-500/10", text: "text-red-500" },
 };
 
+function formatCourseDuration(totalMinutes: number) {
+  const roundedMinutes = Math.max(0, Math.ceil(totalMinutes || 0));
+
+  if (roundedMinutes <= 0) {
+    return "0 min";
+  }
+
+  if (roundedMinutes < 60) {
+    return `${roundedMinutes} min`;
+  }
+
+  const hours = Math.floor(roundedMinutes / 60);
+  const minutes = roundedMinutes % 60;
+  return minutes > 0 ? `${hours}h ${minutes}min` : `${hours}h`;
+}
+
 export default function CoursesPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -70,6 +89,7 @@ export default function CoursesPage() {
   const [showFilters, setShowFilters] = useState(true);
   const [previewingCourse, setPreviewingCourse] = useState<string | null>(null);
   const [bookmarkedCourses, setBookmarkedCourses] = useState<Set<string>>(new Set());
+  const [completedCourses, setCompletedCourses] = useState<Set<string>>(new Set());
 
   const handlePreview = async (courseId: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -91,9 +111,10 @@ export default function CoursesPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [coursesData, bookmarksData] = await Promise.all([
+        const [coursesData, bookmarksData, enrollmentsData] = await Promise.all([
           api.get<{ items: Course[] }>("/api/v1/learning/courses/?is_published=true&page_size=100"),
           getCourseBookmarks().catch(() => []),
+          user ? getEnrollments(user.id).catch(() => []) : Promise.resolve([]),
         ]);
         setCourses(coursesData.items);
         const bookmarkedIds = new Set(
@@ -102,6 +123,12 @@ export default function CoursesPage() {
             .map((b: any) => b.course_id)
         );
         setBookmarkedCourses(bookmarkedIds);
+        const completedIds = new Set(
+          enrollmentsData
+            .filter((enrollment: any) => enrollment.status === "completed")
+            .map((enrollment: any) => enrollment.course_id)
+        );
+        setCompletedCourses(completedIds);
       } catch (err) {
         console.error("Failed to load courses:", err);
       } finally {
@@ -109,7 +136,7 @@ export default function CoursesPage() {
       }
     }
     loadData();
-  }, []);
+  }, [user]);
 
   const filteredCourses = courses.filter((c) => {
     const matchesSearch =
@@ -257,6 +284,12 @@ export default function CoursesPage() {
                       >
                         {course.difficulty}
                       </Badge>
+                      {completedCourses.has(course.id) ? (
+                        <div className="absolute left-3 top-12 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 shadow-sm">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Finished
+                        </div>
+                      ) : null}
                       {/* Bookmark Button */}
                       <div className="absolute top-3 right-3">
                         <BookmarkButton
@@ -288,6 +321,12 @@ export default function CoursesPage() {
                       <h3 className="font-semibold text-text-primary mb-2 line-clamp-2">
                         {course.title}
                       </h3>
+                      {completedCourses.has(course.id) ? (
+                        <div className="mb-2 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Course finished
+                        </div>
+                      ) : null}
                       <p className="text-xs text-text-secondary line-clamp-2 mb-3">
                         {course.description}
                       </p>
@@ -297,7 +336,7 @@ export default function CoursesPage() {
                         <div className="flex items-center gap-3">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {Math.round(course.duration / 60)}h
+                              {formatCourseDuration(course.duration)}
                           </span>
                           <span className="flex items-center gap-1">
                             <Star className="h-3 w-3 text-amber-500" />
@@ -374,6 +413,12 @@ export default function CoursesPage() {
                               <span className="text-xs text-text-secondary">
                                 {course.category}
                               </span>
+                              {completedCourses.has(course.id) ? (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  Finished
+                                </span>
+                              ) : null}
                             </div>
                             <h3 className="font-semibold text-text-primary">
                               {course.title}
@@ -393,7 +438,7 @@ export default function CoursesPage() {
                         <div className="flex items-center gap-4 mt-3 text-xs text-text-secondary">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {Math.round(course.duration / 60)}h
+                              {formatCourseDuration(course.duration)}
                           </span>
                           <span className="font-medium text-primary">
                             +{course.xp_reward} XP

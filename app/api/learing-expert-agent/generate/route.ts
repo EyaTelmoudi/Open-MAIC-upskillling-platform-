@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
       requirement || buildRequirementFromPdf(pdfFile?.name || 'uploaded-course.pdf');
     requirementSnippet = normalizedRequirement.slice(0, 80);
 
-    const enableWebSearch = String(formData.get('enableWebSearch') || '') === 'true';
+    const enableWebSearch = true;
     const enableImageGeneration = String(formData.get('enableImageGeneration') || '') === 'true';
     const enableVideoGeneration = String(formData.get('enableVideoGeneration') || '') === 'true';
     const enableTTS = String(formData.get('enableTTS') || '') === 'true';

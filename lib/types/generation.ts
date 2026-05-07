@@ -18,6 +18,9 @@ export interface PdfImage {
   src: string; // base64 data URL (empty when stored in IndexedDB)
   pageNumber: number; // Page number in PDF
   description?: string; // Optional description for AI context
+  sourceType?: 'pdf' | 'web';
+  sourceUrl?: string;
+  sourceTitle?: string;
   storageId?: string; // Reference to IndexedDB (session_xxx_img_1)
   width?: number; // Image width (px or normalized)
   height?: number; // Image height (px or normalized)
@@ -94,6 +97,10 @@ export interface SceneOutline {
   languageNote?: string; // LLM-inferred language note for this scene
   // Suggested image IDs (from PDF-extracted images)
   suggestedImageIds?: string[]; // e.g., ["img_1", "img_3"]
+  webSearchVisual?: {
+    query: string;
+    useCase?: 'illustration' | 'comparison' | 'real-world-example';
+  };
   // AI-generated media requests (when PDF images are insufficient)
   mediaGenerations?: MediaGenerationRequest[]; // e.g., [{ type: 'image', prompt: '...', elementId: 'gen_img_1' }]
   // Quiz-specific config
@@ -122,6 +129,12 @@ export interface SceneOutline {
   // Widget fields (required for type === 'interactive' in unified mode)
   widgetType?: WidgetType;
   widgetOutline?: WidgetOutline;
+}
+
+export interface GeneratedCourseOutlinePlan {
+  courseTitle: string;
+  languageDirective: string;
+  outlines: SceneOutline[];
 }
 
 // ==================== Stage 3 Output: Generated Content ====================

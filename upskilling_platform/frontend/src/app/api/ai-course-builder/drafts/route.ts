@@ -1,5 +1,6 @@
 import { buildOpenMAICUrl } from "@/app/lib/openmaic-proxy";
 import {
+  safeHasAnyAiCourseDraftRecords,
   safeListAiCourseDrafts,
   safeUpsertAiCourseDraft,
 } from "@/app/lib/safe-ai-course-db";
@@ -7,7 +8,8 @@ import {
 export async function GET(request: Request) {
   try {
     const storedDrafts = await safeListAiCourseDrafts();
-    if (storedDrafts.length > 0) {
+    const hasStoredDraftRecords = await safeHasAnyAiCourseDraftRecords();
+    if (storedDrafts.length > 0 || hasStoredDraftRecords) {
       return Response.json({ success: true, drafts: storedDrafts }, { status: 200 });
     }
 

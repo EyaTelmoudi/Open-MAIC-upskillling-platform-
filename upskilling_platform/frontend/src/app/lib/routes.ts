@@ -23,8 +23,10 @@ export const routes = {
   adminAiCourseStudio: "/admin/ai-course-studio",
   adminAiCourseBuilder: "/admin/ai-course-studio/course-builder",
   adminAiCourseDrafts: "/admin/ai-course-studio/drafts",
+  adminAiCourseEditorHome: "/admin/ai-course-studio/drafts/editor",
   adminAiCourseEditor: (draftId: string) =>
     `/admin/ai-course-studio/drafts/${draftId}/editor`,
+  adminAiCourseReviewHome: "/admin/ai-course-studio/course-builder/review",
   adminAiCourseReview: (draftId: string) =>
     `/admin/ai-course-studio/course-builder/review/${draftId}`,
   adminCourses: "/admin/courses",
