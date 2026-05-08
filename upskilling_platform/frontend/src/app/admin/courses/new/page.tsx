@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   FileImage,
@@ -17,14 +16,18 @@ import {
   Upload,
 } from "lucide-react";
 
+import { CourseManagementNav } from "@/app/admin/courses/course-management-nav";
 import { AdminShell } from "@/app/components/layout/AdminShell";
 import {
   createCourse,
+  createCourseAssessment,
   createCourseModule,
+  createAssessmentQuestion,
   createModuleLesson,
   deleteCourseById,
   retainTraditionalCourseMemoryPdf,
   updateCourseById,
+  updateModuleLesson,
   uploadCourseContent,
   type ContentUploadResponse,
   type Course,
@@ -51,6 +54,25 @@ type LessonDraft = {
   duration: number;
   videoFile: File | null;
   supportFiles: File[];
+  quiz: LessonQuizDraft;
+};
+
+type QuizQuestionDraft = {
+  id: string;
+  prompt: string;
+  type: "multiple_choice" | "true_false";
+  options: string[];
+  correctOptionIndex: number;
+  points: number;
+};
+
+type LessonQuizDraft = {
+  enabled: boolean;
+  title: string;
+  summary: string;
+  duration: number;
+  passingScore: number;
+  questions: QuizQuestionDraft[];
 };
 
 type ModuleDraft = {
@@ -74,6 +96,29 @@ function createEmptyLesson(moduleIndex: number, lessonIndex: number): LessonDraf
     duration: 30,
     videoFile: null,
     supportFiles: [],
+    quiz: createEmptyLessonQuiz(lessonIndex),
+  };
+}
+
+function createEmptyQuizQuestion(questionIndex: number): QuizQuestionDraft {
+  return {
+    id: `${Date.now()}-quiz-question-${questionIndex}`,
+    prompt: "",
+    type: "multiple_choice",
+    options: ["Option 1", "Option 2"],
+    correctOptionIndex: 0,
+    points: 1,
+  };
+}
+
+function createEmptyLessonQuiz(lessonIndex: number): LessonQuizDraft {
+  return {
+    enabled: false,
+    title: `Lesson ${lessonIndex + 1} Quiz`,
+    summary: "Complete this quiz to confirm the key takeaways from the lesson.",
+    duration: 10,
+    passingScore: 70,
+    questions: [createEmptyQuizQuestion(0)],
   };
 }
 
@@ -92,11 +137,50 @@ function calculateCourseDuration(modules: ModuleDraft[]) {
     (courseTotal, module) =>
       courseTotal +
       module.lessons.reduce(
-        (lessonTotal, lesson) => lessonTotal + Math.max(lesson.duration || 0, 0),
+        (lessonTotal, lesson) =>
+          lessonTotal +
+          Math.max(lesson.duration || 0, 0) +
+          (lesson.quiz.enabled ? Math.max(lesson.quiz.duration || 0, 0) : 0),
         0
       ),
     0
   );
+}
+
+function normalizeQuizOptions(question: QuizQuestionDraft) {
+  if (question.type === "true_false") {
+    return ["True", "False"];
+  }
+  return question.options.map((option) => option.trim()).filter(Boolean);
+}
+
+function isQuizQuestionValid(question: QuizQuestionDraft) {
+  if (!question.prompt.trim()) {
+    return false;
+  }
+
+  const options = normalizeQuizOptions(question);
+  if (options.length < 2 || new Set(options).size !== options.length) {
+    return false;
+  }
+
+  return question.correctOptionIndex >= 0 && question.correctOptionIndex < options.length;
+}
+
+function isLessonQuizValid(quiz: LessonQuizDraft) {
+  if (!quiz.enabled) {
+    return true;
+  }
+
+  if (!quiz.title.trim() || quiz.duration <= 0) {
+    return false;
+  }
+
+  if (!Number.isFinite(quiz.passingScore) || quiz.passingScore < 0 || quiz.passingScore > 100) {
+    return false;
+  }
+
+  return quiz.questions.length > 0 && quiz.questions.every(isQuizQuestionValid);
 }
 
 async function getVideoDurationInMinutes(file: File) {
@@ -182,6 +266,13 @@ function buildStoredVideoReference(upload: ContentUploadResponse | null): string
     return null;
   }
   return `minio://${upload.bucket}/${upload.object_name}`;
+}
+
+function normalizeXpReward(value: number) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.max(0, Math.round(value));
 }
 
 function SelectedFilesList({
@@ -279,7 +370,7 @@ export default function AdminCreateCoursePage() {
       form.description.trim() &&
       form.category &&
       form.difficulty &&
-      form.xp_reward >= 0
+      normalizeXpReward(form.xp_reward) >= 0
   );
 
   const currentModule = modules[activeModuleIndex];
@@ -298,7 +389,8 @@ export default function AdminCreateCoursePage() {
       (lesson) =>
         lesson.title.trim() &&
         lesson.duration > 0 &&
-        (lesson.videoFile || lesson.supportFiles.length > 0)
+        (lesson.videoFile || lesson.supportFiles.length > 0) &&
+        isLessonQuizValid(lesson.quiz)
     )
   );
 
@@ -382,6 +474,83 @@ export default function AdminCreateCoursePage() {
     );
   }
 
+  function updateLessonQuiz(
+    moduleIndex: number,
+    lessonIndex: number,
+    changes: Partial<LessonQuizDraft>
+  ) {
+    const lesson = modules[moduleIndex]?.lessons[lessonIndex];
+    if (!lesson) {
+      return;
+    }
+
+    updateLesson(moduleIndex, lessonIndex, {
+      quiz: {
+        ...lesson.quiz,
+        ...changes,
+      },
+    });
+  }
+
+  function updateQuizQuestion(
+    moduleIndex: number,
+    lessonIndex: number,
+    questionIndex: number,
+    changes: Partial<QuizQuestionDraft>
+  ) {
+    const lesson = modules[moduleIndex]?.lessons[lessonIndex];
+    if (!lesson) {
+      return;
+    }
+
+    updateLessonQuiz(moduleIndex, lessonIndex, {
+      questions: lesson.quiz.questions.map((question, currentIndex) => {
+        if (currentIndex !== questionIndex) {
+          return question;
+        }
+
+        const nextQuestion = { ...question, ...changes };
+        if (nextQuestion.type === "true_false") {
+          nextQuestion.options = ["True", "False"];
+          nextQuestion.correctOptionIndex = Math.min(nextQuestion.correctOptionIndex, 1);
+        }
+        return nextQuestion;
+      }),
+    });
+  }
+
+  function addQuizQuestion(moduleIndex: number, lessonIndex: number) {
+    const lesson = modules[moduleIndex]?.lessons[lessonIndex];
+    if (!lesson) {
+      return;
+    }
+
+    updateLessonQuiz(moduleIndex, lessonIndex, {
+      questions: [...lesson.quiz.questions, createEmptyQuizQuestion(lesson.quiz.questions.length)],
+    });
+  }
+
+  function removeQuizQuestion(moduleIndex: number, lessonIndex: number, questionIndex: number) {
+    const lesson = modules[moduleIndex]?.lessons[lessonIndex];
+    if (!lesson || lesson.quiz.questions.length <= 1) {
+      return;
+    }
+
+    const nextQuestions = lesson.quiz.questions
+      .filter((_, currentIndex) => currentIndex !== questionIndex)
+      .map((question) => ({
+        ...question,
+        correctOptionIndex: Math.min(
+          question.correctOptionIndex,
+          normalizeQuizOptions(question).length - 1
+        ),
+      }));
+
+    updateLessonQuiz(moduleIndex, lessonIndex, {
+      questions: nextQuestions,
+    });
+  }
+
   async function handleCreateCourse() {
     if (!form.title.trim()) {
       setError("Course title is required.");
@@ -421,7 +590,7 @@ export default function AdminCreateCoursePage() {
         category: form.category,
         difficulty: form.difficulty,
         duration: preparedCourseDuration,
-        xp_reward: Number(form.xp_reward),
+        xp_reward: normalizeXpReward(form.xp_reward),
         is_published: false,
       });
 
@@ -432,7 +601,8 @@ export default function AdminCreateCoursePage() {
           order: moduleIndex + 1,
         });
 
-        for (const [lessonIndex, lesson] of module.lessons.entries()) {
+        let nextLessonOrder = 1;
+        for (const lesson of module.lessons) {
           const uploads: ContentUploadResponse[] = [];
 
           if (lesson.videoFile) {
@@ -462,8 +632,45 @@ export default function AdminCreateCoursePage() {
             video_url: buildStoredVideoReference(videoUpload),
             content_type: videoUpload ? "video" : "resource",
             duration: lesson.duration,
-            order: lessonIndex + 1,
+            order: nextLessonOrder,
           });
+          nextLessonOrder += 1;
+
+          if (lesson.quiz.enabled) {
+            const createdAssessment = await createCourseAssessment(createdCourse.id, {
+              module_id: createdModule.id,
+              title: lesson.quiz.title.trim(),
+              passing_score: Math.round(lesson.quiz.passingScore),
+              time_limit: null,
+            });
+
+            for (const [questionIndex, question] of lesson.quiz.questions.entries()) {
+              const options = normalizeQuizOptions(question);
+              await createAssessmentQuestion(createdCourse.id, createdAssessment.id, {
+                text: question.prompt.trim(),
+                type: question.type,
+                options,
+                correct_answer: options[question.correctOptionIndex],
+                points: Math.max(1, Math.round(question.points || 1)),
+                order: questionIndex + 1,
+              });
+            }
+
+            const createdQuizLesson = await createModuleLesson(createdModule.id, {
+              title: lesson.quiz.title.trim(),
+              content: buildLessonContentFromResources(lesson.quiz.summary, []),
+              video_url: null,
+              content_type: "quiz",
+              duration: lesson.quiz.duration,
+              order: nextLessonOrder,
+              assessment_id: createdAssessment.id,
+            });
+
+            await updateModuleLesson(createdQuizLesson.id, {
+              assessment_id: createdAssessment.id,
+            });
+            nextLessonOrder += 1;
+          }
         }
       }
 
@@ -507,6 +714,8 @@ export default function AdminCreateCoursePage() {
   return (
     <AdminShell>
       <div className="space-y-6">
+        <CourseManagementNav />
+
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
@@ -552,7 +761,7 @@ export default function AdminCreateCoursePage() {
                     : step === 3
                       ? "Fill the module details and define how many lessons each module contains."
                       : step === 4
-                        ? "Complete each lesson one by one and attach the learning content."
+                      ? "Complete each lesson one by one, attach the learning content, and optionally add a quiz after the lesson."
                         : "Add the private course-content PDF that will help the AI coach answer detailed questions about this course."}
               </p>
             </div>
@@ -563,7 +772,7 @@ export default function AdminCreateCoursePage() {
               { index: 1, label: "Basics" },
               { index: 2, label: "Modules" },
               { index: 3, label: "Structure" },
-              { index: 4, label: "Lessons" },
+              { index: 4, label: "Lessons & Quizzes" },
               { index: 5, label: "Memory" },
             ].map((item) => (
               <div
@@ -628,7 +837,12 @@ export default function AdminCreateCoursePage() {
                   type="number"
                   min={0}
                   value={form.xp_reward}
-                  onChange={(e) => setForm((current) => ({ ...current, xp_reward: Number(e.target.value) }))}
+                  onChange={(e) =>
+                    setForm((current) => ({
+                      ...current,
+                      xp_reward: normalizeXpReward(Number(e.target.value)),
+                    }))
+                  }
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 />
               </label>
@@ -885,6 +1099,255 @@ export default function AdminCreateCoursePage() {
                       </p>
                     </div>
                   </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">Optional lesson quiz</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Add a scored quiz that will appear as the next lesson after this teaching lesson.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateLessonQuiz(activeModuleIndex, activeLessonIndex, {
+                          enabled: !currentLesson.quiz.enabled,
+                        })
+                      }
+                      className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
+                        currentLesson.quiz.enabled
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-slate-100 text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      {currentLesson.quiz.enabled ? "Quiz Enabled" : "Enable Quiz"}
+                    </button>
+                  </div>
+
+                  {currentLesson.quiz.enabled ? (
+                    <div className="mt-5 space-y-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <label className="space-y-2">
+                          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Quiz Title</span>
+                          <input
+                            type="text"
+                            value={currentLesson.quiz.title}
+                            onChange={(e) =>
+                              updateLessonQuiz(activeModuleIndex, activeLessonIndex, {
+                                title: e.target.value,
+                              })
+                            }
+                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          />
+                        </label>
+                        <label className="space-y-2">
+                          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Quiz Duration (minutes)</span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={currentLesson.quiz.duration}
+                            onChange={(e) =>
+                              updateLessonQuiz(activeModuleIndex, activeLessonIndex, {
+                                duration: Math.max(1, Number(e.target.value) || 1),
+                              })
+                            }
+                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <label className="space-y-2">
+                          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Passing Score (%)</span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={currentLesson.quiz.passingScore}
+                            onChange={(e) =>
+                              updateLessonQuiz(activeModuleIndex, activeLessonIndex, {
+                                passingScore: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                              })
+                            }
+                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          />
+                        </label>
+                        <label className="space-y-2">
+                          <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Quiz Summary</span>
+                          <textarea
+                            rows={3}
+                            value={currentLesson.quiz.summary}
+                            onChange={(e) =>
+                              updateLessonQuiz(activeModuleIndex, activeLessonIndex, {
+                                summary: e.target.value,
+                              })
+                            }
+                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold text-slate-900">Quiz questions</p>
+                          <button
+                            type="button"
+                            onClick={() => addQuizQuestion(activeModuleIndex, activeLessonIndex)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Add Question
+                          </button>
+                        </div>
+
+                        {currentLesson.quiz.questions.map((question, questionIndex) => {
+                          const displayedOptions =
+                            question.type === "true_false" ? ["True", "False"] : question.options;
+                          return (
+                            <div
+                              key={question.id}
+                              className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <p className="text-sm font-semibold text-slate-900">
+                                  Question {questionIndex + 1}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeQuizQuestion(activeModuleIndex, activeLessonIndex, questionIndex)
+                                  }
+                                  disabled={currentLesson.quiz.questions.length <= 1}
+                                  className="text-xs font-medium text-slate-500 transition-colors hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+
+                              <div className="mt-4 grid gap-4">
+                                <label className="space-y-2">
+                                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Question Prompt</span>
+                                  <textarea
+                                    rows={3}
+                                    value={question.prompt}
+                                    onChange={(e) =>
+                                      updateQuizQuestion(activeModuleIndex, activeLessonIndex, questionIndex, {
+                                        prompt: e.target.value,
+                                      })
+                                    }
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  />
+                                </label>
+
+                                <div className="grid gap-4 md:grid-cols-2">
+                                  <label className="space-y-2">
+                                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Question Type</span>
+                                    <select
+                                      value={question.type}
+                                      onChange={(e) =>
+                                        updateQuizQuestion(activeModuleIndex, activeLessonIndex, questionIndex, {
+                                          type: e.target.value as "multiple_choice" | "true_false",
+                                        })
+                                      }
+                                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                    >
+                                      <option value="multiple_choice">Multiple Choice</option>
+                                      <option value="true_false">True / False</option>
+                                    </select>
+                                  </label>
+                                  <label className="space-y-2">
+                                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Points</span>
+                                    <input
+                                      type="number"
+                                      min={1}
+                                      value={question.points}
+                                      onChange={(e) =>
+                                        updateQuizQuestion(activeModuleIndex, activeLessonIndex, questionIndex, {
+                                          points: Math.max(1, Number(e.target.value) || 1),
+                                        })
+                                      }
+                                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                    />
+                                  </label>
+                                </div>
+
+                                <div className="space-y-3">
+                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Answer Options</p>
+                                  {displayedOptions.map((option, optionIndex) => (
+                                    <div key={`${question.id}-option-${optionIndex}`} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px]">
+                                      <input
+                                        type="text"
+                                        value={question.type === "true_false" ? option : question.options[optionIndex] || ""}
+                                        disabled={question.type === "true_false"}
+                                        onChange={(e) => {
+                                          const nextOptions = [...question.options];
+                                          nextOptions[optionIndex] = e.target.value;
+                                          updateQuizQuestion(activeModuleIndex, activeLessonIndex, questionIndex, {
+                                            options: nextOptions,
+                                          });
+                                        }}
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none shadow-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-100 disabled:text-slate-500"
+                                      />
+                                      <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                                        <input
+                                          type="radio"
+                                          checked={question.correctOptionIndex === optionIndex}
+                                          onChange={() =>
+                                            updateQuizQuestion(activeModuleIndex, activeLessonIndex, questionIndex, {
+                                              correctOptionIndex: optionIndex,
+                                            })
+                                          }
+                                        />
+                                        Correct answer
+                                      </label>
+                                    </div>
+                                  ))}
+
+                                  {question.type === "multiple_choice" ? (
+                                    <div className="flex flex-wrap gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          updateQuizQuestion(activeModuleIndex, activeLessonIndex, questionIndex, {
+                                            options: [...question.options, `Option ${question.options.length + 1}`],
+                                          })
+                                        }
+                                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                                      >
+                                        Add Option
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (question.options.length <= 2) {
+                                            return;
+                                          }
+                                          const nextOptions = question.options.slice(0, -1);
+                                          updateQuizQuestion(activeModuleIndex, activeLessonIndex, questionIndex, {
+                                            options: nextOptions,
+                                            correctOptionIndex: Math.min(
+                                              question.correctOptionIndex,
+                                              nextOptions.length - 1
+                                            ),
+                                          });
+                                        }}
+                                        disabled={question.options.length <= 2}
+                                        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                      >
+                                        Remove Option
+                                      </button>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>

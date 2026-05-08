@@ -4,7 +4,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timezone
+from typing import Any
 
 import httpx
 from pydantic import BaseModel
@@ -20,10 +20,16 @@ DEFAULT_QUESTION = (
 )
 
 
+def _build_course_bank_id(tenant_id: str, course_id: str) -> str:
+    return f"tenant:{tenant_id}:course:{course_id}"
+
+
 class ChatCoachQuestionInput(BaseModel):
     tenantId: str
     courseId: str
+    userId: str | None = None
     question: str = DEFAULT_QUESTION
+    learnerContext: dict[str, object] | None = None
     hindsightApiUrl: str | None = None
     hindsightApiKey: str | None = None
 
@@ -85,22 +91,11 @@ def _select_supporting_memories(
         text = str(memory.get("text") or "")
         if not text.strip():
             continue
+
         memory_tokens = _tokenize(text)
         query_overlap = len(query_tokens & memory_tokens)
         answer_overlap = len(answer_tokens & memory_tokens)
-
-        bonus = 0
-        lowered = text.lower()
-        if "<nav>" in lowered:
-            bonus += 5
-        if "navigation" in lowered:
-            bonus += 4
-        if "alt attribute" in lowered or "src attribute" in lowered:
-            bonus += 6
-        if "correct answer" in lowered:
-            bonus += 2
-
-        score = (query_overlap * 4) + (answer_overlap * 2) + bonus
+        score = (query_overlap * 4) + (answer_overlap * 2)
         if score > 0:
             scored.append((score, memory))
 
@@ -108,22 +103,85 @@ def _select_supporting_memories(
     return [memory for _, memory in scored[:limit]]
 
 
-def ask_hindsight_reflect(step_input: StepInput) -> StepOutput:
+def _as_dict(value: object) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
+def _as_list(value: object) -> list[Any]:
+    return value if isinstance(value, list) else []
+
+
+def _clean_text(value: object) -> str:
+    return str(value or "").strip()
+
+
+def _format_structured_answer(payload: dict[str, Any]) -> str:
+    answer = _clean_text(payload.get("answer"))
+    why_this_matters = _clean_text(
+        payload.get("why_this_matters") or payload.get("whyThisMatters")
+    )
+    next_step = _clean_text(payload.get("next_step") or payload.get("nextStep"))
+
+    sections: list[str] = []
+    if answer:
+        sections.append(f"Answer:\n{answer}")
+    if why_this_matters:
+        sections.append(f"Why this matters:\n{why_this_matters}")
+    if next_step:
+        sections.append(f"Next step:\n{next_step}")
+
+    return "\n\n".join(sections).strip()
+
+
+def _extract_answer_text(raw_answer: str) -> str:
+    text = raw_answer.strip()
+
+    candidate_json = text
+    if text.lower().startswith("answer:"):
+        candidate_json = text.split(":", 1)[1].strip()
+
+    parsed = None
+    decoder = json.JSONDecoder()
+
+    for candidate in (candidate_json, text):
+        brace_index = candidate.find("{")
+        if brace_index < 0:
+            continue
+        try:
+            parsed, _ = decoder.raw_decode(candidate[brace_index:])
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, dict):
+            formatted = _format_structured_answer(parsed)
+            if formatted:
+                return formatted
+
+    if text.startswith("{") and text.endswith("}"):
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, dict):
+            formatted = _format_structured_answer(parsed)
+            if formatted:
+                return formatted
+    return text
+
+
+def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
     payload = ChatCoachQuestionInput.model_validate(step_input.input)
     hindsight_url = (payload.hindsightApiUrl or DEFAULT_HINDSIGHT_URL).rstrip("/")
     hindsight_api_key = payload.hindsightApiKey or DEFAULT_HINDSIGHT_API_KEY
-    bank_id = f"tenant:{payload.tenantId}:courses"
-    tags = [f"course:{payload.courseId}"]
-
+    bank_id = _build_course_bank_id(payload.tenantId, payload.courseId)
     reflect_payload = {
         "query": payload.question,
         "budget": "low",
-        "max_tokens": 500,
+        "max_tokens": 650,
         "include": {
             "facts": {},
             "tool_calls": {"output": False},
         },
-        "tags": tags,
+        "tags": [f"course:{payload.courseId}"],
         "tags_match": "all_strict",
     }
 
@@ -131,17 +189,21 @@ def ask_hindsight_reflect(step_input: StepInput) -> StepOutput:
     if hindsight_api_key:
         headers["Authorization"] = f"Bearer {hindsight_api_key}"
 
-    _log("")
-    _log("============================================================")
-    _log("[Agno Chat Coach Agent] Request received")
-    _log("- Workflow: chat-coach-agent")
-    _log("- Action: ask_hindsight_course_question")
-    _log(f"- Time: {datetime.now(timezone.utc).isoformat()}")
-    _log(f"- Tenant ID: {payload.tenantId}")
-    _log(f"- Course ID: {payload.courseId}")
-    _log(f"- Target bank ID: {bank_id}")
-    _log("[Agno Chat Coach Agent] Reflect payload that will be sent to Hindsight:")
-    _log(json.dumps(reflect_payload, indent=2, ensure_ascii=False))
+    _log("[Agno Chat Coach Agent] Hindsight request prepared.")
+    _log(
+        json.dumps(
+            {
+                "tenantId": payload.tenantId,
+                "userId": payload.userId,
+                "courseId": payload.courseId,
+                "bankId": bank_id,
+                "question": payload.question,
+                "reflectPayload": reflect_payload,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
 
     with httpx.Client(timeout=90.0) as client:
         response = client.post(
@@ -151,11 +213,6 @@ def ask_hindsight_reflect(step_input: StepInput) -> StepOutput:
         )
 
     if response.status_code >= 400:
-        _log("[Agno Chat Coach Agent] Hindsight reflect failed.")
-        _log(f"- Status: {response.status_code}")
-        _log(f"- Body: {response.text}")
-        _log("============================================================")
-        _log("")
         return StepOutput(
             content={
                 "success": False,
@@ -163,6 +220,7 @@ def ask_hindsight_reflect(step_input: StepInput) -> StepOutput:
                 "action": "ask_hindsight_course_question",
                 "tenantId": payload.tenantId,
                 "courseId": payload.courseId,
+                "userId": payload.userId,
                 "bankId": bank_id,
                 "question": payload.question,
                 "error": f"Hindsight reflect returned status {response.status_code}",
@@ -171,23 +229,20 @@ def ask_hindsight_reflect(step_input: StepInput) -> StepOutput:
         )
 
     result = response.json()
-    based_on = result.get("based_on") or {}
-    memories = based_on.get("memories") or []
-    answer = str(result.get("text") or "")
+    based_on = _as_dict(result.get("based_on"))
+    memories = [memory for memory in _as_list(based_on.get("memories")) if isinstance(memory, dict)]
+    raw_answer = str(result.get("text") or "")
+    answer = _extract_answer_text(raw_answer) or "I could not find a grounded answer in the course memory."
     supporting_memories = _select_supporting_memories(
-        [memory for memory in memories if isinstance(memory, dict)],
+        memories,
         query=payload.question,
         answer=answer,
     )
 
     _log("[Agno Chat Coach Agent] Hindsight answer:")
-    _log(answer.strip() or "(empty)")
-    _log("[Agno Chat Coach Agent] Proof from retained course memories (based_on.memories):")
+    _log(answer)
+    _log("[Agno Chat Coach Agent] Supporting memories selected:")
     _log(json.dumps(supporting_memories or memories, indent=2, ensure_ascii=False))
-    _log("[Agno Chat Coach Agent] Tool trace:")
-    _log(json.dumps((result.get("trace") or {}).get("tool_calls") or [], indent=2, ensure_ascii=False))
-    _log("============================================================")
-    _log("")
 
     return StepOutput(
         content={
@@ -196,6 +251,7 @@ def ask_hindsight_reflect(step_input: StepInput) -> StepOutput:
             "action": "ask_hindsight_course_question",
             "tenantId": payload.tenantId,
             "courseId": payload.courseId,
+            "userId": payload.userId,
             "bankId": bank_id,
             "question": payload.question,
             "answer": answer,
@@ -211,13 +267,13 @@ def ask_hindsight_reflect(step_input: StepInput) -> StepOutput:
 chat_coach_workflow = Workflow(
     name="chat-coach-agent",
     description=(
-        "Separate AgentOS workflow that asks Hindsight a course question against the tenant course bank "
-        "and returns the answer plus retrieved evidence."
+        "Separate AgentOS workflow that sends the learner question to Hindsight, retrieves the most relevant "
+        "course memories for the tenant-course bank, and returns a grounded answer."
     ),
     steps=[
         Step(
             name="ask-hindsight-course-question",
-            executor=ask_hindsight_reflect,
-        )
+            executor=ask_hindsight_course_question,
+        ),
     ],
 )

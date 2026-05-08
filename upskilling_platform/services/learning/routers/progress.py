@@ -14,6 +14,7 @@ from common.models import Enrollment, Lesson, Module, User, UserProgress
 from common.messaging import RabbitMQClient
 from services.learning.services.video_progress import VideoProgressService
 from services.learning.services.text_progress import TextProgressService
+from services.learning.services.learner_context import touch_lesson_context
 
 router = APIRouter(prefix="/progress", tags=["progress"])
 security = HTTPBearer()
@@ -161,6 +162,13 @@ def update_progress(
         if "time_spent" in progress_data:
             progress.time_spent = progress_data["time_spent"]
 
+    touch_lesson_context(
+        db,
+        user_id=user_id,
+        lesson_id=lesson_id,
+        mark_completed=progress.status == "completed",
+    )
+
     db.commit()
     db.refresh(progress)
 
@@ -235,6 +243,7 @@ def complete_lesson(
 
     progress.status = "completed"
     progress.completed_at = datetime.utcnow()
+    touch_lesson_context(db, user_id=user_id, lesson_id=lesson_id, mark_completed=True)
     db.commit()
     db.refresh(progress)
 

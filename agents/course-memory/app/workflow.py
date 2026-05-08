@@ -54,6 +54,14 @@ def _sanitize_string_dict(source: dict[str, Any]) -> dict[str, str]:
     return result
 
 
+def _build_course_bank_id(tenant_id: str, course_id: str) -> str:
+    return f"tenant:{tenant_id}:course:{course_id}"
+
+
+def _build_learning_endpoint(learning_api_url: str, suffix: str) -> str:
+    return f"{learning_api_url.rstrip('/')}/{suffix.lstrip('/')}"
+
+
 def _normalize_supplemental_sources(raw_sources: Any) -> list[dict[str, str]]:
     normalized: list[dict[str, str]] = []
     if not isinstance(raw_sources, list):
@@ -78,6 +86,92 @@ def _normalize_supplemental_sources(raw_sources: Any) -> list[dict[str, str]]:
         )
 
     return normalized
+
+
+def _extract_supplemental_source_from_document_text(document_text: str) -> dict[str, str] | None:
+    normalized_text = str(document_text or "").strip()
+    if not normalized_text:
+        return None
+
+    lines = [line.strip() for line in normalized_text.splitlines() if line.strip()]
+    if len(lines) < 3:
+        return None
+
+    source_title_line = next(
+        (line for line in lines if line.startswith("Supplemental Course Source:")),
+        "",
+    )
+    if not source_title_line:
+        return None
+
+    title = _normalize_text(source_title_line.split(":", 1)[1] if ":" in source_title_line else "")
+    source_text_lines = lines[lines.index(source_title_line) + 1 :]
+    source_text = _normalize_text("\n".join(source_text_lines))
+    if not source_text:
+        return None
+
+    return {
+        "title": title or "Recovered Supplemental Source",
+        "kind": "supplemental_course_source",
+        "text": source_text,
+    }
+
+
+def _load_existing_supplemental_sources(
+    *,
+    tenant_id: str,
+    course_id: str,
+    hindsight_url: str,
+    hindsight_api_key: str,
+) -> list[dict[str, str]]:
+    if not tenant_id or not course_id:
+        return []
+
+    bank_id = _build_course_bank_id(tenant_id, course_id)
+    headers = {"Content-Type": "application/json"}
+    if hindsight_api_key:
+        headers["Authorization"] = f"Bearer {hindsight_api_key}"
+
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            list_response = client.get(
+                f"{hindsight_url.rstrip('/')}/v1/default/banks/{bank_id}/documents",
+                headers=headers,
+                params={"limit": 200, "offset": 0},
+            )
+            if list_response.status_code >= 400:
+                return []
+
+            list_payload = list_response.json()
+            raw_items = list_payload.get("items") if isinstance(list_payload, dict) else []
+            document_ids = [
+                str(item.get("id") or "").strip()
+                for item in raw_items
+                if isinstance(item, dict) and ":source:" in str(item.get("id") or "")
+            ]
+
+            recovered_sources: list[dict[str, str]] = []
+            for document_id in document_ids:
+                detail_response = client.get(
+                    f"{hindsight_url.rstrip('/')}/v1/default/banks/{bank_id}/documents/{document_id}",
+                    headers=headers,
+                )
+                if detail_response.status_code >= 400:
+                    continue
+
+                detail_payload = detail_response.json()
+                if not isinstance(detail_payload, dict):
+                    continue
+
+                recovered = _extract_supplemental_source_from_document_text(
+                    str(detail_payload.get("original_text") or "")
+                )
+                if recovered:
+                    recovered_sources.append(recovered)
+
+            return recovered_sources
+    except (httpx.HTTPError, ValueError):
+        return []
 
 
 def _parse_lesson_content(raw_content: Any) -> Any:
@@ -152,12 +246,199 @@ def _summarize_lesson_for_retain(lesson: dict[str, Any]) -> str:
         lines.append("Quiz Knowledge:")
         for quiz in lesson["quizQuestions"]:
             lines.append(f"- Question: {quiz.get('question')}")
+            if quiz.get("options"):
+                lines.append(f"  Answer Options: {', '.join(str(option) for option in quiz['options'])}")
             if quiz.get("correctAnswer"):
                 lines.append(f"  Correct Answer: {', '.join(quiz['correctAnswer'])}")
             if quiz.get("analysis"):
                 lines.append(f"  Explanation: {quiz['analysis']}")
 
     return "\n".join(line for line in lines if line.strip())
+
+
+def _build_traditional_payload(
+    course: dict[str, Any],
+    payload: CourseMemoryAssemblyInput,
+    modules_summary: list[dict[str, Any]],
+    lessons: list[dict[str, Any]],
+    quizzes: list[dict[str, Any]],
+    explanations: list[str],
+    supplemental_sources: list[dict[str, str]],
+) -> dict[str, Any]:
+    return {
+        "courseId": course.get("id"),
+        "tenantId": course.get("tenant_id") or payload.tenantId,
+        "requesterUserId": payload.requesterUserId,
+        "requesterName": payload.requesterName,
+        "title": course.get("title"),
+        "description": course.get("description"),
+        "category": course.get("category"),
+        "difficulty": course.get("difficulty"),
+        "duration": course.get("duration"),
+        "xpReward": course.get("xp_reward"),
+        "modulesCount": len(modules_summary),
+        "modules": modules_summary,
+        "contentStrategy": "traditional",
+        "lessons": lessons,
+        "quizzes": quizzes,
+        "teacherParoles": [],
+        "explanations": explanations,
+        "teacherParolesCount": 0,
+        "explanationsCount": len(explanations),
+        "lessonsCount": len(lessons),
+        "quizzesCount": len(quizzes),
+        "supplementalSources": supplemental_sources,
+    }
+
+
+def _load_traditional_quiz_questions(
+    client: httpx.Client,
+    payload: CourseMemoryAssemblyInput,
+    course_id: str,
+    assessment_id: str,
+) -> list[dict[str, Any]]:
+    questions_url = _build_learning_endpoint(
+        payload.learningApiUrl,
+        f"assessments/{assessment_id}/memory-questions",
+    )
+    response = client.get(
+        questions_url,
+        headers={"Authorization": f"Bearer {payload.authToken}"},
+    )
+    if response.status_code >= 400:
+        _log("[Agno Course Memory Agent] Failed to load traditional quiz questions from the learning API.")
+        _log(f"- Course ID: {course_id}")
+        _log(f"- Assessment ID: {assessment_id}")
+        _log(f"- Learning API status: {response.status_code}")
+        return []
+
+    raw_questions = response.json()
+    if not isinstance(raw_questions, list):
+        return []
+
+    normalized_questions: list[dict[str, Any]] = []
+    for question in raw_questions:
+        if not isinstance(question, dict):
+            continue
+
+        normalized_questions.append(
+            {
+                "questionId": question.get("id"),
+                "question": _normalize_text(question.get("text") or ""),
+                "correctAnswer": [
+                    str(question.get("correct_answer") or "").strip()
+                ]
+                if str(question.get("correct_answer") or "").strip()
+                else [],
+                "analysis": "",
+                "options": [
+                    str(option).strip()
+                    for option in (question.get("options") or [])
+                    if str(option).strip()
+                ],
+            }
+        )
+
+    return normalized_questions
+
+
+def _normalize_preloaded_quiz_questions(raw_questions: Any) -> list[dict[str, Any]]:
+    if not isinstance(raw_questions, list):
+        return []
+
+    normalized_questions: list[dict[str, Any]] = []
+    for question in raw_questions:
+        if not isinstance(question, dict):
+            continue
+
+        options = [
+            str(option).strip()
+            for option in (question.get("options") or [])
+            if str(option).strip()
+        ]
+        correct_answer = str(question.get("correct_answer") or question.get("correctAnswer") or "").strip()
+        normalized_questions.append(
+            {
+                "questionId": question.get("id") or question.get("questionId"),
+                "question": _normalize_text(question.get("text") or question.get("question") or ""),
+                "correctAnswer": [correct_answer] if correct_answer else [],
+                "analysis": _normalize_text(question.get("analysis") or ""),
+                "options": options,
+            }
+        )
+
+    return normalized_questions
+
+
+def _load_course_assessments(
+    client: httpx.Client,
+    payload: CourseMemoryAssemblyInput,
+) -> list[dict[str, Any]]:
+    assessments_url = _build_learning_endpoint(payload.learningApiUrl, "assessments")
+    response = client.get(
+        assessments_url,
+        headers={"Authorization": f"Bearer {payload.authToken}"},
+    )
+    if response.status_code >= 400:
+        _log("[Agno Course Memory Agent] Failed to load traditional course assessments from the learning API.")
+        _log(f"- Learning API status: {response.status_code}")
+        return []
+
+    data = response.json()
+    return data if isinstance(data, list) else []
+
+
+def _normalize_match_key(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def _resolve_traditional_assessment_id(
+    lesson: dict[str, Any],
+    module_id: str,
+    course_assessments: list[dict[str, Any]],
+    used_assessment_ids: set[str],
+) -> str:
+    explicit_assessment_id = str(lesson.get("assessment_id") or "").strip()
+    if explicit_assessment_id:
+        return explicit_assessment_id
+
+    lesson_content_type = str(lesson.get("content_type") or lesson.get("contentType") or "").strip().lower()
+    if lesson_content_type != "quiz":
+        return ""
+
+    lesson_title = _normalize_match_key(lesson.get("title") or "")
+    module_assessments = [
+        assessment
+        for assessment in course_assessments
+        if str(assessment.get("module_id") or "").strip() == module_id
+    ]
+
+    exact_title_match = [
+        assessment
+        for assessment in module_assessments
+        if _normalize_match_key(assessment.get("title") or "") == lesson_title
+        and str(assessment.get("id") or "").strip() not in used_assessment_ids
+    ]
+    if exact_title_match:
+        return str(exact_title_match[0].get("id") or "").strip()
+
+    unused_module_assessments = [
+        assessment
+        for assessment in module_assessments
+        if str(assessment.get("id") or "").strip() not in used_assessment_ids
+    ]
+    if len(unused_module_assessments) == 1:
+        return str(unused_module_assessments[0].get("id") or "").strip()
+
+    quiz_named_match = [
+        assessment
+        for assessment in unused_module_assessments
+        if "quiz" in _normalize_match_key(assessment.get("title") or "")
+    ]
+    if len(quiz_named_match) == 1:
+        return str(quiz_named_match[0].get("id") or "").strip()
+
+    return ""
 
 
 def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
@@ -171,11 +452,21 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
     _log(f"- Time: {datetime.now(timezone.utc).isoformat()}")
     _log(f"- Course ID: {payload.courseId}")
 
+    memory_curriculum_url = _build_learning_endpoint(payload.learningApiUrl, "memory-curriculum")
+
     with httpx.Client(timeout=60.0) as client:
         response = client.get(
-            payload.learningApiUrl,
+            memory_curriculum_url,
             headers={"Authorization": f"Bearer {payload.authToken}"},
         )
+
+        if response.status_code >= 400:
+            _log("[Agno Course Memory Agent] Memory curriculum endpoint unavailable, falling back to the published course endpoint.")
+            _log(f"- Learning API status: {response.status_code}")
+            response = client.get(
+                payload.learningApiUrl,
+                headers={"Authorization": f"Bearer {payload.authToken}"},
+            )
 
     if response.status_code >= 400:
         _log("[Agno Course Memory Agent] Failed to load the published course from the learning API.")
@@ -195,11 +486,20 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
     course = response.json()
     modules = course.get("modules") or []
 
-    assembled_lessons: list[dict[str, Any]] = []
-    assembled_quizzes: list[dict[str, Any]] = []
-    teacher_paroles: list[str] = []
-    explanations: list[str] = []
     supplemental_sources = _normalize_supplemental_sources(payload.supplementalSources)
+    effective_tenant_id = str(course.get("tenant_id") or payload.tenantId or "").strip()
+    if not supplemental_sources and effective_tenant_id:
+        recovered_sources = _load_existing_supplemental_sources(
+            tenant_id=effective_tenant_id,
+            course_id=str(course.get("id") or payload.courseId),
+            hindsight_url=payload.hindsightApiUrl or DEFAULT_HINDSIGHT_URL,
+            hindsight_api_key=payload.hindsightApiKey or DEFAULT_HINDSIGHT_API_KEY,
+        )
+        if recovered_sources:
+            supplemental_sources = recovered_sources
+            _log(
+                f"[Agno Course Memory Agent] Recovered {len(recovered_sources)} supplemental course source(s) from Hindsight for course {payload.courseId}."
+            )
     modules_summary: list[dict[str, Any]] = []
     is_ai_generated = False
 
@@ -220,6 +520,124 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
             parsed_content = _parse_lesson_content(lesson.get("content"))
             if _looks_like_ai_generated_content(parsed_content):
                 is_ai_generated = True
+                break
+        if is_ai_generated:
+            break
+
+    if not is_ai_generated:
+        assembled_lessons: list[dict[str, Any]] = []
+        assembled_quizzes: list[dict[str, Any]] = []
+        explanations: list[str] = []
+
+        with httpx.Client(timeout=60.0) as client:
+            course_assessments = _load_course_assessments(client=client, payload=payload)
+            used_assessment_ids: set[str] = set()
+            for module in modules:
+                module_id = module.get("id")
+                module_title = module.get("title")
+                for lesson in module.get("lessons") or []:
+                    lesson_content = _normalize_text(lesson.get("content") or "")
+                    lesson_quizzes = _normalize_preloaded_quiz_questions(
+                        lesson.get("quiz_questions") or lesson.get("quizQuestions")
+                    )
+
+                    assessment_id = str(lesson.get("assessment_id") or lesson.get("assessmentId") or "").strip()
+
+                    if not assessment_id:
+                        assessment_id = _resolve_traditional_assessment_id(
+                            lesson=lesson,
+                            module_id=str(module_id or "").strip(),
+                            course_assessments=course_assessments,
+                            used_assessment_ids=used_assessment_ids,
+                        )
+
+                    if assessment_id and not lesson_quizzes:
+                        used_assessment_ids.add(assessment_id)
+                        lesson_quizzes = _load_traditional_quiz_questions(
+                            client=client,
+                            payload=payload,
+                            course_id=str(course.get("id") or ""),
+                            assessment_id=assessment_id,
+                        )
+                    elif assessment_id:
+                        used_assessment_ids.add(assessment_id)
+
+                    for quiz in lesson_quizzes:
+                        assembled_quizzes.append(
+                            {
+                                **quiz,
+                                "lessonId": lesson.get("id"),
+                                "lessonTitle": lesson.get("title"),
+                                "moduleId": module_id,
+                                "moduleTitle": module_title,
+                            }
+                        )
+
+                    lesson_explanations = [lesson_content] if lesson_content else []
+                    explanations.extend(lesson_explanations)
+
+                    assembled_lessons.append(
+                        {
+                            "lessonId": lesson.get("id"),
+                            "moduleId": module_id,
+                            "moduleTitle": module_title,
+                            "courseId": course.get("id"),
+                            "courseTitle": course.get("title"),
+                            "title": lesson.get("title"),
+                            "contentType": lesson.get("content_type"),
+                            "assessmentId": assessment_id or None,
+                            "duration": lesson.get("duration"),
+                            "teacherParoles": [],
+                            "explanations": lesson_explanations,
+                            "quizQuestions": lesson_quizzes,
+                        }
+                    )
+
+        assembled_payload = _build_traditional_payload(
+            course=course,
+            payload=payload,
+            modules_summary=modules_summary,
+            lessons=assembled_lessons,
+            quizzes=assembled_quizzes,
+            explanations=explanations,
+            supplemental_sources=supplemental_sources,
+        )
+
+        _log("[Agno Course Memory Agent] Step 1 complete: course content assembled.")
+        _log("[Agno Course Memory Agent] Detected course strategy: Traditional course.")
+        _log(f"- Course title: {assembled_payload['title']}")
+        _log(f"- Tenant ID: {assembled_payload['tenantId']}")
+        _log(f"- Modules collected: {assembled_payload['modulesCount']}")
+        _log(f"- Lessons collected: {assembled_payload['lessonsCount']}")
+        _log(f"- Quizzes collected: {assembled_payload['quizzesCount']}")
+        _log(f"- Supplemental sources collected: {len(supplemental_sources)}")
+        _log("[Agno Course Memory Agent] Full assembled payload:")
+        _log(json.dumps(assembled_payload, ensure_ascii=False, indent=2))
+
+        return StepOutput(
+            content={
+                "success": True,
+                "workflowName": "course-memory-agent",
+                "action": "assemble_published_course",
+                "courseId": payload.courseId,
+                "learningApiUrl": payload.learningApiUrl,
+                "assembledPayload": assembled_payload,
+                "hindsightApiUrl": payload.hindsightApiUrl or DEFAULT_HINDSIGHT_URL,
+                "hindsightApiKey": payload.hindsightApiKey or DEFAULT_HINDSIGHT_API_KEY,
+            },
+            success=True,
+        )
+
+    assembled_lessons: list[dict[str, Any]] = []
+    assembled_quizzes: list[dict[str, Any]] = []
+    teacher_paroles: list[str] = []
+    explanations: list[str] = []
+
+    for module in modules:
+        module_id = module.get("id")
+        module_title = module.get("title")
+        for lesson in module.get("lessons") or []:
+            parsed_content = _parse_lesson_content(lesson.get("content"))
             lesson_teacher_paroles: list[str] = []
             lesson_explanations: list[str] = []
             lesson_quizzes: list[dict[str, Any]] = []
@@ -269,11 +687,6 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
                                     "moduleTitle": module_title,
                                 }
                             )
-            elif isinstance(parsed_content, str):
-                text = _normalize_text(parsed_content)
-                if text:
-                    lesson_explanations.append(text)
-                    explanations.append(text)
 
             assembled_lessons.append(
                 {
@@ -317,6 +730,9 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
     }
 
     _log("[Agno Course Memory Agent] Step 1 complete: course content assembled.")
+    _log(
+        f"[Agno Course Memory Agent] Detected course strategy: {'AI-generated course' if is_ai_generated else 'Traditional course'}."
+    )
     _log(f"- Course title: {assembled_payload['title']}")
     _log(f"- Tenant ID: {assembled_payload['tenantId']}")
     _log(f"- Modules collected: {assembled_payload['modulesCount']}")
@@ -359,6 +775,37 @@ def clean_course_content(step_input: StepInput) -> StepOutput:
             error="Assembled course payload is invalid.",
         )
 
+    if str(assembled_payload.get("contentStrategy") or "").strip() == "traditional":
+        _log("[Agno Course Memory Agent] Traditional course detected: skipping presentation-noise cleanup.")
+        cleaned_payload = {
+            "courseId": assembled_payload.get("courseId"),
+            "tenantId": assembled_payload.get("tenantId"),
+            "requesterUserId": assembled_payload.get("requesterUserId"),
+            "requesterName": assembled_payload.get("requesterName"),
+            "title": assembled_payload.get("title"),
+            "description": _normalize_text(assembled_payload.get("description") or ""),
+            "category": assembled_payload.get("category"),
+            "difficulty": assembled_payload.get("difficulty"),
+            "duration": assembled_payload.get("duration"),
+            "xpReward": assembled_payload.get("xpReward"),
+            "modulesCount": assembled_payload.get("modulesCount"),
+            "modules": assembled_payload.get("modules") or [],
+            "contentStrategy": "traditional",
+            "lessons": assembled_payload.get("lessons") or [],
+            "supplementalSources": _normalize_supplemental_sources(
+                assembled_payload.get("supplementalSources")
+            ),
+        }
+
+        return StepOutput(
+            content={
+                **previous_content,
+                "action": "clean_course_content",
+                "cleanedPayload": cleaned_payload,
+            },
+            success=True,
+        )
+
     cleaned_lessons: list[dict[str, Any]] = []
     for lesson in assembled_payload.get("lessons") or []:
         if not isinstance(lesson, dict):
@@ -371,6 +818,7 @@ def clean_course_content(step_input: StepInput) -> StepOutput:
             "courseTitle": lesson.get("courseTitle"),
             "title": lesson.get("title"),
             "contentType": lesson.get("contentType"),
+            "assessmentId": lesson.get("assessmentId"),
             "duration": lesson.get("duration"),
             "teacherParoles": [
                 _normalize_text(text)
@@ -511,6 +959,10 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
         }
     )
 
+    _log(
+        f"[Agno Course Memory Agent] Building retention documents for {'AI-generated course' if content_strategy == 'ai_generated' else 'traditional course'}."
+    )
+
     for index, source in enumerate(cleaned_payload.get("supplementalSources") or []):
         if not isinstance(source, dict):
             continue
@@ -550,24 +1002,12 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
         )
 
     if content_strategy != "ai_generated":
-        _log("[Agno Course Memory Agent] Traditional course detected: retaining course metadata and private source documents.")
+        _log("[Agno Course Memory Agent] Traditional course detected: retaining course metadata, lesson knowledge, quiz knowledge, and private source documents.")
         _log(f"- Supplemental sources: {len(cleaned_payload.get('supplementalSources') or [])}")
         _log(f"- Modules: {len(module_titles)}")
+        _log(f"- Lessons: {len(cleaned_payload.get('lessons') or [])}")
         _log(f"- XP reward: {cleaned_payload.get('xpReward')}")
         _log(f"- Duration: {cleaned_payload.get('duration')}")
-        _log("[Agno Course Memory Agent] Step 3 complete: retention documents prepared.")
-        _log(f"- Documents prepared for retain: {len(documents)}")
-        _log("[Agno Course Memory Agent] Retention documents preview:")
-        _log(json.dumps(documents, ensure_ascii=False, indent=2))
-
-        return StepOutput(
-            content={
-                **previous_content,
-                "action": "build_retention_documents",
-                "retentionDocuments": documents,
-            },
-            success=True,
-        )
 
     for lesson in cleaned_payload.get("lessons") or []:
         if not isinstance(lesson, dict):
@@ -589,6 +1029,7 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
                     "lessonTitle": lesson_title,
                     "moduleId": lesson.get("moduleId"),
                     "moduleTitle": lesson.get("moduleTitle"),
+                    "assessmentId": lesson.get("assessmentId"),
                     "contentType": str(lesson.get("contentType") or "lesson_knowledge"),
                 }
             ),
@@ -610,6 +1051,9 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
                 f"Lesson Title: {lesson_title}",
                 f"Quiz Question: {quiz.get('question')}",
             ]
+            options = [str(option).strip() for option in (quiz.get("options") or []) if str(option).strip()]
+            if options:
+                lines.append(f"Answer Options: {', '.join(options)}")
             correct_answer = quiz.get("correctAnswer") or []
             if correct_answer:
                 lines.append(f"Correct Answer: {', '.join(correct_answer)}")
@@ -685,17 +1129,25 @@ def retain_documents_in_hindsight(step_input: StepInput) -> StepOutput:
             error="Tenant ID is required to resolve the company bank.",
         )
 
-    bank_id = f"tenant:{tenant_id}:courses"
-    bank_name = f"Tenant {tenant_id} Courses"
+    course_id = str(cleaned_payload.get("courseId") or "").strip()
+    if not course_id:
+        return StepOutput(
+            content={"success": False, "error": "Course ID is required to resolve the course bank."},
+            success=False,
+            error="Course ID is required to resolve the course bank.",
+        )
+
+    bank_id = _build_course_bank_id(tenant_id, course_id)
+    bank_name = f"Tenant {tenant_id} Course {course_id}"
     bank_body = {
         "name": bank_name,
-        "background": f"Published course knowledge for tenant {tenant_id}.",
+        "background": f"Published course knowledge for course {course_id} in tenant {tenant_id}.",
         "retain_mission": (
-            "Store published course knowledge, quiz answers, and teacher explanations so future "
-            "course support agents can answer learner questions accurately."
+            "Store published course knowledge for this single course so future course support agents "
+            "can answer learner questions accurately without mixing other courses."
         ),
         "reflect_mission": (
-            "Answer course questions using retained published course knowledge for this tenant only."
+            "Answer course questions using retained published course knowledge for this course only."
         ),
     }
 
@@ -782,9 +1234,9 @@ def retain_documents_in_hindsight(step_input: StepInput) -> StepOutput:
     _log("[Agno Course Memory Agent] Hindsight retain response:")
     _log(json.dumps(retain_response_data, ensure_ascii=False, indent=2))
     if is_async:
-        _log("[Agno Course Memory Agent] Workflow complete: the course knowledge retain job is queued in the company bank.")
+        _log("[Agno Course Memory Agent] Workflow complete: the course knowledge retain job is queued in the dedicated course bank.")
     else:
-        _log("[Agno Course Memory Agent] Workflow complete: the course knowledge is now retained in the company bank.")
+        _log("[Agno Course Memory Agent] Workflow complete: the course knowledge is now retained in the dedicated course bank.")
     _log("============================================================")
     _log("")
 
@@ -807,7 +1259,7 @@ def retain_documents_in_hindsight(step_input: StepInput) -> StepOutput:
 
 course_memory_workflow = Workflow(
     name="course-memory-agent",
-    description="Separate AgentOS workflow that assembles the official course payload, cleans it, prepares course knowledge documents, and retains them in the company Hindsight bank.",
+    description="Separate AgentOS workflow that assembles the official course payload, cleans it, prepares course knowledge documents, and retains them in a dedicated Hindsight bank for one tenant course.",
     input_schema=CourseMemoryAssemblyInput,
     telemetry=False,
     steps=[
@@ -828,7 +1280,7 @@ course_memory_workflow = Workflow(
         ),
         Step(
             name="retain-documents-in-hindsight",
-            description="Resolve the tenant company bank and retain the prepared course knowledge documents in Hindsight.",
+            description="Resolve the dedicated tenant course bank and retain the prepared course knowledge documents in Hindsight.",
             executor=retain_documents_in_hindsight,
         ),
     ],

@@ -18,6 +18,7 @@ from common.models import (
     AICourseDraft,
     Base,
     CertificateVerificationAudit,
+    LearnerCourseContext,
     Skill,
     SkillEdge,
 )
@@ -89,6 +90,7 @@ async def initialize_storage() -> None:
         bind=engine,
         tables=[
             AICourseDraft.__table__,
+            LearnerCourseContext.__table__,
             Skill.__table__,
             SkillEdge.__table__,
             CertificateVerificationAudit.__table__,
@@ -125,6 +127,192 @@ async def initialize_storage() -> None:
             text(
                 "ALTER TABLE certificates ADD COLUMN IF NOT EXISTS status VARCHAR NOT NULL DEFAULT 'active'"
             )
+        )
+        connection.execute(
+            text("ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS wrong_answers JSONB")
+        )
+        connection.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS learner_course_contexts (
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    user_id UUID NOT NULL REFERENCES users(id),
+                    course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+                    current_lesson_id UUID NULL REFERENCES lessons(id) ON DELETE SET NULL,
+                    last_opened_lesson_id UUID NULL REFERENCES lessons(id) ON DELETE SET NULL,
+                    last_completed_lesson_id UUID NULL REFERENCES lessons(id) ON DELETE SET NULL,
+                    latest_quiz_score DOUBLE PRECISION NULL,
+                    latest_quiz_passed BOOLEAN NULL,
+                    latest_failed_quiz_lesson_id UUID NULL REFERENCES lessons(id) ON DELETE SET NULL,
+                    failed_quiz_count INTEGER NOT NULL DEFAULT 0,
+                    last_quiz_attempted_at TIMESTAMP NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    CONSTRAINT uq_learner_context_user_course UNIQUE (user_id, course_id)
+                )
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE INDEX IF NOT EXISTS ix_learner_course_contexts_user_id
+                ON learner_course_contexts (user_id)
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                CREATE INDEX IF NOT EXISTS ix_learner_course_contexts_course_id
+                ON learner_course_contexts (course_id)
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM information_schema.table_constraints
+                        WHERE constraint_name = 'learner_course_contexts_course_id_fkey'
+                          AND table_name = 'learner_course_contexts'
+                    ) THEN
+                        ALTER TABLE learner_course_contexts
+                        DROP CONSTRAINT learner_course_contexts_course_id_fkey;
+                    END IF;
+                EXCEPTION
+                    WHEN undefined_object THEN NULL;
+                END $$;
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                ALTER TABLE learner_course_contexts
+                ADD CONSTRAINT learner_course_contexts_course_id_fkey
+                FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+                """
+            ).execution_options(autocommit=True)
+        )
+        connection.execute(
+            text(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM information_schema.table_constraints
+                        WHERE constraint_name = 'learner_course_contexts_current_lesson_id_fkey'
+                          AND table_name = 'learner_course_contexts'
+                    ) THEN
+                        ALTER TABLE learner_course_contexts
+                        DROP CONSTRAINT learner_course_contexts_current_lesson_id_fkey;
+                    END IF;
+                EXCEPTION
+                    WHEN undefined_object THEN NULL;
+                END $$;
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                ALTER TABLE learner_course_contexts
+                ADD CONSTRAINT learner_course_contexts_current_lesson_id_fkey
+                FOREIGN KEY (current_lesson_id) REFERENCES lessons(id) ON DELETE SET NULL
+                """
+            ).execution_options(autocommit=True)
+        )
+        connection.execute(
+            text(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM information_schema.table_constraints
+                        WHERE constraint_name = 'learner_course_contexts_last_opened_lesson_id_fkey'
+                          AND table_name = 'learner_course_contexts'
+                    ) THEN
+                        ALTER TABLE learner_course_contexts
+                        DROP CONSTRAINT learner_course_contexts_last_opened_lesson_id_fkey;
+                    END IF;
+                EXCEPTION
+                    WHEN undefined_object THEN NULL;
+                END $$;
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                ALTER TABLE learner_course_contexts
+                ADD CONSTRAINT learner_course_contexts_last_opened_lesson_id_fkey
+                FOREIGN KEY (last_opened_lesson_id) REFERENCES lessons(id) ON DELETE SET NULL
+                """
+            ).execution_options(autocommit=True)
+        )
+        connection.execute(
+            text(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM information_schema.table_constraints
+                        WHERE constraint_name = 'learner_course_contexts_last_completed_lesson_id_fkey'
+                          AND table_name = 'learner_course_contexts'
+                    ) THEN
+                        ALTER TABLE learner_course_contexts
+                        DROP CONSTRAINT learner_course_contexts_last_completed_lesson_id_fkey;
+                    END IF;
+                EXCEPTION
+                    WHEN undefined_object THEN NULL;
+                END $$;
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                ALTER TABLE learner_course_contexts
+                ADD CONSTRAINT learner_course_contexts_last_completed_lesson_id_fkey
+                FOREIGN KEY (last_completed_lesson_id) REFERENCES lessons(id) ON DELETE SET NULL
+                """
+            ).execution_options(autocommit=True)
+        )
+        connection.execute(
+            text(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM information_schema.table_constraints
+                        WHERE constraint_name = 'learner_course_contexts_latest_failed_quiz_lesson_id_fkey'
+                          AND table_name = 'learner_course_contexts'
+                    ) THEN
+                        ALTER TABLE learner_course_contexts
+                        DROP CONSTRAINT learner_course_contexts_latest_failed_quiz_lesson_id_fkey;
+                    END IF;
+                EXCEPTION
+                    WHEN undefined_object THEN NULL;
+                END $$;
+                """
+            )
+        )
+        connection.execute(
+            text(
+                """
+                ALTER TABLE learner_course_contexts
+                ADD CONSTRAINT learner_course_contexts_latest_failed_quiz_lesson_id_fkey
+                FOREIGN KEY (latest_failed_quiz_lesson_id) REFERENCES lessons(id) ON DELETE SET NULL
+                """
+            ).execution_options(autocommit=True)
         )
         connection.execute(
             text(

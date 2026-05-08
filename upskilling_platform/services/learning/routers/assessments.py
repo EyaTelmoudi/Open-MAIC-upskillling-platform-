@@ -34,7 +34,9 @@ from services.learning.schemas.assessment import (
     AttemptResponse,
     AssessmentResultResponse,
     QuestionWithAnswerResponse,
+    QuestionAttemptReviewResponse,
 )
+from services.learning.services.learner_context import record_quiz_attempt_context
 
 router = APIRouter(prefix="/courses", tags=["assessments"])
 
@@ -127,6 +129,74 @@ def get_question_or_404(db: Session, question_id: UUID) -> Question:
     return question
 
 
+def _validate_assessment_course_access(
+    course_id: UUID,
+    assessment: Assessment,
+    user: User,
+    db: Session,
+) -> Module:
+    module = get_module_or_404(db, assessment.module_id)
+    if module.course_id != course_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assessment does not belong to this course",
+        )
+    if user.role != "SuperAdmin" and module.course.tenant_id != user.tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: course belongs to another tenant",
+        )
+    return module
+
+
+def _validate_question_payload(question_data: QuestionCreate | QuestionUpdate) -> None:
+    question_type = getattr(question_data, "type", None)
+    options = getattr(question_data, "options", None)
+    correct_answer = getattr(question_data, "correct_answer", None)
+
+    if question_type is not None and question_type not in [
+        QuestionType.multiple_choice.value,
+        QuestionType.true_false.value,
+    ]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Invalid question type. Must be "
+                f"'{QuestionType.multiple_choice.value}' or '{QuestionType.true_false.value}'"
+            ),
+        )
+
+    if options is not None:
+        normalized_options = [str(option).strip() for option in options if str(option).strip()]
+        if len(normalized_options) < 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Each question must provide at least two answer options",
+            )
+        if len(set(normalized_options)) != len(normalized_options):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Answer options must be unique",
+            )
+
+        if question_type == QuestionType.true_false.value:
+            if {option.lower() for option in normalized_options} != {"true", "false"}:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="True/false questions must use exactly 'True' and 'False' as options",
+                )
+
+    if correct_answer is not None and options is not None and correct_answer not in options:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Correct answer must be one of the options",
+        )
+
+
+def _normalize_question_options(options: list[str]) -> list[str]:
+    return [str(option).strip() for option in options if str(option).strip()]
+
+
 # ============ Assessment Endpoints ============
 
 
@@ -137,9 +207,17 @@ def list_assessments(
     db: Session = Depends(get_db),
 ):
     """List all assessments for a course (LearningExpert+ only)."""
+    require_learning_expert(current_user)
+    user_info = _get_user_from_payload(current_user, db)
     assessments = (
         db.query(Assessment).join(Module).filter(Module.course_id == course_id).all()
     )
+    if user_info.role != "SuperAdmin":
+        assessments = [
+            assessment
+            for assessment in assessments
+            if assessment.module.course.tenant_id == user_info.tenant_id
+        ]
     return assessments
 
 
@@ -192,14 +270,9 @@ def get_assessment(
 ):
     """Get assessment details with questions (LearningExpert+ only). Tenant-scoped."""
     user_info = _get_user_from_payload(current_user, db)
+    require_learning_expert(current_user)
     assessment = get_assessment_or_404(db, assessment_id)
-    module = get_module_or_404(db, assessment.module_id)
-
-    if user_info.role != "SuperAdmin" and module.course.tenant_id != user_info.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied: course belongs to another tenant"
-        )
+    _validate_assessment_course_access(assessment.module.course_id, assessment, user_info, db)
 
     return assessment
 
@@ -215,13 +288,7 @@ def update_assessment(
     user_info = _get_user_from_payload(current_user, db)
     require_learning_expert(current_user)
     assessment = get_assessment_or_404(db, assessment_id)
-    module = get_module_or_404(db, assessment.module_id)
-
-    if user_info.role != "SuperAdmin" and module.course.tenant_id != user_info.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied: course belongs to another tenant"
-        )
+    _validate_assessment_course_access(assessment.module.course_id, assessment, user_info, db)
 
     update_dict = assessment_data.model_dump(exclude_unset=True)
     for field, value in update_dict.items():
@@ -242,13 +309,7 @@ def delete_assessment(
     user_info = _get_user_from_payload(current_user, db)
     require_learning_expert(current_user)
     assessment = get_assessment_or_404(db, assessment_id)
-    module = get_module_or_404(db, assessment.module_id)
-
-    if user_info.role != "SuperAdmin" and module.course.tenant_id != user_info.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied: course belongs to another tenant"
-        )
+    _validate_assessment_course_access(assessment.module.course_id, assessment, user_info, db)
 
     db.delete(assessment)
     db.commit()
@@ -256,31 +317,6 @@ def delete_assessment(
 
 
 # ============ Question Endpoints ============
-
-
-@router.get(
-    "/{course_id}/assessments/{assessment_id}/questions",
-    response_model=list[QuestionPublicResponse],
-)
-def list_questions(
-    course_id: UUID,
-    assessment_id: UUID,
-    current_user: dict = Depends(get_current_user_from_token),
-    db: Session = Depends(get_db),
-):
-    """List all questions for an assessment (LearningExpert+ only).
-
-    Note: Uses QuestionPublicResponse - does NOT expose correct_answer to client.
-    """
-    require_learning_expert(current_user)
-    assessment = get_assessment_or_404(db, assessment_id)
-    questions = (
-        db.query(Question)
-        .filter(Question.assessment_id == assessment_id)
-        .order_by(Question.order)
-        .all()
-    )
-    return questions
 
 
 @router.post(
@@ -299,31 +335,19 @@ def create_question(
 
     Note: Uses QuestionPublicResponse for response - does NOT expose correct_answer.
     """
+    user_info = _get_user_from_payload(current_user, db)
+    require_learning_expert(current_user)
     assessment = get_assessment_or_404(db, assessment_id)
-
-    # Validate question type
-    if question_data.type not in [
-        QuestionType.multiple_choice.value,
-        QuestionType.true_false.value,
-    ]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid question type. Must be '{QuestionType.multiple_choice.value}' or '{QuestionType.true_false.value}'",
-        )
-
-    # Validate correct answer is in options
-    if question_data.correct_answer not in question_data.options:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Correct answer must be one of the options",
-        )
+    _validate_assessment_course_access(course_id, assessment, user_info, db)
+    _validate_question_payload(question_data)
+    normalized_options = _normalize_question_options(question_data.options)
 
     new_question = Question(
         assessment_id=assessment_id,
         text=question_data.text,
         type=question_data.type,
-        options=question_data.options,
-        correct_answer=question_data.correct_answer,
+        options=normalized_options,
+        correct_answer=question_data.correct_answer.strip(),
         points=question_data.points,
         order=question_data.order,
     )
@@ -349,11 +373,38 @@ def update_question(
 
     Note: Uses QuestionPublicResponse for response - does NOT expose correct_answer.
     """
+    user_info = _get_user_from_payload(current_user, db)
+    require_learning_expert(current_user)
+    assessment = get_assessment_or_404(db, assessment_id)
+    _validate_assessment_course_access(course_id, assessment, user_info, db)
     question = get_question_or_404(db, question_id)
+    if question.assessment_id != assessment_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Question does not belong to this assessment",
+        )
 
     update_dict = question_data.model_dump(exclude_unset=True)
+    next_type = update_dict.get("type", question.type)
+    next_options = update_dict.get("options", question.options)
+    next_correct_answer = update_dict.get("correct_answer", question.correct_answer)
+    merged_payload = QuestionCreate(
+        text=update_dict.get("text", question.text),
+        type=next_type,
+        options=next_options,
+        correct_answer=next_correct_answer,
+        points=update_dict.get("points", question.points),
+        order=update_dict.get("order", question.order),
+    )
+    _validate_question_payload(merged_payload)
+
     for field, value in update_dict.items():
-        setattr(question, field, value)
+        if field == "options":
+            setattr(question, field, _normalize_question_options(value))
+        elif field == "correct_answer":
+            setattr(question, field, value.strip())
+        else:
+            setattr(question, field, value)
 
     db.commit()
     db.refresh(question)
@@ -372,7 +423,16 @@ def delete_question(
     db: Session = Depends(get_db),
 ):
     """Delete a question (LearningExpert+ only)."""
+    user_info = _get_user_from_payload(current_user, db)
+    require_learning_expert(current_user)
+    assessment = get_assessment_or_404(db, assessment_id)
+    _validate_assessment_course_access(course_id, assessment, user_info, db)
     question = get_question_or_404(db, question_id)
+    if question.assessment_id != assessment_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Question does not belong to this assessment",
+        )
     db.delete(question)
     db.commit()
     return None
@@ -414,15 +474,21 @@ def get_assessment_questions(
     current_user: dict = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
 ):
-    """Get questions for an assessment (without correct answers).
-
-    SECURITY: Uses QuestionPublicResponse - does NOT expose correct_answer to learners.
-    This prevents students from seeing answers in the browser network tab.
-    """
+    """Get assessment questions without exposing correct answers."""
     assessment = get_assessment_or_404(db, assessment_id)
-    get_user_enrollment_or_404(
-        db, (current_user.get("sub") or current_user.get("id")), assessment_id
-    )
+    user_info = _get_user_from_payload(current_user, db)
+
+    if user_info.role in {
+        UserRole.Admin.value,
+        UserRole.Manager.value,
+        UserRole.LearningExpert.value,
+        UserRole.SuperAdmin.value,
+    }:
+        _validate_assessment_course_access(course_id, assessment, user_info, db)
+    else:
+        get_user_enrollment_or_404(
+            db, (current_user.get("sub") or current_user.get("id")), assessment_id
+        )
 
     questions = (
         db.query(Question)
@@ -431,6 +497,46 @@ def get_assessment_questions(
         .all()
     )
     return questions
+
+
+@router.get(
+    "/{course_id}/assessments/{assessment_id}/memory-questions",
+    response_model=list[QuestionWithAnswerResponse],
+)
+def get_assessment_questions_for_memory(
+    course_id: UUID,
+    assessment_id: UUID,
+    current_user: dict = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
+):
+    """Get full quiz questions for server-side memory retention workflows."""
+    user_info = _get_user_from_payload(current_user, db)
+    require_learning_expert(current_user)
+    assessment = get_assessment_or_404(db, assessment_id)
+    _validate_assessment_course_access(course_id, assessment, user_info, db)
+
+    questions = (
+        db.query(Question)
+        .filter(Question.assessment_id == assessment_id)
+        .order_by(Question.order)
+        .all()
+    )
+
+    return [
+        QuestionWithAnswerResponse(
+            id=question.id,
+            assessment_id=question.assessment_id,
+            text=question.text,
+            type=question.type,
+            options=question.options,
+            correct_answer=question.correct_answer,
+            points=question.points,
+            order=question.order,
+            user_answer=None,
+            is_correct=None,
+        )
+        for question in questions
+    ]
 
 
 @router.post(
@@ -448,9 +554,15 @@ def submit_assessment(
     assessment = get_assessment_or_404(db, assessment_id)
     user = _get_user_from_payload(current_user, db)
     user_id = current_user.get("sub") or current_user.get("id")
+    _validate_assessment_course_access(course_id, assessment, user, db)
     get_user_enrollment_or_404(db, user_id, assessment_id)
 
-    questions = db.query(Question).filter(Question.assessment_id == assessment_id).all()
+    questions = (
+        db.query(Question)
+        .filter(Question.assessment_id == assessment_id)
+        .order_by(Question.order)
+        .all()
+    )
 
     if not questions:
         raise HTTPException(
@@ -460,25 +572,70 @@ def submit_assessment(
 
     total_points = sum(q.points for q in questions)
     earned_points = 0
+    question_map = {str(question.id): question for question in questions}
+    submitted_question_ids = set(submission.answers.keys())
+    expected_question_ids = set(question_map.keys())
+
+    unexpected_question_ids = submitted_question_ids - expected_question_ids
+    if unexpected_question_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Submission contains unknown question IDs",
+        )
+
+    missing_question_ids = expected_question_ids - submitted_question_ids
+    if missing_question_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="All quiz questions must be answered before submission",
+        )
 
     for question in questions:
         user_answer = submission.answers.get(str(question.id))
+        if user_answer not in question.options:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Each submitted answer must match one of the question options",
+            )
         if user_answer and user_answer == question.correct_answer:
             earned_points += question.points
+
+    wrong_answers = [
+        {
+            "questionId": str(question.id),
+            "question": question.text,
+            "userAnswer": submission.answers.get(str(question.id)),
+            "correctAnswer": question.correct_answer,
+        }
+        for question in questions
+        if submission.answers.get(str(question.id)) != question.correct_answer
+    ]
 
     score = (earned_points / total_points * 100) if total_points > 0 else 0
     passed = score >= assessment.passing_score
 
+    lesson = db.query(Lesson).filter(Lesson.assessment_id == assessment_id).first()
     attempt = AssessmentAttempt(
         user_id=user_id,
         assessment_id=assessment_id,
         answers=submission.answers,
         score=score,
         passed=passed,
+        wrong_answers=wrong_answers,
         started_at=datetime.utcnow(),
         completed_at=datetime.utcnow(),
     )
     db.add(attempt)
+    if lesson:
+        record_quiz_attempt_context(
+            db,
+            user_id=UUID(str(user_id)),
+            course_id=assessment.module.course_id,
+            lesson_id=lesson.id,
+            score=score,
+            passed=passed,
+            attempted_at=attempt.completed_at,
+        )
     db.commit()
     db.refresh(attempt)
 
@@ -493,9 +650,6 @@ def submit_assessment(
             from services.learning.gamification.badges import BadgeManager
 
             user_uuid = UUID(user_id)
-            lesson = (
-                db.query(Lesson).filter(Lesson.assessment_id == assessment_id).first()
-            )
             if lesson:
                 lesson_progress = (
                     db.query(UserProgress)
@@ -553,19 +707,17 @@ def submit_assessment(
         except Exception as e:
             print(f"Perfect score rewards failed: {e}")
 
-    # Build result with QuestionWithAnswerResponse (includes correct_answer)
     questions_with_answers = []
     for q in questions:
         user_answer = attempt.answers.get(str(q.id))
         is_correct = user_answer == q.correct_answer if user_answer else None
         questions_with_answers.append(
-            QuestionWithAnswerResponse(
+            QuestionAttemptReviewResponse(
                 id=q.id,
                 assessment_id=q.assessment_id,
                 text=q.text,
                 type=q.type,
                 options=q.options,
-                correct_answer=q.correct_answer,
                 points=q.points,
                 order=q.order,
                 user_answer=user_answer,
@@ -623,6 +775,7 @@ def get_assessment_result(
     db: Session = Depends(get_db),
 ):
     """Get detailed results for a specific attempt."""
+    user = _get_user_from_payload(current_user, db)
     attempt = (
         db.query(AssessmentAttempt)
         .filter(
@@ -641,6 +794,7 @@ def get_assessment_result(
         )
 
     assessment = get_assessment_or_404(db, assessment_id)
+    _validate_assessment_course_access(course_id, assessment, user, db)
     questions = (
         db.query(Question)
         .filter(Question.assessment_id == assessment_id)
@@ -655,19 +809,17 @@ def get_assessment_result(
         if attempt.answers.get(str(q.id)) == q.correct_answer
     )
 
-    # Build result with QuestionWithAnswerResponse (includes correct_answer for review)
     questions_with_answers = []
     for q in questions:
         user_answer = attempt.answers.get(str(q.id))
         is_correct = user_answer == q.correct_answer if user_answer else None
         questions_with_answers.append(
-            QuestionWithAnswerResponse(
+            QuestionAttemptReviewResponse(
                 id=q.id,
                 assessment_id=q.assessment_id,
                 text=q.text,
                 type=q.type,
                 options=q.options,
-                correct_answer=q.correct_answer,
                 points=q.points,
                 order=q.order,
                 user_answer=user_answer,

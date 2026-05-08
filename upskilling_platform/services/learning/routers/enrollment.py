@@ -11,6 +11,7 @@ from common.database import get_db
 from common.auth import decode_token
 from common.models import Course, Enrollment, User, Tenant
 from common.messaging import RabbitMQClient
+from services.learning.services.learner_context import initialize_learner_course_tracking
 
 router = APIRouter(prefix="/enrollments", tags=["enrollments"])
 security = HTTPBearer()
@@ -42,6 +43,7 @@ def _get_user_from_payload(payload: dict, db: Session) -> User:
     return user
 
 
+@router.get("", response_model=list[dict], include_in_schema=False)
 @router.get("/", response_model=list[dict])
 def list_enrollments(
     user_id: UUID = None,
@@ -105,6 +107,7 @@ def get_enrollment(
     }
 
 
+@router.post("", response_model=dict, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 @router.post("/", response_model=dict, status_code=status.HTTP_201_CREATED)
 def enroll_in_course(
     enrollment_data: dict,
@@ -217,6 +220,8 @@ def enroll_in_course(
         status="in_progress",
     )
     db.add(enrollment)
+    db.flush()
+    initialize_learner_course_tracking(db, user_id=user_id, course_id=course_id)
     db.commit()
     db.refresh(enrollment)
 

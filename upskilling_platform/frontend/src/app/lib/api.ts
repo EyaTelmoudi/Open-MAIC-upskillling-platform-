@@ -710,6 +710,54 @@ export interface EnrollmentResponse {
   status: string;
 }
 
+export interface LearnerContextLessonSummary {
+  lessonId: string;
+  title: string;
+  contentType: string;
+  status: string;
+  timeSpent: number;
+  completedAt?: string | null;
+}
+
+export interface LearnerContextResponse {
+  userId: string;
+  courseId: string;
+  courseTitle: string;
+  enrollment: {
+    status: string;
+    enrolledAt?: string | null;
+    completedAt?: string | null;
+  };
+  progressSummary: {
+    totalLessons: number;
+    completedLessons: number;
+    inProgressLessons: number;
+    notStartedLessons: number;
+    progressPercent: number;
+    timeSpentSeconds: number;
+  };
+  currentLesson?: LearnerContextLessonSummary | null;
+  lastOpenedLesson?: LearnerContextLessonSummary | null;
+  lastCompletedLesson?: LearnerContextLessonSummary | null;
+  latestQuizAttempt?: {
+    lessonId?: string | null;
+    score: number;
+    passed: boolean;
+    completedAt: string;
+    source: string;
+  } | null;
+  failedQuizzes: Array<{
+    lessonId: string;
+    lessonTitle: string;
+    score: number;
+    completedAt?: string | null;
+    wrongAnswers: unknown[];
+  }>;
+  failedQuizCount: number;
+  latestFailedQuizLessonId?: string | null;
+  updatedAt?: string | null;
+}
+
 export interface UserProgressResponse {
   id: string;
   user_id: string;
@@ -839,6 +887,15 @@ export async function getEnrollments(userId?: string): Promise<EnrollmentRespons
   const query = params.toString();
   return api.get<EnrollmentResponse[]>(
     `/api/v1/learning/enrollments/${query ? `?${query}` : ""}`
+  );
+}
+
+export async function getCourseLearnerContext(
+  courseId: string,
+  userId: string
+): Promise<LearnerContextResponse> {
+  return api.get<LearnerContextResponse>(
+    `/api/v1/learning/courses/${courseId}/learner-context/${userId}`
   );
 }
 
@@ -1058,7 +1115,52 @@ export interface LessonResponse {
   content_type: string;
   duration: number;
   order: number;
+  assessment_id?: string | null;
   created_at: string;
+}
+
+export interface AssessmentResponse {
+  id: string;
+  module_id: string;
+  title: string;
+  passing_score: number;
+  time_limit?: number | null;
+  created_at: string;
+}
+
+export interface AssessmentQuestionResponse {
+  id: string;
+  assessment_id: string;
+  text: string;
+  type: string;
+  options: string[];
+  points: number;
+  order: number;
+}
+
+export interface AssessmentAttemptQuestionReview {
+  id: string;
+  assessment_id: string;
+  text: string;
+  type: string;
+  options: string[];
+  points: number;
+  order: number;
+  user_answer?: string | null;
+  is_correct?: boolean | null;
+}
+
+export interface AssessmentAttemptResult {
+  id: string;
+  assessment_id: string;
+  title: string;
+  score: number;
+  passed: boolean;
+  total_points: number;
+  earned_points: number;
+  started_at: string;
+  completed_at: string;
+  questions: AssessmentAttemptQuestionReview[];
 }
 
 export interface CourseDetailModule extends ModuleResponse {
@@ -1285,7 +1387,7 @@ export async function toggleCoursePublish(courseId: string): Promise<{ id: strin
 }
 
 export async function deleteCourseById(courseId: string): Promise<void> {
-  return api.delete(`/api/v1/learning/courses/${courseId}`);
+  return api.delete(`/api/course-management/courses/${courseId}`);
 }
 
 export async function createCourseModule(
@@ -1311,6 +1413,7 @@ export async function createModuleLesson(
     content_type: string;
     duration: number;
     order: number;
+    assessment_id?: string | null;
   }
 ): Promise<LessonResponse> {
   return api.post<LessonResponse>(`/api/v1/learning/lessons/module/${moduleId}`, data);
@@ -1325,9 +1428,40 @@ export async function updateModuleLesson(
     content_type?: string;
     duration?: number;
     order?: number;
+    assessment_id?: string | null;
   }
 ): Promise<LessonResponse> {
   return api.put<LessonResponse>(`/api/v1/learning/lessons/${lessonId}`, data);
+}
+
+export async function createCourseAssessment(
+  courseId: string,
+  data: {
+    module_id: string;
+    title: string;
+    passing_score: number;
+    time_limit?: number | null;
+  }
+): Promise<AssessmentResponse> {
+  return api.post<AssessmentResponse>(`/api/v1/learning/courses/${courseId}/assessments`, data);
+}
+
+export async function createAssessmentQuestion(
+  courseId: string,
+  assessmentId: string,
+  data: {
+    text: string;
+    type: string;
+    options: string[];
+    correct_answer: string;
+    points: number;
+    order: number;
+  }
+): Promise<AssessmentQuestionResponse> {
+  return api.post<AssessmentQuestionResponse>(
+    `/api/v1/learning/courses/${courseId}/assessments/${assessmentId}/questions`,
+    data
+  );
 }
 
 export async function uploadCourseContent(

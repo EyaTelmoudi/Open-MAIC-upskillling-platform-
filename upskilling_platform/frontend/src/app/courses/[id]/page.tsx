@@ -8,10 +8,14 @@ import { Badge } from "@/app/components/ui/Badge";
 import { Card } from "@/app/components/ui/Card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/Tabs";
 import { BookmarkButton } from "@/app/components/ui/BookmarkButton";
+import { ChatMessages, type Message } from "@/app/components/coach/ChatMessages";
+import { ChatInput } from "@/app/components/coach/ChatInput";
 import { api } from "@/app/lib/api";
+import { readCoachChatMessages, writeCoachChatMessages } from "@/app/lib/coach-chat-storage";
 import { useAuth } from "@/app/context/AuthContext";
 import {
   ArrowLeft,
+  Bot,
   Clock,
   Star,
   Users,
@@ -161,6 +165,9 @@ function CourseDetailContent() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [activeTab, setActiveTab] = useState("curriculum");
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [coachOpen, setCoachOpen] = useState(false);
+  const [coachTyping, setCoachTyping] = useState(false);
+  const [coachMessages, setCoachMessages] = useState<Message[]>([]);
 
   const previewToken = searchParams.get("token");
 
@@ -249,6 +256,32 @@ function CourseDetailContent() {
     loadReviews();
   }, [courseId, user]);
 
+  useEffect(() => {
+    const storedMessages = readCoachChatMessages(user?.id, course?.id);
+    if (storedMessages.length > 0) {
+      setCoachMessages(storedMessages);
+      return;
+    }
+
+    setCoachMessages([
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: course
+          ? `I am already focused on "${course.title}". Ask me anything about this course and I will answer with this course as context.`
+          : "Ask me anything about this course and I will answer with the current course as context.",
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+  }, [course?.id, course?.title, user?.id]);
+
+  useEffect(() => {
+    if (coachMessages.length === 0) {
+      return;
+    }
+    writeCoachChatMessages(user?.id, course?.id, coachMessages);
+  }, [coachMessages, course?.id, user?.id]);
+
   const submitReview = async () => {
     if (!newRating) return;
     setSubmittingReview(true);
@@ -315,6 +348,85 @@ function CourseDetailContent() {
     } catch (err) {
       console.error("Failed to enroll:", err);
       alert("Failed to enroll. Please try again.");
+    }
+  };
+
+  const handleCoachMessage = async (content: string) => {
+    const newUserMessage: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content,
+      timestamp: new Date().toISOString(),
+    };
+
+    setCoachMessages((prev) => [...prev, newUserMessage]);
+    setCoachTyping(true);
+
+    try {
+      const response = await fetch("/api/chat-coach-agent/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tenantId: user?.tenant_id,
+          courseId: courseId,
+          question: content,
+        }),
+      });
+
+      const body = (await response.json().catch(() => null)) as
+        | {
+            success?: boolean;
+            result?: {
+              answer?: string;
+              basedOn?: {
+                memories?: Array<{
+                  text?: string;
+                  type?: string;
+                }>;
+              };
+              supportingMemories?: Array<{
+                text?: string;
+                type?: string;
+              }>;
+            };
+            error?: string;
+          }
+        | null;
+
+      if (!response.ok || !body?.success || !body.result) {
+        throw new Error(body?.error || "The AI Coach could not answer your question.");
+      }
+
+      const aiResponse: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: body.result.answer || "I could not generate an answer.",
+        timestamp: new Date().toISOString(),
+        sources: (body.result.supportingMemories || body.result.basedOn?.memories || [])
+          .slice(0, 3)
+          .map((memory, index) => ({
+            title: `Course memory ${index + 1}`,
+            lesson: memory.type || "observation",
+            snippet: memory.text || "",
+          })),
+      };
+
+      setCoachMessages((prev) => [...prev, aiResponse]);
+    } catch (error) {
+      const aiErrorResponse: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content:
+          error instanceof Error
+            ? error.message
+            : "The AI Coach could not answer your question right now.",
+        timestamp: new Date().toISOString(),
+      };
+      setCoachMessages((prev) => [...prev, aiErrorResponse]);
+    } finally {
+      setCoachTyping(false);
     }
   };
 
@@ -916,6 +1028,50 @@ function CourseDetailContent() {
                 )}
 
                 <div className="mt-4 space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setCoachOpen((current) => !current)}
+                    className="flex w-full items-center justify-between rounded-xl border border-border bg-background/60 px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-background"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                        <Bot className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-text-primary">
+                          Ask AI Coach
+                        </p>
+                        <p className="text-xs text-text-secondary">
+                          Already linked to this course
+                        </p>
+                      </div>
+                    </div>
+                    {coachOpen ? (
+                      <ChevronDown className="h-4 w-4 text-text-secondary" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-text-secondary" />
+                    )}
+                  </button>
+
+                  {coachOpen && (
+                    <div className="overflow-hidden rounded-2xl border border-border bg-background">
+                      <div className="border-b border-border px-4 py-3">
+                        <p className="text-sm font-semibold text-text-primary">
+                          Course Coach
+                        </p>
+                        <p className="text-xs text-text-secondary">
+                          The coach will use <span className="font-medium">{course.title}</span> automatically.
+                        </p>
+                      </div>
+                      <div className="h-[420px]">
+                        <div className="flex h-full flex-col">
+                          <ChatMessages messages={coachMessages} isTyping={coachTyping} />
+                          <ChatInput onSend={handleCoachMessage} disabled={coachTyping || !user} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-text-secondary">Duration</span>
                     <span className="text-text-primary">

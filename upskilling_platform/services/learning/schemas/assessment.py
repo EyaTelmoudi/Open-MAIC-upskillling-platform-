@@ -62,6 +62,23 @@ class QuestionWithAnswerResponse(BaseModel):
         from_attributes = True
 
 
+class QuestionAttemptReviewResponse(BaseModel):
+    """Learner-safe question review payload returned after submission."""
+
+    id: UUID
+    assessment_id: UUID
+    text: str
+    type: str
+    options: list[str]
+    points: int
+    order: int
+    user_answer: Optional[str] = None
+    is_correct: Optional[bool] = None
+
+    class Config:
+        from_attributes = True
+
+
 # Legacy schema kept for backward compatibility - prefer QuestionWithAnswerResponse
 class QuestionWithAnswer(BaseModel):
     """Schema for question with correct answer (for results) - LEGACY, use QuestionWithAnswerResponse."""
@@ -167,7 +184,7 @@ class AssessmentResultResponse(BaseModel):
     earned_points: float
     started_at: datetime
     completed_at: Optional[datetime]
-    questions: list[QuestionWithAnswerResponse] = []
+    questions: list[QuestionAttemptReviewResponse] = []
 
     class Config:
         from_attributes = True

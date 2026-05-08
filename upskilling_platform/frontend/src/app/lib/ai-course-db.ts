@@ -223,6 +223,24 @@ async function ensureTables() {
         completed_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
       )
     `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS learner_course_contexts (
+        id UUID PRIMARY KEY,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+        current_lesson_id UUID NULL REFERENCES lessons(id) ON DELETE SET NULL,
+        last_opened_lesson_id UUID NULL REFERENCES lessons(id) ON DELETE SET NULL,
+        last_completed_lesson_id UUID NULL REFERENCES lessons(id) ON DELETE SET NULL,
+        latest_quiz_score DOUBLE PRECISION,
+        latest_quiz_passed BOOLEAN,
+        latest_failed_quiz_lesson_id UUID NULL REFERENCES lessons(id) ON DELETE SET NULL,
+        failed_quiz_count INTEGER NOT NULL DEFAULT 0,
+        last_quiz_attempted_at TIMESTAMP,
+        created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+        updated_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
+        CONSTRAINT uq_learner_context_user_course UNIQUE (user_id, course_id)
+      )
+    `);
   } finally {
     client.release();
   }
@@ -879,6 +897,66 @@ export async function submitAiPlatformLessonQuiz(
         score,
         passed,
         JSON.stringify(wrongAnswers),
+      ],
+    );
+
+    await client.query(
+      `
+      INSERT INTO learner_course_contexts (
+        id,
+        user_id,
+        course_id,
+        current_lesson_id,
+        last_opened_lesson_id,
+        last_completed_lesson_id,
+        latest_quiz_score,
+        latest_quiz_passed,
+        latest_failed_quiz_lesson_id,
+        failed_quiz_count,
+        last_quiz_attempted_at,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        $1,
+        $2::uuid,
+        $3::uuid,
+        $4::uuid,
+        $4::uuid,
+        $5::uuid,
+        $6,
+        $7,
+        $8::uuid,
+        $9,
+        (NOW() AT TIME ZONE 'UTC'),
+        (NOW() AT TIME ZONE 'UTC'),
+        (NOW() AT TIME ZONE 'UTC')
+      )
+      ON CONFLICT (user_id, course_id)
+      DO UPDATE SET
+        current_lesson_id = EXCLUDED.current_lesson_id,
+        last_opened_lesson_id = EXCLUDED.last_opened_lesson_id,
+        last_completed_lesson_id = COALESCE(EXCLUDED.last_completed_lesson_id, learner_course_contexts.last_completed_lesson_id),
+        latest_quiz_score = EXCLUDED.latest_quiz_score,
+        latest_quiz_passed = EXCLUDED.latest_quiz_passed,
+        latest_failed_quiz_lesson_id = COALESCE(EXCLUDED.latest_failed_quiz_lesson_id, learner_course_contexts.latest_failed_quiz_lesson_id),
+        failed_quiz_count = CASE
+          WHEN EXCLUDED.latest_quiz_passed THEN learner_course_contexts.failed_quiz_count
+          ELSE learner_course_contexts.failed_quiz_count + 1
+        END,
+        last_quiz_attempted_at = EXCLUDED.last_quiz_attempted_at,
+        updated_at = (NOW() AT TIME ZONE 'UTC')
+      `,
+      [
+        randomUUID(),
+        jwt.sub,
+        quiz.courseId,
+        lessonId,
+        passed ? lessonId : null,
+        score,
+        passed,
+        passed ? null : lessonId,
+        passed ? 0 : 1,
       ],
     );
 

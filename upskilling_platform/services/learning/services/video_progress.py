@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from common.models import UserProgress, Lesson, Enrollment, AssessmentAttempt, Course, User
+from services.learning.services.learner_context import touch_lesson_context
 
 
 def check_enrollment_completion(db: Session, user_id: UUID, course_id: UUID) -> None:
@@ -379,6 +380,13 @@ class VideoProgressService:
 
         if progress.status == "completed" and not progress.completed_at:
             progress.completed_at = datetime.utcnow()
+
+        touch_lesson_context(
+            self.db,
+            user_id=user_id,
+            lesson_id=lesson_id,
+            mark_completed=progress.status == "completed",
+        )
 
         self.db.commit()
         self.db.refresh(progress)

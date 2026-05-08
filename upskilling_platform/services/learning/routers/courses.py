@@ -1,17 +1,19 @@
 """Course CRUD router for the Learning Platform service."""
 
 from datetime import datetime
+import re
 from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy import delete, update
+from sqlalchemy import delete, or_, update
 from sqlalchemy.orm import Session
 
 from common.database import get_db
 from common.auth import decode_token
 from common.messaging import RabbitMQClient
+from common.storage import build_tenant_path, delete_prefix, get_minio_client
 from common.models import (
     AICourseDraft,
     Assessment,
@@ -23,6 +25,7 @@ from common.models import (
     CoursePreviewToken,
     CourseReview,
     Enrollment,
+    LearnerCourseContext,
     Lesson,
     Module,
     Question,
@@ -32,6 +35,7 @@ from common.models import (
 )
 from services.learning.utils.course_duration import sync_course_duration
 from services.learning.utils.media import resolve_media_url
+from services.learning.services.learner_context import build_learner_context_response
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 rabbitmq_client = RabbitMQClient()
@@ -39,6 +43,13 @@ security = HTTPBearer()
 COURSE_EDIT_ROLES = {"LearningExpert", "Manager", "Admin", "SuperAdmin"}
 COURSE_DELETE_ROLES = {"LearningExpert", "Manager", "Admin", "SuperAdmin"}
 DRAFT_VIEW_ROLES = {"LearningExpert", "Admin", "SuperAdmin"}
+COURSE_CONTENT_BUCKETS = [
+    "course-videos",
+    "course-pdfs",
+    "course-slides",
+    "course-images",
+    "course-files",
+]
 
 
 def get_current_user(
@@ -76,6 +87,10 @@ def _normalize_uuid(value: UUID | str | None) -> UUID | None:
     return UUID(str(value))
 
 
+def _normalize_match_key(value: str | None) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
 def _require_course_edit_role(user: User) -> None:
     """Require LearningExpert+ permissions for course authoring actions."""
     if user.role not in COURSE_EDIT_ROLES:
@@ -87,6 +102,47 @@ def _require_course_edit_role(user: User) -> None:
 
 def _can_view_unpublished_course(user: User) -> bool:
     return user.role in DRAFT_VIEW_ROLES
+
+
+def _resolve_memory_assessment_id(
+    lesson: Lesson,
+    module_assessments: list[Assessment],
+    used_assessment_ids: set[UUID],
+) -> UUID | None:
+    if lesson.assessment_id:
+        return lesson.assessment_id
+
+    if str(lesson.content_type or "").strip().lower() != "quiz":
+        return None
+
+    lesson_title = _normalize_match_key(lesson.title)
+
+    exact_title_match = [
+        assessment
+        for assessment in module_assessments
+        if _normalize_match_key(assessment.title) == lesson_title
+        and assessment.id not in used_assessment_ids
+    ]
+    if exact_title_match:
+        return exact_title_match[0].id
+
+    unused_module_assessments = [
+        assessment
+        for assessment in module_assessments
+        if assessment.id not in used_assessment_ids
+    ]
+    if len(unused_module_assessments) == 1:
+        return unused_module_assessments[0].id
+
+    quiz_named_match = [
+        assessment
+        for assessment in unused_module_assessments
+        if "quiz" in _normalize_match_key(assessment.title)
+    ]
+    if len(quiz_named_match) == 1:
+        return quiz_named_match[0].id
+
+    return None
 
 
 @router.get("", response_model=dict)
@@ -219,6 +275,158 @@ def get_course(
             for m in modules
         ],
     }
+
+
+@router.get("/{course_id}/memory-curriculum", response_model=dict)
+def get_course_memory_curriculum(
+    course_id: UUID,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get a memory-oriented curriculum payload with resolved quiz questions."""
+    user_info = _get_user_from_payload(current_user, db)
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
+        )
+
+    if user_info.role != "SuperAdmin" and course.tenant_id != user_info.tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: course belongs to another tenant"
+        )
+
+    _require_course_edit_role(user_info)
+
+    modules = sorted(course.modules, key=lambda m: m.order)
+    module_ids = [module.id for module in modules]
+    assessments = (
+        db.query(Assessment)
+        .filter(Assessment.module_id.in_(module_ids))
+        .all()
+        if module_ids
+        else []
+    )
+    assessments_by_module: dict[UUID, list[Assessment]] = {}
+    for assessment in assessments:
+        assessments_by_module.setdefault(assessment.module_id, []).append(assessment)
+
+    assessment_ids = [assessment.id for assessment in assessments]
+    questions = (
+        db.query(Question)
+        .filter(Question.assessment_id.in_(assessment_ids))
+        .order_by(Question.order)
+        .all()
+        if assessment_ids
+        else []
+    )
+    questions_by_assessment: dict[UUID, list[Question]] = {}
+    for question in questions:
+        questions_by_assessment.setdefault(question.assessment_id, []).append(question)
+
+    modules_payload = []
+    for module in modules:
+        used_assessment_ids: set[UUID] = set()
+        lessons_payload = []
+        module_assessments = assessments_by_module.get(module.id, [])
+
+        for lesson in sorted(module.lessons, key=lambda l: l.order):
+            resolved_assessment_id = _resolve_memory_assessment_id(
+                lesson, module_assessments, used_assessment_ids
+            )
+            if resolved_assessment_id:
+                used_assessment_ids.add(resolved_assessment_id)
+
+            quiz_questions = [
+                {
+                    "id": str(question.id),
+                    "assessment_id": str(question.assessment_id),
+                    "text": question.text,
+                    "type": question.type,
+                    "options": question.options,
+                    "correct_answer": question.correct_answer,
+                    "points": question.points,
+                    "order": question.order,
+                }
+                for question in questions_by_assessment.get(resolved_assessment_id, [])
+            ]
+
+            lessons_payload.append(
+                {
+                    "id": str(lesson.id),
+                    "title": lesson.title,
+                    "content": lesson.content,
+                    "video_url": resolve_media_url(lesson.video_url),
+                    "content_type": lesson.content_type,
+                    "duration": lesson.duration,
+                    "order": lesson.order,
+                    "assessment_id": str(resolved_assessment_id)
+                    if resolved_assessment_id
+                    else None,
+                    "quiz_questions": quiz_questions,
+                }
+            )
+
+        modules_payload.append(
+            {
+                "id": str(module.id),
+                "title": module.title,
+                "description": module.description,
+                "order": module.order,
+                "lessons": lessons_payload,
+            }
+        )
+
+    return {
+        "id": str(course.id),
+        "title": course.title,
+        "description": course.description,
+        "thumbnail": course.thumbnail,
+        "category": course.category,
+        "difficulty": course.difficulty,
+        "duration": course.duration,
+        "xp_reward": course.xp_reward,
+        "rating": course.rating,
+        "is_published": course.is_published,
+        "author_id": str(course.author_id) if course.author_id else None,
+        "tenant_id": str(course.tenant_id) if course.tenant_id else None,
+        "created_at": course.created_at.isoformat(),
+        "updated_at": course.updated_at.isoformat(),
+        "modules": modules_payload,
+    }
+
+
+@router.get("/{course_id}/learner-context/{user_id}", response_model=dict)
+def get_course_learner_context(
+    course_id: UUID,
+    user_id: UUID,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return the learner-context snapshot that the AI coach should consume."""
+    user_info = _get_user_from_payload(current_user, db)
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
+        )
+
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if user_info.role != "SuperAdmin":
+        if course.tenant_id != user_info.tenant_id or target_user.tenant_id != user_info.tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: learner context belongs to another tenant"
+            )
+
+    try:
+        return build_learner_context_response(db, user_id=user_id, course_id=course_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @router.get("/{course_id}/curriculum", response_model=dict)
@@ -412,6 +620,15 @@ def delete_course(
         )
 
     try:
+        tenant_prefix = None
+        if course_row.tenant_id:
+            tenant_prefix = build_tenant_path(str(course_row.tenant_id), "courses", str(course_id))
+
+        if tenant_prefix:
+            minio_client = get_minio_client()
+            for bucket_name in COURSE_CONTENT_BUCKETS:
+                delete_prefix(bucket_name, tenant_prefix, minio_client)
+
         module_ids = [
             module_id
             for (module_id,) in db.query(Module.id).filter(Module.course_id == course_id).all()
@@ -453,6 +670,24 @@ def delete_course(
         db.execute(delete(Enrollment).where(Enrollment.course_id == course_id))
 
         if lesson_ids:
+            db.execute(
+                update(LearnerCourseContext)
+                .where(
+                    or_(
+                        LearnerCourseContext.current_lesson_id.in_(lesson_ids),
+                        LearnerCourseContext.last_opened_lesson_id.in_(lesson_ids),
+                        LearnerCourseContext.last_completed_lesson_id.in_(lesson_ids),
+                        LearnerCourseContext.latest_failed_quiz_lesson_id.in_(lesson_ids),
+                    )
+                )
+                .values(
+                    current_lesson_id=None,
+                    last_opened_lesson_id=None,
+                    last_completed_lesson_id=None,
+                    latest_failed_quiz_lesson_id=None,
+                )
+            )
+            db.execute(delete(LearnerCourseContext).where(LearnerCourseContext.course_id == course_id))
             db.execute(delete(Bookmark).where(Bookmark.lesson_id.in_(lesson_ids)))
             db.execute(delete(UserProgress).where(UserProgress.lesson_id.in_(lesson_ids)))
 

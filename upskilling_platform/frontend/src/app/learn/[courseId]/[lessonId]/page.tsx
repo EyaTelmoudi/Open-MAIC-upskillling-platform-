@@ -7,18 +7,23 @@ import { Button } from "@/app/components/ui/Button";
 import { Badge } from "@/app/components/ui/Badge";
 import { Card } from "@/app/components/ui/Card";
 import { BookmarkButton } from "@/app/components/ui/BookmarkButton";
+import { ChatMessages, type Message } from "@/app/components/coach/ChatMessages";
+import { ChatInput } from "@/app/components/coach/ChatInput";
 import {
   AiGeneratedLessonPlayer,
   parseAiGeneratedLesson,
 } from "@/app/components/learn/AiGeneratedLessonPlayer";
 import { AiPlatformQuiz } from "@/app/components/learn/AiPlatformQuiz";
 import { api, type GamificationProfileResponse } from "@/app/lib/api";
+import { readCoachChatMessages, writeCoachChatMessages } from "@/app/lib/coach-chat-storage";
 import { useAuth } from "@/app/context/AuthContext";
 import { Quiz } from "@/app/components/learn/Quiz";
 import { ProgressTracker } from "@/app/lib/progressTracker";
+import { resolveCourseCompletionXp } from "@/app/lib/course-completion-celebration";
 import {
   ArrowLeft,
   ArrowRight,
+  Bot,
   CheckCircle,
   BookOpen,
   Clock,
@@ -288,6 +293,9 @@ export default function LearnPage() {
     title: string;
     countdown: number;
   } | null>(null);
+  const [coachOpen, setCoachOpen] = useState(false);
+  const [coachTyping, setCoachTyping] = useState(false);
+  const [coachMessages, setCoachMessages] = useState<Message[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressTrackerRef = useRef<ProgressTracker | null>(null);
   const completionSequenceRunningRef = useRef(false);
@@ -302,6 +310,32 @@ export default function LearnPage() {
       loadCourse();
     }
   }, [courseId, lessonId, user]);
+
+  useEffect(() => {
+    const storedMessages = readCoachChatMessages(user?.id, course?.id || courseId);
+    if (storedMessages.length > 0) {
+      setCoachMessages(storedMessages);
+      return;
+    }
+
+    setCoachMessages([
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: course
+          ? `I am following "${course.title}" with you. Ask me about this course or the current lesson anytime.`
+          : "Ask me about this course or the current lesson anytime.",
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+  }, [course?.id, course?.title, courseId, user?.id]);
+
+  useEffect(() => {
+    if (coachMessages.length === 0) {
+      return;
+    }
+    writeCoachChatMessages(user?.id, course?.id || courseId, coachMessages);
+  }, [coachMessages, course?.id, courseId, user?.id]);
 
   useEffect(() => {
     return () => {
@@ -506,11 +540,10 @@ export default function LearnPage() {
         const earnedBadge =
           after.badges.find((badge) => !previousBadgeIds.has(badge.badge_id)) || null;
 
-        if (xpGained > 0) {
-          await waitForCourseXpDismiss(xpGained);
-          await wait(150);
-        } else if (expectedCourseXp > 0) {
-          await waitForCourseXpDismiss(expectedCourseXp);
+        const celebrationXp = resolveCourseCompletionXp(expectedCourseXp, xpGained);
+
+        if (celebrationXp > 0) {
+          await waitForCourseXpDismiss(celebrationXp);
           await wait(150);
         }
 
@@ -841,6 +874,88 @@ export default function LearnPage() {
       console.error("Failed to complete lesson after video ended:", error);
     }
   }, [currentLesson, handleMarkComplete, lessonId, progress]);
+
+  const handleCoachMessage = useCallback(
+    async (content: string) => {
+      const newUserMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content,
+        timestamp: new Date().toISOString(),
+      };
+
+      setCoachMessages((prev) => [...prev, newUserMessage]);
+      setCoachTyping(true);
+
+      try {
+        const response = await fetch("/api/chat-coach-agent/ask", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tenantId: user?.tenant_id,
+            courseId,
+            question: content,
+          }),
+        });
+
+        const body = (await response.json().catch(() => null)) as
+          | {
+              success?: boolean;
+              result?: {
+                answer?: string;
+                basedOn?: {
+                  memories?: Array<{
+                    text?: string;
+                    type?: string;
+                  }>;
+                };
+                supportingMemories?: Array<{
+                  text?: string;
+                  type?: string;
+                }>;
+              };
+              error?: string;
+            }
+          | null;
+
+        if (!response.ok || !body?.success || !body.result) {
+          throw new Error(body?.error || "The AI Coach could not answer your question.");
+        }
+
+        const aiResponse: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: body.result.answer || "I could not generate an answer.",
+          timestamp: new Date().toISOString(),
+          sources: (body.result.supportingMemories || body.result.basedOn?.memories || [])
+            .slice(0, 3)
+            .map((memory, index) => ({
+              title: `Course memory ${index + 1}`,
+              lesson: memory.type || "observation",
+              snippet: memory.text || "",
+            })),
+        };
+
+        setCoachMessages((prev) => [...prev, aiResponse]);
+      } catch (error) {
+        const aiErrorResponse: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content:
+            error instanceof Error
+              ? error.message
+              : "The AI Coach could not answer your question right now.",
+          timestamp: new Date().toISOString(),
+        };
+        setCoachMessages((prev) => [...prev, aiErrorResponse]);
+      } finally {
+        setCoachTyping(false);
+      }
+    },
+    [courseId, user?.tenant_id],
+  );
 
   const handleEnroll = async () => {
     if (!user) {
@@ -1300,6 +1415,46 @@ export default function LearnPage() {
           </div>
         </div>
       )}
+      <div className="fixed bottom-6 right-6 z-[109]">
+        {coachOpen ? (
+          <div className="w-[360px] overflow-hidden rounded-[24px] border border-border bg-card shadow-[0_24px_60px_rgba(15,23,42,0.24)]">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">AI Coach</p>
+                  <p className="text-xs text-text-secondary">
+                    Focused on {course?.title || "this course"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCoachOpen(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background text-text-secondary transition-colors hover:text-text-primary"
+                aria-label="Close AI coach"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex h-[460px] flex-col">
+              <ChatMessages messages={coachMessages} isTyping={coachTyping} />
+              <ChatInput onSend={handleCoachMessage} disabled={coachTyping || !user} />
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setCoachOpen(true)}
+            className="inline-flex items-center gap-3 rounded-full border border-primary/20 bg-primary px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(37,99,235,0.32)] transition-colors hover:bg-primary-light"
+          >
+            <Bot className="h-5 w-5" />
+            Ask AI Coach
+          </button>
+        )}
+      </div>
       {courseXpCelebration !== null && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm">
           {CELEBRATION_BURSTS.map((burst, index) => (

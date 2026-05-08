@@ -4,46 +4,18 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Card } from "@/app/components/ui/Card";
 import { Badge } from "@/app/components/ui/Badge";
-import { api } from "@/app/lib/api";
+import {
+  api,
+  type AssessmentAttemptResult,
+  type AssessmentQuestionResponse,
+} from "@/app/lib/api";
 import {
   CheckCircle,
   XCircle,
-  Clock,
   Trophy,
   AlertCircle,
   Loader2,
 } from "lucide-react";
-
-interface Question {
-  id: string;
-  text: string;
-  type: string;
-  options: string[];
-  points: number;
-  order: number;
-}
-
-interface AttemptResult {
-  id: string;
-  assessment_id: string;
-  score: number;
-  passed: boolean;
-  total_points: number;
-  earned_points: number;
-  started_at: string;
-  completed_at: string;
-  questions: QuestionResult[];
-}
-
-interface QuestionResult {
-  id: string;
-  text: string;
-  options: string[];
-  correct_answer: string;
-  points: number;
-  user_answer: string | null;
-  is_correct: boolean | null;
-}
 
 interface QuizProps {
   lessonId: string;
@@ -53,13 +25,12 @@ interface QuizProps {
 }
 
 export function Quiz({ lessonId, courseId, assessmentId, onComplete }: QuizProps) {
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<AssessmentQuestionResponse[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [result, setResult] = useState<AttemptResult | null>(null);
+  const [result, setResult] = useState<AssessmentAttemptResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
   const completionTriggeredRef = useRef(false);
 
   const getAssessmentId = () => {
@@ -84,7 +55,7 @@ export function Quiz({ lessonId, courseId, assessmentId, onComplete }: QuizProps
     setError(null);
     try {
       const assessId = getAssessmentId();
-      const data = await api.get<Question[]>(
+      const data = await api.get<AssessmentQuestionResponse[]>(
         `/api/v1/learning/courses/${courseId}/assessments/${assessId}/questions`
       );
       setQuestions(data);
@@ -104,8 +75,8 @@ export function Quiz({ lessonId, courseId, assessmentId, onComplete }: QuizProps
   };
 
   const handleSubmit = async () => {
-    if (Object.keys(answers).length === 0) {
-      setError("Please select at least one answer");
+    if (Object.keys(answers).length !== questions.length) {
+      setError("Please answer every question before submitting the quiz.");
       return;
     }
 
@@ -113,7 +84,7 @@ export function Quiz({ lessonId, courseId, assessmentId, onComplete }: QuizProps
     setError(null);
     try {
       const assessId = getAssessmentId();
-      const submitResult = await api.post<AttemptResult>(
+      const submitResult = await api.post<AssessmentAttemptResult>(
         `/api/v1/learning/courses/${courseId}/assessments/${assessId}/submit`,
         { answers }
       );
@@ -163,7 +134,7 @@ export function Quiz({ lessonId, courseId, assessmentId, onComplete }: QuizProps
             <p className="text-text-secondary mt-2">
               {result.passed
                 ? "You passed the quiz!"
-                : "You didn't pass this time. Review the answers below."}
+                : "You didn't pass this time. Review your answers below and try again."}
             </p>
             <div className="mt-6 flex items-center justify-center gap-8">
               <div className="text-center">
@@ -216,26 +187,25 @@ export function Quiz({ lessonId, courseId, assessmentId, onComplete }: QuizProps
                   <p className="text-text-primary font-medium mb-3">{q.text}</p>
                   <div className="space-y-2">
                     {q.options.map((option) => {
-                      const isCorrectAnswer = option === q.correct_answer;
                       const isUserAnswer = option === q.user_answer;
                       return (
                         <div
                           key={option}
                           className={`p-3 rounded-lg text-sm ${
-                            isCorrectAnswer
+                            q.is_correct && isUserAnswer
                               ? "bg-green-500/10 border border-green-500/30"
-                              : isUserAnswer && !isCorrectAnswer
+                              : isUserAnswer && !q.is_correct
                               ? "bg-destructive/10 border border-destructive/30"
                               : "bg-background/50"
                           }`}
                         >
                           <span className="text-text-primary">{option}</span>
-                          {isCorrectAnswer && (
+                          {isUserAnswer && q.is_correct && (
                             <span className="ml-2 text-xs text-green-500">
-                              (Correct Answer)
+                              (Your correct answer)
                             </span>
                           )}
-                          {isUserAnswer && !isCorrectAnswer && (
+                          {isUserAnswer && !q.is_correct && (
                             <span className="ml-2 text-xs text-destructive">
                               (Your Answer)
                             </span>

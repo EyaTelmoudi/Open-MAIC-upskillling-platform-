@@ -101,6 +101,19 @@ def test_enroll_in_course_publishes_event(
     assert FakeRabbitMQClient.published[0][2]["userId"] == str(user.id)
 
 
+def test_enrollment_router_accepts_collection_paths_without_redirect():
+    """Collection endpoints should exist with and without trailing slash to avoid POST redirect issues."""
+    route_paths = {
+        (route.path, tuple(sorted(route.methods or [])))
+        for route in enrollment.router.routes
+    }
+
+    assert ("/enrollments", ("GET",)) in route_paths
+    assert ("/enrollments/", ("GET",)) in route_paths
+    assert ("/enrollments", ("POST",)) in route_paths
+    assert ("/enrollments/", ("POST",)) in route_paths
+
+
 @pytest.fixture(autouse=True)
 def patch_enrollment_user_resolution(monkeypatch):
     """Route user lookups through the registered fixtures."""

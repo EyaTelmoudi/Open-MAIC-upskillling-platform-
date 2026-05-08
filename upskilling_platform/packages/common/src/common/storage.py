@@ -194,6 +194,31 @@ def delete_file(
     client.remove_object(bucket_name, object_name)
 
 
+def delete_prefix(
+    bucket_name: str,
+    prefix: str,
+    client: Optional[Minio] = None,
+) -> int:
+    """Delete all objects in a bucket matching a prefix.
+
+    Args:
+        bucket_name: Source bucket name.
+        prefix: Object prefix to delete recursively.
+        client: MinIO client instance. Creates one if None.
+
+    Returns:
+        Number of deleted objects.
+    """
+    if client is None:
+        client = get_minio_client()
+
+    deleted = 0
+    for object_name in list_files(bucket_name, prefix, client):
+        client.remove_object(bucket_name, object_name)
+        deleted += 1
+    return deleted
+
+
 def list_files(
     bucket_name: str,
     prefix: str = "",

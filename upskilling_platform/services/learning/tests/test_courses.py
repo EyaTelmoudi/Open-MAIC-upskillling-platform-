@@ -157,6 +157,41 @@ def test_delete_course_requires_admin_role(
     assert "Admin" in exc_info.value.detail
 
 
+def test_delete_course_removes_learner_context_before_lessons(
+    mock_db,
+    registered_admin_user,
+    monkeypatch,
+):
+    """Deleting a course clears learner context rows that still reference its lessons."""
+    course_id = uuid4()
+    tenant_id = registered_admin_user.tenant_id
+    module_id = uuid4()
+    lesson_a = uuid4()
+    lesson_b = uuid4()
+    assessment_id = uuid4()
+
+    query = mock_db.query.return_value
+    query.filter.return_value = query
+    query.first.side_effect = [(course_id, tenant_id)]
+    query.all.side_effect = [[(module_id,)], [(lesson_a,), (lesson_b,)], [(assessment_id,)]]
+
+    monkeypatch.setattr(courses, "get_minio_client", lambda: object())
+    monkeypatch.setattr(courses, "delete_prefix", lambda *args, **kwargs: None)
+
+    courses.delete_course(
+        course_id=course_id,
+        current_user={"sub": str(registered_admin_user.id)},
+        db=mock_db,
+    )
+
+    executed_statements = [call.args[0] for call in mock_db.execute.call_args_list]
+    assert any(
+        getattr(statement, "table", None) is courses.LearnerCourseContext.__table__
+        for statement in executed_statements
+    )
+    mock_db.commit.assert_called_once()
+
+
 @pytest.fixture(autouse=True)
 def patch_course_user_resolution(monkeypatch):
     """Route user lookups through the JWT subject fixture objects."""

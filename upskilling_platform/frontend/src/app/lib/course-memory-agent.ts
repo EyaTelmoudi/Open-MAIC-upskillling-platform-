@@ -6,6 +6,8 @@ const DEFAULT_SERVICE_URL = process.env.COURSE_MEMORY_AGENT_URL || "http://127.0
 const SERVICE_STATE_KEY = "__courseMemoryAgentServiceState";
 const DEFAULT_LEARNING_URL =
   process.env.NEXT_PUBLIC_LEARNING_URL || process.env.LEARNING_URL || "http://localhost:8002";
+const DEFAULT_HINDSIGHT_URL = process.env.HINDSIGHT_URL || "http://127.0.0.1:8888";
+const DEFAULT_HINDSIGHT_API_KEY = process.env.HINDSIGHT_API_KEY || "";
 
 type CourseMemoryPayload = {
   courseId: string;
@@ -34,6 +36,71 @@ type CourseMemoryResult = {
   assembledPayload?: Record<string, unknown>;
   error?: string;
 };
+
+type HindsightDocumentListResponse = {
+  items?: Array<{ document_id?: string }>;
+  documents?: Array<{ document_id?: string }>;
+};
+
+function parseSceneLikeContent(rawContent: unknown): Record<string, unknown> | null {
+  if (typeof rawContent !== "string") {
+    return rawContent && typeof rawContent === "object" ? (rawContent as Record<string, unknown>) : null;
+  }
+
+  const trimmed = rawContent.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function getPredictedCourseDocumentIds(
+  courseId: string,
+  courseDetails?: {
+    modules?: Array<{
+      lessons?: Array<{ id?: string; content?: string | null }>;
+    }>;
+  } | null,
+) {
+  const documentIds = new Set<string>([
+    `course:${courseId}:overview`,
+    `course:${courseId}:source:1`,
+  ]);
+
+  for (const module of courseDetails?.modules || []) {
+    for (const lesson of module.lessons || []) {
+      const lessonId = String(lesson.id || "").trim();
+      if (!lessonId) continue;
+
+      documentIds.add(`course:${courseId}:lesson:${lessonId}`);
+
+      const parsed = parseSceneLikeContent(lesson.content);
+      const contentBlock =
+        parsed && typeof parsed.content === "object" && parsed.content
+          ? (parsed.content as Record<string, unknown>)
+          : null;
+      const questions = Array.isArray(contentBlock?.questions)
+        ? (contentBlock?.questions as Array<Record<string, unknown>>)
+        : [];
+
+      for (const question of questions) {
+        const questionId = String(question?.id || "").trim();
+        if (!questionId) continue;
+        documentIds.add(`course:${courseId}:lesson:${lessonId}:quiz:${questionId}`);
+      }
+    }
+  }
+
+  return Array.from(documentIds);
+}
 
 type ServiceState = {
   process: ChildProcessWithoutNullStreams | null;
@@ -199,6 +266,22 @@ function decodeJwtClaims(token: string | null): { sub?: string; email?: string; 
   }
 }
 
+function getHindsightHeaders() {
+  const headers: HeadersInit = {};
+  if (DEFAULT_HINDSIGHT_API_KEY) {
+    headers["Authorization"] = `Bearer ${DEFAULT_HINDSIGHT_API_KEY}`;
+  }
+  return headers;
+}
+
+function buildCourseBankId(tenantId: string, courseId: string) {
+  return `tenant:${tenantId.trim()}:course:${courseId}`;
+}
+
+function buildLegacyTenantCoursesBankId(tenantId: string) {
+  return `tenant:${tenantId.trim()}:courses`;
+}
+
 export async function assemblePublishedCourseForMemory(
   request: Request,
   courseId: string,
@@ -270,4 +353,95 @@ export async function assemblePublishedCourseForMemory(
   );
 
   return result;
+}
+
+export async function deletePublishedCourseMemory(
+  courseId: string,
+  tenantId?: string | null,
+  courseDetails?: {
+    modules?: Array<{
+      lessons?: Array<{ id?: string; content?: string | null }>;
+    }>;
+  } | null,
+): Promise<{ success: boolean; deletedDocuments: string[]; bankId?: string }> {
+  if (!tenantId?.trim()) {
+    return { success: true, deletedDocuments: [] };
+  }
+
+  const predictedDocumentIds = getPredictedCourseDocumentIds(courseId, courseDetails);
+  const bankIds = [
+    buildCourseBankId(tenantId, courseId),
+    buildLegacyTenantCoursesBankId(tenantId),
+  ];
+  const deletedDocuments = new Set<string>();
+
+  for (const bankId of bankIds) {
+    const query = new URLSearchParams({
+      q: `course:${courseId}:`,
+      limit: "200",
+      offset: "0",
+    });
+
+    let listedDocumentIds: string[] = [];
+    try {
+      const listResponse = await fetch(
+        `${DEFAULT_HINDSIGHT_URL}/v1/default/banks/${encodeURIComponent(bankId)}/documents?${query.toString()}`,
+        {
+          method: "GET",
+          cache: "no-store",
+          headers: getHindsightHeaders(),
+        },
+      );
+
+      if (listResponse.ok) {
+        const listed = (await listResponse.json().catch(() => null)) as HindsightDocumentListResponse | null;
+        const rawDocuments = listed?.items || listed?.documents || [];
+        listedDocumentIds = rawDocuments
+          .map((item) => String(item?.document_id || "").trim())
+          .filter((documentId) => documentId.startsWith(`course:${courseId}:`));
+      } else {
+        console.warn(
+          `[Agno Course Memory Agent] Failed to list Hindsight documents in bank ${bankId} for course ${courseId}. Falling back to predicted document IDs.`,
+        );
+      }
+    } catch {
+      console.warn(
+        `[Agno Course Memory Agent] Hindsight document listing failed in bank ${bankId} for course ${courseId}. Falling back to predicted document IDs.`,
+      );
+    }
+
+    const documentIds = Array.from(new Set([...predictedDocumentIds, ...listedDocumentIds]));
+
+    for (const documentId of documentIds) {
+      try {
+        const deleteResponse = await fetch(
+          `${DEFAULT_HINDSIGHT_URL}/v1/default/banks/${encodeURIComponent(bankId)}/documents/${encodeURIComponent(documentId)}`,
+          {
+            method: "DELETE",
+            cache: "no-store",
+            headers: getHindsightHeaders(),
+          },
+        );
+
+        if (deleteResponse.ok) {
+          deletedDocuments.add(`${bankId}:${documentId}`);
+        } else if (deleteResponse.status !== 404) {
+          console.warn(
+            `[Agno Course Memory Agent] Failed to delete Hindsight document ${documentId} from bank ${bankId} for course ${courseId}. status=${deleteResponse.status}`,
+          );
+        }
+      } catch (error) {
+        console.warn(
+          `[Agno Course Memory Agent] Failed to delete Hindsight document ${documentId} from bank ${bankId} for course ${courseId}.`,
+          error,
+        );
+      }
+    }
+  }
+
+  return {
+    success: true,
+    deletedDocuments: Array.from(deletedDocuments),
+    bankId: buildCourseBankId(tenantId, courseId),
+  };
 }

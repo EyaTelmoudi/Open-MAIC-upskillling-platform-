@@ -8,6 +8,7 @@ const SERVICE_STATE_KEY = "__chatCoachAgentServiceState";
 type ChatCoachPayload = {
   tenantId: string;
   courseId: string;
+  userId?: string;
   question?: string;
 };
 
@@ -17,10 +18,12 @@ type ChatCoachResult = {
   action: string;
   tenantId: string;
   courseId: string;
+  userId?: string;
   bankId?: string;
   question?: string;
   answer?: string;
   basedOn?: Record<string, unknown>;
+  supportingMemories?: Array<Record<string, unknown>>;
   trace?: Record<string, unknown>;
   usage?: Record<string, unknown>;
   error?: string;
@@ -149,6 +152,18 @@ export async function askChatCoachQuestion(payload: ChatCoachPayload): Promise<C
   console.log(
     `[Agno Chat Coach Agent] Starting action "ask_hindsight_course_question" for course ${payload.courseId}.`,
   );
+  console.log(
+    JSON.stringify(
+      {
+        tenantId: payload.tenantId,
+        userId: payload.userId,
+        courseId: payload.courseId,
+        question: payload.question,
+      },
+      null,
+      2,
+    ),
+  );
 
   if (!(await ensureChatCoachAgentService())) {
     throw new Error("The Chat Coach AgentOS service is not available.");
@@ -170,6 +185,19 @@ export async function askChatCoachQuestion(payload: ChatCoachPayload): Promise<C
   if (!result.success) {
     throw new Error(result.error || "The Chat Coach Agent workflow failed.");
   }
+
+  console.log("[Agno Chat Coach Agent] Workflow result received from AgentOS:");
+  console.log(
+    JSON.stringify(
+      {
+        answer: result.answer,
+        supportingMemories: result.supportingMemories,
+        basedOn: result.basedOn,
+      },
+      null,
+      2,
+    ),
+  );
 
   console.log(
     `[Agno Chat Coach Agent] Finished action "ask_hindsight_course_question" for course ${payload.courseId}.`,

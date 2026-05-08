@@ -302,6 +302,7 @@ class AssessmentAttempt(Base):
     answers = Column(JSON, nullable=False)
     score = Column(Float, nullable=True)
     passed = Column(Boolean, nullable=True)
+    wrong_answers = Column(JSONB, nullable=True)
     started_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 
@@ -328,6 +329,46 @@ class Enrollment(Base):
 
     user = relationship("User", back_populates="enrollments")
     course = relationship("Course", back_populates="enrollments")
+
+
+class LearnerCourseContext(Base):
+    """Per-user course context snapshot used by coaching experiences."""
+
+    __tablename__ = "learner_course_contexts"
+    __table_args__ = (
+        UniqueConstraint("user_id", "course_id", name="uq_learner_context_user_course"),
+        Index("ix_learner_course_contexts_user_id", "user_id"),
+        Index("ix_learner_course_contexts_course_id", "course_id"),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    course_id = Column(
+        UUID(as_uuid=True), ForeignKey("courses.id", ondelete="CASCADE"), nullable=False
+    )
+    current_lesson_id = Column(
+        UUID(as_uuid=True), ForeignKey("lessons.id", ondelete="SET NULL"), nullable=True
+    )
+    last_opened_lesson_id = Column(
+        UUID(as_uuid=True), ForeignKey("lessons.id", ondelete="SET NULL"), nullable=True
+    )
+    last_completed_lesson_id = Column(
+        UUID(as_uuid=True), ForeignKey("lessons.id", ondelete="SET NULL"), nullable=True
+    )
+    latest_quiz_score = Column(Float, nullable=True)
+    latest_quiz_passed = Column(Boolean, nullable=True)
+    latest_failed_quiz_lesson_id = Column(
+        UUID(as_uuid=True), ForeignKey("lessons.id", ondelete="SET NULL"), nullable=True
+    )
+    failed_quiz_count = Column(Integer, nullable=False, default=0)
+    last_quiz_attempted_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    user = relationship("User", foreign_keys=[user_id])
+    course = relationship("Course", foreign_keys=[course_id])
 
 
 class CourseAssignment(Base):

@@ -3,6 +3,7 @@ import {
   buildLearningServiceUrl,
   getLearningServiceAuthHeaders,
 } from "@/app/lib/learning-service-proxy";
+import { deleteManagedCourse } from "@/app/lib/course-deletion";
 
 function buildTargetUrl(pathSegments: string[], request: Request) {
   const incomingUrl = new URL(request.url);
@@ -116,5 +117,8 @@ export async function DELETE(
   context: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await context.params;
+  if (path.length === 2 && path[0] === "courses" && path[1]) {
+    return deleteManagedCourse(request, path[1]);
+  }
   return proxyToLearning(request, path);
 }

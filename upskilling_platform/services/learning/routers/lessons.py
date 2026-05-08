@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from common.database import get_db
 from common.auth import decode_token
-from common.models import Lesson, Module, Course, User
+from common.models import Lesson, Module, Course, User, Assessment
 from services.learning.utils.course_duration import sync_course_duration
 from services.learning.utils.media import normalize_media_reference, resolve_media_url
 
@@ -77,6 +77,25 @@ def _get_course_by_module_id(module_id: UUID, db: Session) -> Course:
     return course
 
 
+def _validate_assessment_for_lesson(
+    assessment_id: UUID | None,
+    module_id: UUID,
+    db: Session,
+) -> UUID | None:
+    if assessment_id is None:
+        return None
+
+    assessment = db.query(Assessment).filter(Assessment.id == assessment_id).first()
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    if assessment.module_id != module_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assessment must belong to the same module as the lesson",
+        )
+    return assessment_id
+
+
 def _validate_course_access_by_lesson(
     lesson_id: UUID, user: User, db: Session
 ) -> Course:
@@ -113,6 +132,7 @@ def list_lessons_by_module(
             "content_type": l.content_type,
             "duration": l.duration,
             "order": l.order,
+            "assessment_id": str(l.assessment_id) if l.assessment_id else None,
             "created_at": l.created_at.isoformat(),
         }
         for l in lessons
@@ -144,6 +164,7 @@ def get_lesson(
         "content_type": lesson.content_type,
         "duration": lesson.duration,
         "order": lesson.order,
+        "assessment_id": str(lesson.assessment_id) if lesson.assessment_id else None,
         "created_at": lesson.created_at.isoformat(),
     }
 
@@ -169,6 +190,9 @@ def create_lesson(
         content_type=lesson_data["content_type"],
         duration=lesson_data["duration"],
         order=lesson_data["order"],
+        assessment_id=_validate_assessment_for_lesson(
+            lesson_data.get("assessment_id"), module_id, db
+        ),
     )
     db.add(lesson)
     db.flush()
@@ -186,6 +210,7 @@ def create_lesson(
         "content_type": lesson.content_type,
         "duration": lesson.duration,
         "order": lesson.order,
+        "assessment_id": str(lesson.assessment_id) if lesson.assessment_id else None,
         "created_at": lesson.created_at.isoformat(),
     }
 
@@ -214,6 +239,11 @@ def update_lesson(
             else:
                 setattr(lesson, field, lesson_data[field])
 
+    if "assessment_id" in lesson_data:
+        lesson.assessment_id = _validate_assessment_for_lesson(
+            lesson_data.get("assessment_id"), lesson.module_id, db
+        )
+
     course = _get_course_by_module_id(lesson.module_id, db)
     sync_course_duration(course.id, db)
     db.commit()
@@ -228,6 +258,7 @@ def update_lesson(
         "content_type": lesson.content_type,
         "duration": lesson.duration,
         "order": lesson.order,
+        "assessment_id": str(lesson.assessment_id) if lesson.assessment_id else None,
         "created_at": lesson.created_at.isoformat(),
     }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { cn } from "@/app/lib/utils";
 import { Bot, User, FileText, Sparkles } from "lucide-react";
 
@@ -18,13 +19,26 @@ interface ChatMessagesProps {
 }
 
 export function ChatMessages({ messages, isTyping }: ChatMessagesProps) {
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const bottomAnchorRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    bottomAnchorRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+  }, [messages, isTyping]);
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-4 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <div
+      ref={scrollContainerRef}
+      className="flex-1 overflow-y-auto px-6 py-4 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+    >
       <div className="space-y-6">
         {messages.map((message) => (
           <div
@@ -161,6 +175,7 @@ export function ChatMessages({ messages, isTyping }: ChatMessagesProps) {
             </div>
           </div>
         )}
+        <div ref={bottomAnchorRef} />
       </div>
     </div>
   );
