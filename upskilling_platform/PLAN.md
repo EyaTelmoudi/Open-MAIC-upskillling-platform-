@@ -233,6 +233,76 @@ When a Learning Expert approves an AI-generated course:
 
 This allows the platform to keep reliable operational data in PostgreSQL/MinIO while still enabling AI agents to recall and reason over course knowledge later.
 
+### Course Memory Agent Workflow
+
+The `course memory agent` is now the dedicated synchronization workflow between the learning platform and Hindsight for company course knowledge.
+
+- **AgentOS runtime**
+  - service: `agents/course-memory/app/agent_os_service.py`
+  - workflow: `agents/course-memory/app/workflow.py`
+  - primary endpoint for synchronization: `POST /v1/course-memory/assemble`
+  - delete endpoint: `POST /v1/course-memory/delete`
+
+- **Memory bank strategy**
+  - main bank per course:
+    - `tenant:{tenantId}:course:{courseId}`
+  - optional requester-scoped bank used during deletion flow:
+    - `tenant:{tenantId}:user:{userId}:course:{courseId}`
+
+- **Publish workflow**
+  - trigger: course publish from the admin platform
+  - the agent first checks whether the course bank already exists in Hindsight
+  - if the course bank already exists during a standard publish:
+    - the workflow logs the existence check
+    - the workflow skips collection and retain
+  - if the course bank does not exist:
+    - the workflow loads the official course payload from the learning API
+    - classifies each lesson as either lesson content or quiz
+    - recovers supplemental sources when needed
+    - prepares deterministic Hindsight documents
+    - retains them into the course bank
+
+- **Edit workflow**
+  - trigger: course save from the admin editor
+  - the agent runs the same content assembly and retain pipeline as publish
+  - difference from standard publish:
+    - it forces retention even if the course bank already exists
+  - purpose:
+    - keep Hindsight synchronized with the latest edited course content
+
+- **Unpublish workflow**
+  - trigger: course moved back to draft
+  - current behavior:
+    - the platform changes the publication state in PostgreSQL
+    - the course memory agent does not delete or rewrite Hindsight memory
+  - rationale:
+    - Hindsight is preserved until an explicit delete action is requested
+
+- **Delete workflow**
+  - trigger: course deletion from the admin catalog
+  - behavior:
+    - delete all retained course documents from the course bank
+    - delete the main course bank
+    - delete the requester-scoped course bank when present
+
+- **Retained document model**
+  - one overview document per course:
+    - `course:{courseId}:overview`
+  - one lesson document per real lesson:
+    - `course:{courseId}:lesson:{lessonId}`
+  - one quiz document per quiz lesson:
+    - `course:{courseId}:lesson:{lessonId}:quiz`
+  - one supplemental source document per recovered source:
+    - `course:{courseId}:source:{index}`
+
+- **Operational logging**
+  - the workflow prints terminal traces for:
+    - request start
+    - course bank existence check
+    - prepared overview / lesson / quiz / supplemental source previews
+    - start and completion of each retain operation
+    - delete operations against banks and retained documents
+
 ---
 
 ## Data Model: Tenant

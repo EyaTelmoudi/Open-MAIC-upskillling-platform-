@@ -27,6 +27,16 @@ class CourseMemoryAssemblyInput(BaseModel):
     hindsightApiUrl: str | None = None
     hindsightApiKey: str | None = None
     supplementalSources: list[dict[str, str]] | None = None
+    previewMode: str | None = None
+    forceRetention: bool = False
+
+
+class CourseMemoryDeleteInput(BaseModel):
+    courseId: str
+    tenantId: str
+    requesterUserId: str | None = None
+    hindsightApiUrl: str | None = None
+    hindsightApiKey: str | None = None
 
 
 def _log(message: str) -> None:
@@ -54,8 +64,241 @@ def _sanitize_string_dict(source: dict[str, Any]) -> dict[str, str]:
     return result
 
 
+def _extract_global_learning_objectives(cleaned_payload: dict[str, Any]) -> list[str]:
+    objectives: list[str] = []
+
+    for explanation in cleaned_payload.get("explanations") or []:
+        normalized = _normalize_text(explanation)
+        if normalized:
+            objectives.append(normalized)
+
+    if objectives:
+        return objectives
+
+    for lesson in cleaned_payload.get("lessons") or []:
+        if not isinstance(lesson, dict):
+            continue
+        title = _normalize_text(lesson.get("title") or "")
+        if title:
+            objectives.append(f"Understand {title}")
+
+    return objectives[:5]
+
+
+def _format_course_overview_preview(document: dict[str, Any], cleaned_payload: dict[str, Any]) -> str:
+    module_titles = [
+        _normalize_text(module.get("title") or "")
+        for module in (cleaned_payload.get("modules") or [])
+        if isinstance(module, dict) and _normalize_text(module.get("title") or "")
+    ]
+    objectives = _extract_global_learning_objectives(cleaned_payload)
+    lines = [
+        "Contenu du premier retain de course overview",
+        "Course Overview",
+        f"document_id: {document.get('document_id') or 'course:unknown:overview'}",
+        f"update_mode: {document.get('update_mode') or 'replace'}",
+        f"titre: {cleaned_payload.get('title') or 'Untitled course'}",
+        f"description: {cleaned_payload.get('description') or 'Aucune description'}",
+        f"difficulte: {cleaned_payload.get('difficulty') or 'Unknown'}",
+        f"duree: {cleaned_payload.get('duration') if cleaned_payload.get('duration') is not None else 'Unknown'}",
+        "modules:",
+    ]
+
+    if module_titles:
+        lines.extend(f"- {title}" for title in module_titles)
+    else:
+        lines.append("- Aucun module")
+
+    lines.append("objectifs pedagogiques globaux:")
+    if objectives:
+        lines.extend(f"- {objective}" for objective in objectives)
+    else:
+        lines.append("- Aucun objectif global explicite")
+
+    return "\n".join(lines)
+
+
+def _build_lesson_retain_content(lesson: dict[str, Any]) -> str:
+    title = _normalize_text(lesson.get("title") or "") or "Untitled lesson"
+    cleaned_html_content = _normalize_text(lesson.get("cleanedHtmlContent") or lesson.get("content") or "")
+    content_type = _normalize_text(lesson.get("contentType") or "") or "unknown"
+    duration = lesson.get("duration")
+
+    lines = [
+        f"Lesson Title: {title}",
+        f"Lesson Content: {cleaned_html_content or 'No cleaned lesson content'}",
+        f"Lesson Type: {content_type}",
+        f"Lesson Duration (minutes): {duration if duration is not None else 'Unknown'}",
+    ]
+
+    support_documents = lesson.get("supportDocuments") or []
+    if isinstance(support_documents, list) and support_documents:
+        lines.append("Lesson Support Materials:")
+        for document in support_documents:
+            if not isinstance(document, dict):
+                continue
+            doc_title = _normalize_text(document.get("title") or "") or "Support document"
+            doc_kind = _normalize_text(document.get("kind") or "") or "resource"
+            lines.append(f"- Title: {doc_title}")
+            lines.append(f"  Kind: {doc_kind}")
+            extracted_text = _normalize_text(document.get("extractedText") or "")
+            if extracted_text:
+                lines.append(f"  Extracted Content: {extracted_text}")
+
+    return "\n".join(lines)
+
+
+def _format_lesson_preview(document: dict[str, Any], lesson: dict[str, Any], course_id: str) -> str:
+    lesson_id = str(lesson.get("lessonId") or "").strip() or "unknown"
+    lines = [
+        "Lesson Content",
+        f"document_id: {document.get('document_id') or f'course:{course_id}:lesson:{lesson_id}'}",
+        f"update_mode: {document.get('update_mode') or 'replace'}",
+        f"titre: {_normalize_text(lesson.get('title') or '') or 'Untitled lesson'}",
+        f"contenu HTML nettoye: {_normalize_text(lesson.get('cleanedHtmlContent') or lesson.get('content') or '') or 'No cleaned lesson content'}",
+        f"type: {_normalize_text(lesson.get('contentType') or '') or 'unknown'}",
+        f"duree: {lesson.get('duration') if lesson.get('duration') is not None else 'Unknown'}",
+    ]
+
+    support_documents = lesson.get("supportDocuments") or []
+    if isinstance(support_documents, list) and support_documents:
+        lines.append("supports:")
+        for document_item in support_documents:
+            if not isinstance(document_item, dict):
+                continue
+            lines.append(
+                f"- {_normalize_text(document_item.get('title') or '') or 'Support document'} ({_normalize_text(document_item.get('kind') or '') or 'resource'})"
+            )
+            extracted_text = _normalize_text(document_item.get("extractedText") or "")
+            if extracted_text:
+                lines.append(f"  contenu extrait: {extracted_text}")
+
+    return "\n".join(lines)
+
+
+def _is_quiz_lesson(lesson: dict[str, Any]) -> bool:
+    if str(lesson.get("assessmentId") or "").strip():
+        return True
+    quiz_questions = lesson.get("quizQuestions") or []
+    if isinstance(quiz_questions, list) and len(quiz_questions) > 0:
+        return True
+    return _normalize_text(lesson.get("contentType") or "").lower() == "quiz"
+
+
+def _build_quiz_retain_content(course_title: str, lesson: dict[str, Any]) -> str:
+    lines = [
+        f"Course Title: {course_title}",
+        f"Quiz Title: {_normalize_text(lesson.get('title') or '') or 'Untitled quiz'}",
+        f"Quiz Duration (minutes): {lesson.get('duration') if lesson.get('duration') is not None else 'Unknown'}",
+    ]
+
+    for index, quiz in enumerate(lesson.get("quizQuestions") or [], start=1):
+        if not isinstance(quiz, dict):
+            continue
+        lines.append(f"Question {index}: {_normalize_text(quiz.get('question') or '')}")
+        options = [str(option).strip() for option in (quiz.get("options") or []) if str(option).strip()]
+        if options:
+            lines.append(f"Options: {', '.join(options)}")
+        correct_answers = [str(answer).strip() for answer in (quiz.get("correctAnswer") or []) if str(answer).strip()]
+        if correct_answers:
+            lines.append(f"Correct Answer: {', '.join(correct_answers)}")
+        analysis = _normalize_text(quiz.get("analysis") or "")
+        if analysis:
+            lines.append(f"Explanation: {analysis}")
+
+    return "\n".join(line for line in lines if line.strip())
+
+
+def _format_quiz_preview(document: dict[str, Any], lesson: dict[str, Any], course_id: str) -> str:
+    lesson_id = str(lesson.get("lessonId") or "").strip() or "unknown"
+    lines = [
+        "Quiz Content",
+        f"document_id: {document.get('document_id') or f'course:{course_id}:lesson:{lesson_id}:quiz'}",
+        f"update_mode: {document.get('update_mode') or 'replace'}",
+        f"titre: {_normalize_text(lesson.get('title') or '') or 'Untitled quiz'}",
+        f"duree: {lesson.get('duration') if lesson.get('duration') is not None else 'Unknown'}",
+    ]
+
+    for index, quiz in enumerate(lesson.get("quizQuestions") or [], start=1):
+        if not isinstance(quiz, dict):
+            continue
+        lines.append(f"question {index}: {_normalize_text(quiz.get('question') or '') or 'Untitled question'}")
+        options = [str(option).strip() for option in (quiz.get("options") or []) if str(option).strip()]
+        if options:
+            lines.append(f"options: {', '.join(options)}")
+        correct_answers = [str(answer).strip() for answer in (quiz.get("correctAnswer") or []) if str(answer).strip()]
+        if correct_answers:
+            lines.append(f"bonne reponse: {', '.join(correct_answers)}")
+
+    return "\n".join(lines)
+
+
+def _format_supplemental_source_preview(document: dict[str, Any], source: dict[str, Any], course_id: str, index: int) -> str:
+    return "\n".join(
+        [
+            "Supplemental Source",
+            f"document_id: {document.get('document_id') or f'course:{course_id}:source:{index + 1}'}",
+            f"update_mode: {document.get('update_mode') or 'replace'}",
+            f"titre: {_normalize_text(source.get('title') or '') or f'Supplemental Source {index + 1}'}",
+            f"contenu: {_normalize_text(source.get('text') or '') or 'No supplemental source content'}",
+        ]
+    )
+
+
 def _build_course_bank_id(tenant_id: str, course_id: str) -> str:
     return f"tenant:{tenant_id}:course:{course_id}"
+
+
+def _build_user_course_bank_id(tenant_id: str, requester_user_id: str, course_id: str) -> str:
+    return f"tenant:{tenant_id}:user:{requester_user_id}:course:{course_id}"
+
+
+def _extract_hindsight_document_ids(payload: Any) -> list[str]:
+    if not isinstance(payload, dict):
+        return []
+
+    raw_items = payload.get("items") or payload.get("documents") or []
+    document_ids: list[str] = []
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        document_id = _normalize_text(item.get("id") or item.get("document_id") or "")
+        if document_id:
+            document_ids.append(document_id)
+
+    return list(dict.fromkeys(document_ids))
+
+
+def _check_course_bank_exists(
+    *,
+    client: httpx.Client,
+    hindsight_url: str,
+    bank_id: str,
+    headers: dict[str, str],
+) -> tuple[bool, int]:
+    response = client.get(
+        f"{hindsight_url}/v1/default/banks/{bank_id}/profile",
+        headers=headers,
+    )
+    return response.status_code < 400, response.status_code
+
+
+def _build_course_bank_body(
+    *,
+    tenant_id: str,
+    course_id: str,
+) -> dict[str, Any]:
+    return {
+        "name": f"Tenant {tenant_id} Course {course_id}",
+        "background": f"Published course knowledge for course {course_id} in tenant {tenant_id}.",
+        "retain_mission": (
+            "Store published course knowledge for this single course so future course support agents "
+            "can answer learner questions accurately without mixing other courses."
+        ),
+        "reflect_mission": (
+            "Answer course questions using retained published course knowledge for this course only."
+        ),
+    }
 
 
 def _build_learning_endpoint(learning_api_url: str, suffix: str) -> str:
@@ -86,6 +329,68 @@ def _normalize_supplemental_sources(raw_sources: Any) -> list[dict[str, str]]:
         )
 
     return normalized
+
+
+def _extract_support_documents_from_html(content: Any) -> list[dict[str, str]]:
+    source = str(content or "")
+    matches = re.findall(r'<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>', source, flags=re.IGNORECASE)
+    documents: list[dict[str, str]] = []
+
+    for href, label in matches:
+        title = _normalize_text(label) or _normalize_text(href.rsplit("/", 1)[-1])
+        url = str(href).strip()
+        lower = f"{title} {url}".lower()
+        kind = "resource"
+        if ".pdf" in lower:
+            kind = "pdf"
+        elif ".mp4" in lower or ".mov" in lower or ".avi" in lower:
+            kind = "video"
+
+        if title or url:
+            documents.append(
+                {
+                    "title": title,
+                    "url": url,
+                    "kind": kind,
+                }
+            )
+
+    return documents
+
+
+def _enrich_lesson_support_documents(
+    raw_documents: Any,
+    fallback_html_content: Any,
+    supplemental_sources: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    documents = raw_documents if isinstance(raw_documents, list) else _extract_support_documents_from_html(fallback_html_content)
+    source_text_by_title = {
+        _normalize_text(source.get("title") or "").lower(): _normalize_text(source.get("text") or "")
+        for source in supplemental_sources
+        if isinstance(source, dict) and _normalize_text(source.get("title") or "")
+    }
+
+    enriched: list[dict[str, str]] = []
+    for document in documents:
+        if not isinstance(document, dict):
+            continue
+        title = _normalize_text(document.get("title") or "")
+        url = str(document.get("url") or "").strip()
+        kind = _normalize_text(document.get("kind") or "") or "resource"
+        extracted_text = _normalize_text(document.get("extractedText") or document.get("extracted_text") or "")
+        if not extracted_text and title:
+            extracted_text = source_text_by_title.get(title.lower(), "")
+
+        enriched.append(
+            {
+                "title": title or "Support document",
+                "url": url,
+                "kind": kind,
+                "extractedText": extracted_text,
+            }
+        )
+
+    return enriched
 
 
 def _extract_supplemental_source_from_document_text(document_text: str) -> dict[str, str] | None:
@@ -452,6 +757,48 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
     _log(f"- Time: {datetime.now(timezone.utc).isoformat()}")
     _log(f"- Course ID: {payload.courseId}")
 
+    found_existing_course_bank = False
+    bank_check_status = 0
+    effective_tenant_id = str(payload.tenantId or "").strip()
+    hindsight_url = payload.hindsightApiUrl or DEFAULT_HINDSIGHT_URL
+    hindsight_api_key = payload.hindsightApiKey or DEFAULT_HINDSIGHT_API_KEY
+    if effective_tenant_id:
+        course_bank_id = _build_course_bank_id(effective_tenant_id, payload.courseId)
+        headers: dict[str, str] = {}
+        if hindsight_api_key:
+            headers["Authorization"] = f"Bearer {hindsight_api_key}"
+        with httpx.Client(timeout=60.0) as client:
+            found_existing_course_bank, bank_check_status = _check_course_bank_exists(
+                client=client,
+                hindsight_url=hindsight_url,
+                bank_id=course_bank_id,
+                headers=headers,
+            )
+        _log(
+            f"[Agno Course Memory Agent] Course bank existence check for {course_bank_id}: {'already exists' if found_existing_course_bank else 'not found'} (status={bank_check_status})."
+        )
+        if found_existing_course_bank and not payload.forceRetention:
+            _log(
+                f"[Agno Course Memory Agent] Course {payload.courseId} already exists in Hindsight memory; collection and retain workflow skipped."
+            )
+            return StepOutput(
+                content={
+                    "success": True,
+                    "workflowName": "course-memory-agent",
+                    "action": "assemble_published_course",
+                    "courseId": payload.courseId,
+                    "hindsightApiUrl": hindsight_url,
+                    "hindsightApiKey": hindsight_api_key,
+                    "previewMode": payload.previewMode,
+                    "forceRetention": payload.forceRetention,
+                    "foundExistingCourseBank": True,
+                    "bankExistenceCheckStatus": bank_check_status,
+                    "bankId": course_bank_id,
+                    "skipCourseRetention": True,
+                },
+                success=True,
+            )
+
     memory_curriculum_url = _build_learning_endpoint(payload.learningApiUrl, "memory-curriculum")
 
     with httpx.Client(timeout=60.0) as client:
@@ -587,6 +934,12 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
                             "contentType": lesson.get("content_type"),
                             "assessmentId": assessment_id or None,
                             "duration": lesson.get("duration"),
+                            "content": lesson.get("content"),
+                            "supportDocuments": _enrich_lesson_support_documents(
+                                lesson.get("support_documents") or lesson.get("supportDocuments"),
+                                lesson.get("content"),
+                                supplemental_sources,
+                            ),
                             "teacherParoles": [],
                             "explanations": lesson_explanations,
                             "quizQuestions": lesson_quizzes,
@@ -603,16 +956,7 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
             supplemental_sources=supplemental_sources,
         )
 
-        _log("[Agno Course Memory Agent] Step 1 complete: course content assembled.")
-        _log("[Agno Course Memory Agent] Detected course strategy: Traditional course.")
-        _log(f"- Course title: {assembled_payload['title']}")
-        _log(f"- Tenant ID: {assembled_payload['tenantId']}")
-        _log(f"- Modules collected: {assembled_payload['modulesCount']}")
-        _log(f"- Lessons collected: {assembled_payload['lessonsCount']}")
-        _log(f"- Quizzes collected: {assembled_payload['quizzesCount']}")
-        _log(f"- Supplemental sources collected: {len(supplemental_sources)}")
-        _log("[Agno Course Memory Agent] Full assembled payload:")
-        _log(json.dumps(assembled_payload, ensure_ascii=False, indent=2))
+        # Verbose assembly logs are intentionally muted to keep publish output concise.
 
         return StepOutput(
             content={
@@ -622,8 +966,12 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
                 "courseId": payload.courseId,
                 "learningApiUrl": payload.learningApiUrl,
                 "assembledPayload": assembled_payload,
-                "hindsightApiUrl": payload.hindsightApiUrl or DEFAULT_HINDSIGHT_URL,
-                "hindsightApiKey": payload.hindsightApiKey or DEFAULT_HINDSIGHT_API_KEY,
+                "hindsightApiUrl": hindsight_url,
+                "hindsightApiKey": hindsight_api_key,
+                "previewMode": payload.previewMode,
+                "forceRetention": payload.forceRetention,
+                "foundExistingCourseBank": found_existing_course_bank,
+                "bankExistenceCheckStatus": bank_check_status,
             },
             success=True,
         )
@@ -698,6 +1046,12 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
                     "title": lesson.get("title"),
                     "contentType": lesson.get("content_type"),
                     "duration": lesson.get("duration"),
+                    "content": lesson.get("content"),
+                    "supportDocuments": _enrich_lesson_support_documents(
+                        lesson.get("support_documents") or lesson.get("supportDocuments"),
+                        lesson.get("content"),
+                        supplemental_sources,
+                    ),
                     "teacherParoles": lesson_teacher_paroles,
                     "explanations": lesson_explanations,
                     "quizQuestions": lesson_quizzes,
@@ -729,19 +1083,7 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
         "supplementalSources": supplemental_sources,
     }
 
-    _log("[Agno Course Memory Agent] Step 1 complete: course content assembled.")
-    _log(
-        f"[Agno Course Memory Agent] Detected course strategy: {'AI-generated course' if is_ai_generated else 'Traditional course'}."
-    )
-    _log(f"- Course title: {assembled_payload['title']}")
-    _log(f"- Tenant ID: {assembled_payload['tenantId']}")
-    _log(f"- Modules collected: {assembled_payload['modulesCount']}")
-    _log(f"- Lessons collected: {assembled_payload['lessonsCount']}")
-    _log(f"- Quizzes collected: {assembled_payload['quizzesCount']}")
-    _log(f"- Teacher paroles collected: {assembled_payload['teacherParolesCount']}")
-    _log(f"- Explanations collected: {assembled_payload['explanationsCount']}")
-    _log("[Agno Course Memory Agent] Full assembled payload:")
-    _log(json.dumps(assembled_payload, ensure_ascii=False, indent=2))
+    # Verbose assembly logs are intentionally muted to keep publish output concise.
 
     return StepOutput(
         content={
@@ -751,8 +1093,12 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
             "courseId": payload.courseId,
             "learningApiUrl": payload.learningApiUrl,
             "assembledPayload": assembled_payload,
-            "hindsightApiUrl": payload.hindsightApiUrl or DEFAULT_HINDSIGHT_URL,
-            "hindsightApiKey": payload.hindsightApiKey or DEFAULT_HINDSIGHT_API_KEY,
+            "hindsightApiUrl": hindsight_url,
+            "hindsightApiKey": hindsight_api_key,
+            "previewMode": payload.previewMode,
+            "forceRetention": payload.forceRetention,
+            "foundExistingCourseBank": found_existing_course_bank,
+            "bankExistenceCheckStatus": bank_check_status,
         },
         success=True,
     )
@@ -767,6 +1113,15 @@ def clean_course_content(step_input: StepInput) -> StepOutput:
             error="Assembled course payload is missing.",
         )
 
+    if bool(previous_content.get("skipCourseRetention")):
+        return StepOutput(
+            content={
+                **previous_content,
+                "action": "clean_course_content",
+            },
+            success=True,
+        )
+
     assembled_payload = previous_content.get("assembledPayload")
     if not isinstance(assembled_payload, dict):
         return StepOutput(
@@ -776,7 +1131,8 @@ def clean_course_content(step_input: StepInput) -> StepOutput:
         )
 
     if str(assembled_payload.get("contentStrategy") or "").strip() == "traditional":
-        _log("[Agno Course Memory Agent] Traditional course detected: skipping presentation-noise cleanup.")
+        # Traditional cleanup skip log muted to avoid noisy publish output.
+        normalized_sources = _normalize_supplemental_sources(assembled_payload.get("supplementalSources"))
         cleaned_payload = {
             "courseId": assembled_payload.get("courseId"),
             "tenantId": assembled_payload.get("tenantId"),
@@ -791,10 +1147,20 @@ def clean_course_content(step_input: StepInput) -> StepOutput:
             "modulesCount": assembled_payload.get("modulesCount"),
             "modules": assembled_payload.get("modules") or [],
             "contentStrategy": "traditional",
-            "lessons": assembled_payload.get("lessons") or [],
-            "supplementalSources": _normalize_supplemental_sources(
-                assembled_payload.get("supplementalSources")
-            ),
+            "lessons": [
+                {
+                    **lesson,
+                    "cleanedHtmlContent": _normalize_text(lesson.get("content") or ""),
+                    "supportDocuments": _enrich_lesson_support_documents(
+                        lesson.get("supportDocuments"),
+                        lesson.get("content"),
+                        normalized_sources,
+                    ),
+                }
+                for lesson in (assembled_payload.get("lessons") or [])
+                if isinstance(lesson, dict)
+            ],
+            "supplementalSources": normalized_sources,
         }
 
         return StepOutput(
@@ -820,6 +1186,12 @@ def clean_course_content(step_input: StepInput) -> StepOutput:
             "contentType": lesson.get("contentType"),
             "assessmentId": lesson.get("assessmentId"),
             "duration": lesson.get("duration"),
+            "cleanedHtmlContent": _normalize_text(lesson.get("content") or ""),
+            "supportDocuments": _enrich_lesson_support_documents(
+                lesson.get("supportDocuments"),
+                lesson.get("content"),
+                _normalize_supplemental_sources(assembled_payload.get("supplementalSources")),
+            ),
             "teacherParoles": [
                 _normalize_text(text)
                 for text in (lesson.get("teacherParoles") or [])
@@ -865,6 +1237,7 @@ def clean_course_content(step_input: StepInput) -> StepOutput:
         "modulesCount": assembled_payload.get("modulesCount"),
         "modules": assembled_payload.get("modules") or [],
         "contentStrategy": assembled_payload.get("contentStrategy") or "traditional",
+        "explanations": assembled_payload.get("explanations") or [],
         "lessons": cleaned_lessons,
         "supplementalSources": _normalize_supplemental_sources(
             assembled_payload.get("supplementalSources")
@@ -874,11 +1247,7 @@ def clean_course_content(step_input: StepInput) -> StepOutput:
     total_quiz_questions = sum(
         len(lesson.get("quizQuestions") or []) for lesson in cleaned_lessons if isinstance(lesson, dict)
     )
-    _log("[Agno Course Memory Agent] Step 2 complete: presentation noise removed.")
-    _log(f"- Clean lessons: {len(cleaned_lessons)}")
-    _log(f"- Clean quiz questions: {total_quiz_questions}")
-    _log("[Agno Course Memory Agent] Cleaned memory payload:")
-    _log(json.dumps(cleaned_payload, ensure_ascii=False, indent=2))
+    # Verbose cleanup logs are intentionally muted to keep publish output concise.
 
     return StepOutput(
         content={
@@ -897,6 +1266,15 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
             content={"success": False, "error": "Cleaned course payload is missing."},
             success=False,
             error="Cleaned course payload is missing.",
+        )
+
+    if bool(previous_content.get("skipCourseRetention")):
+        return StepOutput(
+            content={
+                **previous_content,
+                "action": "build_retention_documents",
+            },
+            success=True,
         )
 
     cleaned_payload = previous_content.get("cleanedPayload")
@@ -943,6 +1321,7 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
             "content": "\n".join(overview_lines),
             "context": "published course overview",
             "document_id": f"course:{course_id}:overview",
+            "update_mode": "replace",
             "metadata": _sanitize_string_dict(
                 {
                     "tenantId": tenant_id,
@@ -959,9 +1338,28 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
         }
     )
 
-    _log(
-        f"[Agno Course Memory Agent] Building retention documents for {'AI-generated course' if content_strategy == 'ai_generated' else 'traditional course'}."
-    )
+    overview_preview = _format_course_overview_preview(documents[0], cleaned_payload)
+
+    preview_mode = str(previous_content.get("previewMode") or "").strip().lower()
+    if preview_mode == "overview_preview_only":
+        _log("[Agno Course Memory Agent] Prepared course overview retain preview:")
+        _log(overview_preview)
+        return StepOutput(
+            content={
+                **previous_content,
+                "action": "build_retention_documents",
+                "retentionDocuments": documents,
+                "previewOnly": True,
+                "previewDocument": documents[0],
+                "overviewPreviewText": overview_preview,
+            },
+            success=True,
+        )
+
+    # Verbose retention-build logs are intentionally muted to keep publish output concise.
+
+    source_preview_texts: list[str] = []
+    quiz_preview_texts: list[str] = []
 
     for index, source in enumerate(cleaned_payload.get("supplementalSources") or []):
         if not isinstance(source, dict):
@@ -973,41 +1371,40 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
         if not source_text:
             continue
 
-        documents.append(
-            {
-                "content": "\n".join(
-                    [
-                        f"Course Title: {course_title}",
-                        f"Supplemental Course Source: {source_title}",
-                        source_text,
-                    ]
-                ),
-                "context": "supplemental course source knowledge",
-                "document_id": f"course:{course_id}:source:{index + 1}",
-                "metadata": _sanitize_string_dict(
-                    {
-                        "tenantId": tenant_id,
-                        "courseId": course_id,
-                        "courseTitle": course_title,
-                        "sourceTitle": source_title,
-                        "contentType": source_kind,
-                    }
-                ),
-                "tags": [
-                    f"tenant:{tenant_id}",
-                    f"course:{course_id}",
-                    "content:supplemental_course_source",
-                ],
-            }
-        )
+        source_document = {
+            "content": "\n".join(
+                [
+                    f"Course Title: {course_title}",
+                    f"Supplemental Course Source: {source_title}",
+                    source_text,
+                ]
+            ),
+            "context": "supplemental course source knowledge",
+            "document_id": f"course:{course_id}:source:{index + 1}",
+            "update_mode": "replace",
+            "metadata": _sanitize_string_dict(
+                {
+                    "tenantId": tenant_id,
+                    "courseId": course_id,
+                    "courseTitle": course_title,
+                    "sourceTitle": source_title,
+                    "contentType": source_kind,
+                }
+            ),
+            "tags": [
+                f"tenant:{tenant_id}",
+                f"course:{course_id}",
+                "content:supplemental_course_source",
+            ],
+        }
+        documents.append(source_document)
+        source_preview_texts.append(_format_supplemental_source_preview(source_document, source, course_id, index))
 
     if content_strategy != "ai_generated":
-        _log("[Agno Course Memory Agent] Traditional course detected: retaining course metadata, lesson knowledge, quiz knowledge, and private source documents.")
-        _log(f"- Supplemental sources: {len(cleaned_payload.get('supplementalSources') or [])}")
-        _log(f"- Modules: {len(module_titles)}")
-        _log(f"- Lessons: {len(cleaned_payload.get('lessons') or [])}")
-        _log(f"- XP reward: {cleaned_payload.get('xpReward')}")
-        _log(f"- Duration: {cleaned_payload.get('duration')}")
+        # Traditional retention detail logs are intentionally muted.
+        pass
+
+    lesson_preview_texts: list[str] = []
 
     for lesson in cleaned_payload.get("lessons") or []:
         if not isinstance(lesson, dict):
@@ -1016,10 +1413,39 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
         lesson_id = str(lesson.get("lessonId") or "").strip()
         lesson_title = str(lesson.get("title") or "").strip()
 
+        if _is_quiz_lesson(lesson):
+            quiz_document = {
+                "content": _build_quiz_retain_content(course_title, lesson),
+                "context": "published course quiz knowledge",
+                "document_id": f"course:{course_id}:lesson:{lesson_id}:quiz",
+                "update_mode": "replace",
+                "metadata": _sanitize_string_dict(
+                    {
+                        "tenantId": tenant_id,
+                        "courseId": course_id,
+                        "courseTitle": course_title,
+                        "lessonId": lesson_id,
+                        "lessonTitle": lesson_title,
+                        "assessmentId": lesson.get("assessmentId"),
+                        "contentType": "quiz_knowledge",
+                    }
+                ),
+                "tags": [
+                    f"tenant:{tenant_id}",
+                    f"course:{course_id}",
+                    f"lesson:{lesson_id}",
+                    "content:quiz_knowledge",
+                ],
+            }
+            documents.append(quiz_document)
+            quiz_preview_texts.append(_format_quiz_preview(quiz_document, lesson, course_id))
+            continue
+
         lesson_document = {
-            "content": _summarize_lesson_for_retain(lesson),
+            "content": _build_lesson_retain_content(lesson),
             "context": "published course lesson knowledge",
             "document_id": f"course:{course_id}:lesson:{lesson_id}",
+            "update_mode": "replace",
             "metadata": _sanitize_string_dict(
                 {
                     "tenantId": tenant_id,
@@ -1041,60 +1467,20 @@ def build_retention_documents(step_input: StepInput) -> StepOutput:
             ],
         }
         documents.append(lesson_document)
+        lesson_preview_texts.append(_format_lesson_preview(lesson_document, lesson, course_id))
 
-        for quiz in lesson.get("quizQuestions") or []:
-            if not isinstance(quiz, dict):
-                continue
-            question_id = str(quiz.get("questionId") or "").strip()
-            lines = [
-                f"Course Title: {course_title}",
-                f"Lesson Title: {lesson_title}",
-                f"Quiz Question: {quiz.get('question')}",
-            ]
-            options = [str(option).strip() for option in (quiz.get("options") or []) if str(option).strip()]
-            if options:
-                lines.append(f"Answer Options: {', '.join(options)}")
-            correct_answer = quiz.get("correctAnswer") or []
-            if correct_answer:
-                lines.append(f"Correct Answer: {', '.join(correct_answer)}")
-            if quiz.get("analysis"):
-                lines.append(f"Explanation: {quiz.get('analysis')}")
-
-            documents.append(
-                {
-                    "content": "\n".join(line for line in lines if line.strip()),
-                    "context": "published course quiz knowledge",
-                    "document_id": f"course:{course_id}:lesson:{lesson_id}:quiz:{question_id}",
-                    "metadata": _sanitize_string_dict(
-                        {
-                            "tenantId": tenant_id,
-                            "courseId": course_id,
-                            "courseTitle": course_title,
-                            "lessonId": lesson_id,
-                            "lessonTitle": lesson_title,
-                            "questionId": question_id,
-                            "contentType": "quiz_knowledge",
-                        }
-                    ),
-                    "tags": [
-                        f"tenant:{tenant_id}",
-                        f"course:{course_id}",
-                        f"lesson:{lesson_id}",
-                        "content:quiz_knowledge",
-                    ],
-                }
-            )
-
-    _log("[Agno Course Memory Agent] Step 3 complete: retention documents prepared.")
-    _log(f"- Documents prepared for retain: {len(documents)}")
-    _log("[Agno Course Memory Agent] Retention documents preview:")
-    _log(json.dumps(documents, ensure_ascii=False, indent=2))
+    # Retention document preview is intentionally muted to avoid dumping payloads in the terminal.
 
     return StepOutput(
         content={
             **previous_content,
             "action": "build_retention_documents",
             "retentionDocuments": documents,
+            "previewOnly": False,
+            "overviewPreviewText": overview_preview,
+            "lessonPreviewTexts": lesson_preview_texts,
+            "quizPreviewTexts": quiz_preview_texts,
+            "sourcePreviewTexts": source_preview_texts,
         },
         success=True,
     )
@@ -1107,6 +1493,40 @@ def retain_documents_in_hindsight(step_input: StepInput) -> StepOutput:
             content={"success": False, "error": "Retention documents are missing."},
             success=False,
             error="Retention documents are missing.",
+        )
+
+    if bool(previous_content.get("skipCourseRetention")):
+        return StepOutput(
+            content={
+                **previous_content,
+                "success": True,
+                "action": "retain_documents_in_hindsight",
+                "isAsync": False,
+                "operationId": None,
+                "operationIds": [],
+            },
+            success=True,
+        )
+
+    if bool(previous_content.get("previewOnly")):
+        cleaned_payload = previous_content.get("cleanedPayload")
+        preview_document = previous_content.get("previewDocument")
+        return StepOutput(
+            content={
+                **previous_content,
+                "success": True,
+                "action": "retain_documents_in_hindsight",
+                "courseId": cleaned_payload.get("courseId") if isinstance(cleaned_payload, dict) else None,
+                "bankId": None,
+                "previewOnly": True,
+                "previewDocument": preview_document,
+                "overviewPreviewText": previous_content.get("overviewPreviewText"),
+                "lessonPreviewTexts": previous_content.get("lessonPreviewTexts") or [],
+                "quizPreviewTexts": previous_content.get("quizPreviewTexts") or [],
+                "sourcePreviewTexts": previous_content.get("sourcePreviewTexts") or [],
+                "retainResponse": None,
+            },
+            success=True,
         )
 
     cleaned_payload = previous_content.get("cleanedPayload")
@@ -1138,40 +1558,95 @@ def retain_documents_in_hindsight(step_input: StepInput) -> StepOutput:
         )
 
     bank_id = _build_course_bank_id(tenant_id, course_id)
-    bank_name = f"Tenant {tenant_id} Course {course_id}"
-    bank_body = {
-        "name": bank_name,
-        "background": f"Published course knowledge for course {course_id} in tenant {tenant_id}.",
-        "retain_mission": (
-            "Store published course knowledge for this single course so future course support agents "
-            "can answer learner questions accurately without mixing other courses."
-        ),
-        "reflect_mission": (
-            "Answer course questions using retained published course knowledge for this course only."
-        ),
-    }
+    requester_user_id = str(cleaned_payload.get("requesterUserId") or "").strip()
+    user_scoped_bank_id = (
+        _build_user_course_bank_id(tenant_id, requester_user_id, course_id) if requester_user_id else ""
+    )
 
     retain_body = {
         "items": retention_documents,
         "async": True,
     }
 
+    overview_preview = str(previous_content.get("overviewPreviewText") or "").strip()
+    if overview_preview:
+        _log("[Agno Course Memory Agent] Prepared course overview retain preview:")
+        _log(overview_preview)
+    lesson_preview_texts = previous_content.get("lessonPreviewTexts") or []
+    for lesson_preview in lesson_preview_texts:
+        preview_text = str(lesson_preview or "").strip()
+        if not preview_text:
+            continue
+        _log("[Agno Course Memory Agent] Prepared lesson retain preview:")
+        _log(preview_text)
+    quiz_preview_texts = previous_content.get("quizPreviewTexts") or []
+    for quiz_index, quiz_preview in enumerate(quiz_preview_texts, start=1):
+        preview_text = str(quiz_preview or "").strip()
+        if not preview_text:
+            continue
+        _log(f"[Agno Course Memory Agent] Prepared quiz {quiz_index} retain preview:")
+        _log(preview_text)
+    source_preview_texts = previous_content.get("sourcePreviewTexts") or []
+    for source_index, source_preview in enumerate(source_preview_texts, start=1):
+        preview_text = str(source_preview or "").strip()
+        if not preview_text:
+            continue
+        _log(f"[Agno Course Memory Agent] Prepared supplemental source {source_index} retain preview:")
+        _log(preview_text)
+
     headers = {"Content-Type": "application/json"}
     if hindsight_api_key:
         headers["Authorization"] = f"Bearer {hindsight_api_key}"
 
-    _log("[Agno Course Memory Agent] Step 4 starting: resolve company bank.")
-    _log(f"- Hindsight URL: {hindsight_url}")
-    _log(f"- Target bank ID: {bank_id}")
-    _log("[Agno Course Memory Agent] Bank payload:")
-    _log(json.dumps(bank_body, ensure_ascii=False, indent=2))
-    _log("[Agno Course Memory Agent] Retain payload that will be sent to Hindsight:")
-    _log(json.dumps(retain_body, ensure_ascii=False, indent=2))
+    # Hindsight request payload logs are intentionally muted to avoid noisy terminal output.
+
+    lesson_documents = [
+        item
+        for item in retention_documents
+        if isinstance(item, dict)
+        and str(item.get("document_id") or "").startswith(f"course:{course_id}:lesson:")
+        and not str(item.get("document_id") or "").endswith(":quiz")
+    ]
+    quiz_documents = [
+        item
+        for item in retention_documents
+        if isinstance(item, dict)
+        and str(item.get("document_id") or "").startswith(f"course:{course_id}:lesson:")
+        and str(item.get("document_id") or "").endswith(":quiz")
+    ]
+    source_documents = [
+        item
+        for item in retention_documents
+        if isinstance(item, dict)
+        and str(item.get("document_id") or "").startswith(f"course:{course_id}:source:")
+    ]
+    non_lesson_documents = [
+        item
+        for item in retention_documents
+        if not (
+            isinstance(item, dict)
+            and str(item.get("document_id") or "").startswith(f"course:{course_id}:lesson:")
+            and not str(item.get("document_id") or "").endswith(":quiz")
+        )
+        and not (
+            isinstance(item, dict)
+            and str(item.get("document_id") or "").startswith(f"course:{course_id}:lesson:")
+            and str(item.get("document_id") or "").endswith(":quiz")
+        )
+        and not (
+            isinstance(item, dict)
+            and str(item.get("document_id") or "").startswith(f"course:{course_id}:source:")
+        )
+    ]
+
+    operation_ids_collected: list[str] = []
+    retain_responses: list[dict[str, Any]] = []
+    is_async = False
 
     with httpx.Client(timeout=120.0) as client:
         bank_response = client.put(
             f"{hindsight_url}/v1/default/banks/{bank_id}",
-            json=bank_body,
+            json=_build_course_bank_body(tenant_id=tenant_id, course_id=course_id),
             headers=headers,
         )
 
@@ -1190,55 +1665,203 @@ def retain_documents_in_hindsight(step_input: StepInput) -> StepOutput:
                 error=f"Hindsight bank creation failed with status {bank_response.status_code}",
             )
 
-        _log("[Agno Course Memory Agent] Step 4 complete: company bank resolved successfully.")
+        if user_scoped_bank_id:
+            user_bank_response = client.put(
+                f"{hindsight_url}/v1/default/banks/{user_scoped_bank_id}",
+                json=_build_course_bank_body(tenant_id=tenant_id, course_id=course_id),
+                headers=headers,
+            )
+            if user_bank_response.status_code >= 400:
+                _log("[Agno Course Memory Agent] Failed while creating/updating the user-scoped course bank.")
+                _log(f"- Hindsight bank status: {user_bank_response.status_code}")
+                _log(f"- Hindsight bank response: {user_bank_response.text}")
+                return StepOutput(
+                    content={
+                        **previous_content,
+                        "success": False,
+                        "bankId": user_scoped_bank_id,
+                        "error": f"Hindsight user-scoped bank creation failed with status {user_bank_response.status_code}",
+                    },
+                    success=False,
+                    error=f"Hindsight user-scoped bank creation failed with status {user_bank_response.status_code}",
+                )
 
-        _log("[Agno Course Memory Agent] Step 5 starting: retain cleaned course knowledge in Hindsight.")
-        retain_response = client.post(
-            f"{hindsight_url}/v1/default/banks/{bank_id}/memories",
-            json=retain_body,
-            headers=headers,
-        )
+        if non_lesson_documents:
+            retain_response = client.post(
+                f"{hindsight_url}/v1/default/banks/{bank_id}/memories",
+                json={"items": non_lesson_documents, "async": True},
+                headers=headers,
+            )
 
-    if retain_response.status_code >= 400:
-        _log("[Agno Course Memory Agent] Hindsight retain failed.")
-        _log(f"- Hindsight retain status: {retain_response.status_code}")
-        _log(f"- Hindsight retain response: {retain_response.text}")
-        _log("============================================================")
-        _log("")
-        return StepOutput(
-            content={
-                **previous_content,
-                "success": False,
-                "bankId": bank_id,
-                "retainResponseStatus": retain_response.status_code,
-                "retainResponseText": retain_response.text,
-            },
-            success=False,
-            error=f"Hindsight retain failed with status {retain_response.status_code}",
-        )
+            if retain_response.status_code >= 400:
+                _log("[Agno Course Memory Agent] Hindsight retain failed.")
+                _log(f"- Hindsight retain status: {retain_response.status_code}")
+                _log(f"- Hindsight retain response: {retain_response.text}")
+                _log("============================================================")
+                _log("")
+                return StepOutput(
+                    content={
+                        **previous_content,
+                        "success": False,
+                        "bankId": bank_id,
+                        "retainResponseStatus": retain_response.status_code,
+                        "retainResponseText": retain_response.text,
+                    },
+                    success=False,
+                    error=f"Hindsight retain failed with status {retain_response.status_code}",
+                )
 
-    retain_response_data = retain_response.json()
-    is_async = bool(retain_response_data.get("async"))
-    operation_id = retain_response_data.get("operation_id")
-    operation_ids = retain_response_data.get("operation_ids")
-    if is_async:
-        _log("[Agno Course Memory Agent] Step 5 complete: course knowledge retain queued in Hindsight.")
-        _log(f"- Target bank ID: {bank_id}")
-        if operation_id:
-            _log(f"- Hindsight operation ID: {operation_id}")
-        if operation_ids:
-            _log(f"- Hindsight operation IDs: {operation_ids}")
-    else:
-        _log("[Agno Course Memory Agent] Step 5 complete: cleaned course knowledge retained in Hindsight.")
-        _log(f"- Target bank ID: {bank_id}")
-    _log("[Agno Course Memory Agent] Hindsight retain response:")
-    _log(json.dumps(retain_response_data, ensure_ascii=False, indent=2))
-    if is_async:
-        _log("[Agno Course Memory Agent] Workflow complete: the course knowledge retain job is queued in the dedicated course bank.")
-    else:
-        _log("[Agno Course Memory Agent] Workflow complete: the course knowledge is now retained in the dedicated course bank.")
-    _log("============================================================")
-    _log("")
+            retain_response_data = retain_response.json()
+            retain_responses.append(retain_response_data)
+            is_async = is_async or bool(retain_response_data.get("async"))
+            if retain_response_data.get("operation_id"):
+                operation_ids_collected.append(str(retain_response_data["operation_id"]))
+            operation_ids_collected.extend(
+                str(operation_id).strip()
+                for operation_id in (retain_response_data.get("operation_ids") or [])
+                if str(operation_id).strip()
+            )
+
+        for lesson_document in lesson_documents:
+            lesson_document_id = str(lesson_document.get("document_id") or "").strip()
+            _log(f"[Agno Course Memory Agent] Starting lesson retain operation for {lesson_document_id}.")
+            lesson_retain_response = client.post(
+                f"{hindsight_url}/v1/default/banks/{bank_id}/memories",
+                json={"items": [lesson_document], "async": True},
+                headers=headers,
+            )
+
+            if lesson_retain_response.status_code >= 400:
+                _log("[Agno Course Memory Agent] Hindsight lesson retain failed.")
+                _log(f"- Lesson document: {lesson_document_id}")
+                _log(f"- Hindsight retain status: {lesson_retain_response.status_code}")
+                _log(f"- Hindsight retain response: {lesson_retain_response.text}")
+                _log("============================================================")
+                _log("")
+                return StepOutput(
+                    content={
+                        **previous_content,
+                        "success": False,
+                        "bankId": bank_id,
+                        "retainResponseStatus": lesson_retain_response.status_code,
+                        "retainResponseText": lesson_retain_response.text,
+                    },
+                    success=False,
+                    error=f"Hindsight lesson retain failed with status {lesson_retain_response.status_code}",
+                )
+
+            lesson_retain_response_data = lesson_retain_response.json()
+            retain_responses.append(lesson_retain_response_data)
+            is_async = is_async or bool(lesson_retain_response_data.get("async"))
+            lesson_operation_ids = []
+            if lesson_retain_response_data.get("operation_id"):
+                lesson_operation_ids.append(str(lesson_retain_response_data["operation_id"]))
+            lesson_operation_ids.extend(
+                str(operation_id).strip()
+                for operation_id in (lesson_retain_response_data.get("operation_ids") or [])
+                if str(operation_id).strip()
+            )
+            lesson_operation_ids = list(dict.fromkeys(lesson_operation_ids))
+            operation_ids_collected.extend(lesson_operation_ids)
+            _log(
+                f"[Agno Course Memory Agent] Completed lesson retain operation for {lesson_document_id}. "
+                f"operation_ids={', '.join(lesson_operation_ids) if lesson_operation_ids else 'none'}"
+            )
+
+        for quiz_document in quiz_documents:
+            quiz_document_id = str(quiz_document.get("document_id") or "").strip()
+            _log(f"[Agno Course Memory Agent] Starting quiz retain operation for {quiz_document_id}.")
+            quiz_retain_response = client.post(
+                f"{hindsight_url}/v1/default/banks/{bank_id}/memories",
+                json={"items": [quiz_document], "async": True},
+                headers=headers,
+            )
+
+            if quiz_retain_response.status_code >= 400:
+                _log("[Agno Course Memory Agent] Hindsight quiz retain failed.")
+                _log(f"- Quiz document: {quiz_document_id}")
+                _log(f"- Hindsight retain status: {quiz_retain_response.status_code}")
+                _log(f"- Hindsight retain response: {quiz_retain_response.text}")
+                _log("============================================================")
+                _log("")
+                return StepOutput(
+                    content={
+                        **previous_content,
+                        "success": False,
+                        "bankId": bank_id,
+                        "retainResponseStatus": quiz_retain_response.status_code,
+                        "retainResponseText": quiz_retain_response.text,
+                    },
+                    success=False,
+                    error=f"Hindsight quiz retain failed with status {quiz_retain_response.status_code}",
+                )
+
+            quiz_retain_response_data = quiz_retain_response.json()
+            retain_responses.append(quiz_retain_response_data)
+            is_async = is_async or bool(quiz_retain_response_data.get("async"))
+            quiz_operation_ids = []
+            if quiz_retain_response_data.get("operation_id"):
+                quiz_operation_ids.append(str(quiz_retain_response_data["operation_id"]))
+            quiz_operation_ids.extend(
+                str(operation_id).strip()
+                for operation_id in (quiz_retain_response_data.get("operation_ids") or [])
+                if str(operation_id).strip()
+            )
+            quiz_operation_ids = list(dict.fromkeys(quiz_operation_ids))
+            operation_ids_collected.extend(quiz_operation_ids)
+            _log(
+                f"[Agno Course Memory Agent] Completed quiz retain operation for {quiz_document_id}. "
+                f"operation_ids={', '.join(quiz_operation_ids) if quiz_operation_ids else 'none'}"
+            )
+
+        for source_document in source_documents:
+            source_document_id = str(source_document.get("document_id") or "").strip()
+            _log(f"[Agno Course Memory Agent] Starting supplemental source retain operation for {source_document_id}.")
+            source_retain_response = client.post(
+                f"{hindsight_url}/v1/default/banks/{bank_id}/memories",
+                json={"items": [source_document], "async": True},
+                headers=headers,
+            )
+
+            if source_retain_response.status_code >= 400:
+                _log("[Agno Course Memory Agent] Hindsight supplemental source retain failed.")
+                _log(f"- Source document: {source_document_id}")
+                _log(f"- Hindsight retain status: {source_retain_response.status_code}")
+                _log(f"- Hindsight retain response: {source_retain_response.text}")
+                _log("============================================================")
+                _log("")
+                return StepOutput(
+                    content={
+                        **previous_content,
+                        "success": False,
+                        "bankId": bank_id,
+                        "retainResponseStatus": source_retain_response.status_code,
+                        "retainResponseText": source_retain_response.text,
+                    },
+                    success=False,
+                    error=f"Hindsight supplemental source retain failed with status {source_retain_response.status_code}",
+                )
+
+            source_retain_response_data = source_retain_response.json()
+            retain_responses.append(source_retain_response_data)
+            is_async = is_async or bool(source_retain_response_data.get("async"))
+            source_operation_ids = []
+            if source_retain_response_data.get("operation_id"):
+                source_operation_ids.append(str(source_retain_response_data["operation_id"]))
+            source_operation_ids.extend(
+                str(operation_id).strip()
+                for operation_id in (source_retain_response_data.get("operation_ids") or [])
+                if str(operation_id).strip()
+            )
+            source_operation_ids = list(dict.fromkeys(source_operation_ids))
+            operation_ids_collected.extend(source_operation_ids)
+            _log(
+                f"[Agno Course Memory Agent] Completed supplemental source retain operation for {source_document_id}. "
+                f"operation_ids={', '.join(source_operation_ids) if source_operation_ids else 'none'}"
+            )
+
+    operation_ids = list(dict.fromkeys(operation_ids_collected))
+    operation_id = operation_ids[0] if operation_ids else None
 
     return StepOutput(
         content={
@@ -1250,11 +1873,152 @@ def retain_documents_in_hindsight(step_input: StepInput) -> StepOutput:
             "operationId": operation_id,
             "operationIds": operation_ids,
             "requesterUserId": cleaned_payload.get("requesterUserId"),
-            "requesterName": cleaned_payload.get("requesterName"),
-            "retainResponse": retain_response_data,
-        },
-        success=True,
+                "requesterName": cleaned_payload.get("requesterName"),
+                "retainResponse": retain_responses[0] if retain_responses else retain_body,
+                "retainResponses": retain_responses,
+            },
+            success=True,
     )
+
+
+def delete_course_bank_in_hindsight(payload: CourseMemoryDeleteInput) -> dict[str, Any]:
+    tenant_id = str(payload.tenantId or "").strip()
+    course_id = str(payload.courseId or "").strip()
+    requester_user_id = str(payload.requesterUserId or "").strip()
+    hindsight_url = str(payload.hindsightApiUrl or DEFAULT_HINDSIGHT_URL).rstrip("/")
+    hindsight_api_key = str(payload.hindsightApiKey or DEFAULT_HINDSIGHT_API_KEY)
+
+    if not tenant_id:
+        return {
+            "success": False,
+            "action": "delete_course_bank_in_hindsight",
+            "courseId": course_id,
+            "error": "Tenant ID is required to delete the course bank.",
+        }
+
+    if not course_id:
+        return {
+            "success": False,
+            "action": "delete_course_bank_in_hindsight",
+            "error": "Course ID is required to delete the course bank.",
+        }
+
+    bank_ids = [_build_course_bank_id(tenant_id, course_id)]
+    if requester_user_id:
+        bank_ids.append(_build_user_course_bank_id(tenant_id, requester_user_id, course_id))
+    headers = {"Content-Type": "application/json"}
+    if hindsight_api_key:
+        headers["Authorization"] = f"Bearer {hindsight_api_key}"
+
+    _log("[Agno Course Memory Agent] Starting action 'delete_course_bank'.")
+    _log(f"- Hindsight URL: {hindsight_url}")
+    for bank_id in bank_ids:
+        _log(f"- Target bank ID: {bank_id}")
+
+    deleted_bank_ids: list[str] = []
+    deleted_document_ids: list[str] = []
+    with httpx.Client(timeout=60.0) as client:
+        for bank_id in bank_ids:
+            _log(f"[Agno Course Memory Agent] Listing retained documents inside bank {bank_id}.")
+            list_response = client.get(
+                f"{hindsight_url}/v1/default/banks/{bank_id}/documents",
+                headers=headers,
+                params={"limit": 200, "offset": 0},
+            )
+
+            if list_response.status_code >= 400 and list_response.status_code != 404:
+                _log("[Agno Course Memory Agent] Failed to list retained course documents before bank deletion.")
+                _log(f"- Bank ID: {bank_id}")
+                _log(f"- Hindsight list status: {list_response.status_code}")
+                _log(f"- Hindsight list response: {list_response.text}")
+                return {
+                    "success": False,
+                    "action": "delete_course_bank_in_hindsight",
+                    "courseId": course_id,
+                    "tenantId": tenant_id,
+                    "bankId": bank_id,
+                    "deletedBankIds": deleted_bank_ids,
+                    "deletedDocumentIds": deleted_document_ids,
+                    "error": f"Hindsight document listing failed with status {list_response.status_code}",
+                }
+
+            listed_document_ids = (
+                []
+                if list_response.status_code == 404
+                else _extract_hindsight_document_ids(list_response.json())
+            )
+
+            if listed_document_ids:
+                _log(
+                    f"[Agno Course Memory Agent] Found {len(listed_document_ids)} retained course document(s) in bank {bank_id}."
+                )
+            else:
+                _log(f"[Agno Course Memory Agent] No retained course documents found in bank {bank_id}.")
+
+            for document_id in listed_document_ids:
+                _log(
+                    f"[Agno Course Memory Agent] Deleting retained course document {document_id} from bank {bank_id}."
+                )
+                delete_document_response = client.delete(
+                    f"{hindsight_url}/v1/default/banks/{bank_id}/documents/{document_id}",
+                    headers=headers,
+                )
+
+                if delete_document_response.status_code >= 400 and delete_document_response.status_code != 404:
+                    _log("[Agno Course Memory Agent] Failed to delete a retained course document.")
+                    _log(f"- Bank ID: {bank_id}")
+                    _log(f"- Document ID: {document_id}")
+                    _log(f"- Hindsight document delete status: {delete_document_response.status_code}")
+                    _log(f"- Hindsight document delete response: {delete_document_response.text}")
+                    return {
+                        "success": False,
+                        "action": "delete_course_bank_in_hindsight",
+                        "courseId": course_id,
+                        "tenantId": tenant_id,
+                        "bankId": bank_id,
+                        "deletedBankIds": deleted_bank_ids,
+                        "deletedDocumentIds": deleted_document_ids,
+                        "error": f"Hindsight document deletion failed with status {delete_document_response.status_code}",
+                    }
+
+                if delete_document_response.status_code != 404:
+                    deleted_document_ids.append(f"{bank_id}:{document_id}")
+
+            _log(f"[Agno Course Memory Agent] Deleting dedicated course bank {bank_id}.")
+            response = client.delete(
+                f"{hindsight_url}/v1/default/banks/{bank_id}",
+                headers=headers,
+            )
+
+            if response.status_code >= 400 and response.status_code != 404:
+                _log("[Agno Course Memory Agent] Failed to delete the dedicated course bank.")
+                _log(f"- Bank ID: {bank_id}")
+                _log(f"- Hindsight delete status: {response.status_code}")
+                _log(f"- Hindsight delete response: {response.text}")
+                return {
+                    "success": False,
+                    "action": "delete_course_bank_in_hindsight",
+                    "courseId": course_id,
+                    "tenantId": tenant_id,
+                    "bankId": bank_id,
+                    "deletedBankIds": deleted_bank_ids,
+                    "deletedDocumentIds": deleted_document_ids,
+                    "error": f"Hindsight bank deletion failed with status {response.status_code}",
+                }
+            if response.status_code != 404:
+                deleted_bank_ids.append(bank_id)
+
+    _log("[Agno Course Memory Agent] Finished action 'delete_course_bank'.")
+    return {
+        "success": True,
+        "action": "delete_course_bank_in_hindsight",
+        "courseId": course_id,
+        "tenantId": tenant_id,
+        "bankId": bank_ids[0],
+        "deleted": len(deleted_bank_ids) > 0,
+        "deletedBankIds": deleted_bank_ids,
+        "deletedDocumentIds": deleted_document_ids,
+    }
 
 
 course_memory_workflow = Workflow(

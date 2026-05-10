@@ -77,6 +77,64 @@
 
 **Spec Reference**: SPEC-2 (Agent Memory)
 
+#### Current Implementation Note: Course Memory Agent
+
+The Sprint 4 memory work now includes an operational `course memory agent` built as a separate AgentOS workflow. It is no longer limited to a conceptual memory sync.
+
+- **Runtime**
+  - `agents/course-memory/app/agent_os_service.py`
+  - `agents/course-memory/app/workflow.py`
+
+- **Current supported platform triggers**
+  - publish a course
+  - edit and save a course
+  - unpublish a course
+  - delete a course
+
+- **Current behavior by trigger**
+  - `publish`
+    - checks whether `tenant:{tenantId}:course:{courseId}` already exists in Hindsight
+    - skips retain if the course already exists
+    - otherwise assembles and retains the full course knowledge set
+  - `edit`
+    - reuses the same assembly and retain workflow
+    - forces retain even when the course bank already exists
+    - keeps Hindsight aligned with the latest course edits
+  - `unpublish`
+    - performs no Hindsight deletion
+    - leaves course memory stored while the platform course returns to draft state
+  - `delete`
+    - deletes retained documents
+    - deletes the main course bank
+    - deletes the requester-scoped course bank when present
+
+- **Current retained document structure**
+  - overview:
+    - `course:{courseId}:overview`
+  - lesson content:
+    - `course:{courseId}:lesson:{lessonId}`
+  - quiz content:
+    - `course:{courseId}:lesson:{lessonId}:quiz`
+  - supplemental source:
+    - `course:{courseId}:source:{index}`
+
+- **Current lesson/quiz distinction**
+  - the workflow treats a lesson as a quiz when:
+    - `assessmentId` is present, or
+    - `quizQuestions` is not empty, or
+    - `contentType == "quiz"`
+  - otherwise the lesson is retained as lesson content
+
+- **Current observability**
+  - the terminal shows:
+    - request start
+    - course bank existence checks
+    - prepared document previews
+    - lesson retain operations
+    - quiz retain operations
+    - supplemental source retain operations
+    - delete workflow progress
+
 #### Detailed Tasks:
 
 **DT-4.2.1 — Hindsight setup**

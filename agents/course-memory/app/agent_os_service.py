@@ -17,7 +17,21 @@ COMMON_SRC = Path(__file__).resolve().parents[3] / "upskilling_platform" / "pack
 if str(COMMON_SRC) not in sys.path:
     sys.path.insert(0, str(COMMON_SRC))
 
-from .workflow import CourseMemoryAssemblyInput, course_memory_workflow
+from .workflow import (
+    CourseMemoryAssemblyInput,
+    CourseMemoryDeleteInput,
+    course_memory_workflow,
+    delete_course_bank_in_hindsight,
+)
+
+
+SERVICE_CODE_SNAPSHOT_MS = max(
+    (
+        (Path(__file__).resolve().parent / "workflow.py").stat().st_mtime * 1000,
+        Path(__file__).resolve().stat().st_mtime * 1000,
+        (Path(__file__).resolve().parent / "run_agent_os_service.py").stat().st_mtime * 1000,
+    )
+)
 
 
 def _log(message: str) -> None:
@@ -87,8 +101,10 @@ def _publish_course_memory_event(message: dict[str, object]) -> None:
             rabbitmq.close()
     except ModuleNotFoundError as exc:
         if exc.name != "pika":
-            raise
+            return
         _publish_course_memory_event_via_fallback_python(message)
+    except ImportError:
+        return
 
 
 async def _watch_hindsight_operation(
@@ -106,9 +122,7 @@ async def _watch_hindsight_operation(
         headers["Authorization"] = f"Bearer {hindsight_api_key}"
 
     status_url = f"{hindsight_url}/v1/default/banks/{bank_id}/operations/{operation_id}"
-    _log(
-        f"[Agno Course Memory Agent] Watching Hindsight operation {operation_id} for course {course_id}."
-    )
+    # Watcher status logs are intentionally muted to keep publish output concise.
 
     timeout = httpx.Timeout(15.0)
     async with httpx.AsyncClient(timeout=timeout) as client:
@@ -116,17 +130,12 @@ async def _watch_hindsight_operation(
             try:
                 response = await client.get(status_url, headers=headers)
             except Exception as exc:
-                _log(
-                    f"[Agno Course Memory Agent] Hindsight operation watch retry for course {course_id}: {exc}"
-                )
+                # Retry logs are intentionally muted.
                 await asyncio.sleep(5)
                 continue
 
             if response.status_code >= 400:
-                _log(
-                    f"[Agno Course Memory Agent] Hindsight operation watch stopped for course {course_id}. "
-                    f"Status endpoint returned {response.status_code}: {response.text}"
-                )
+                # Stop logs are intentionally muted.
                 return
 
             data = response.json()
@@ -143,10 +152,7 @@ async def _watch_hindsight_operation(
                     "timestamp": response.headers.get("date"),
                 }
                 await asyncio.to_thread(_publish_course_memory_event, event_payload)
-                _log(
-                    f"[Agno Course Memory Agent] Hindsight finished processing course {course_id} successfully. "
-                    f"Bank: {bank_id}. Operation: {operation_id}."
-                )
+                # Completion logs are intentionally muted.
                 return
 
             if status in {"failed", "cancelled"}:
@@ -162,11 +168,7 @@ async def _watch_hindsight_operation(
                     "timestamp": response.headers.get("date"),
                 }
                 await asyncio.to_thread(_publish_course_memory_event, event_payload)
-                _log(
-                    f"[Agno Course Memory Agent] Hindsight processing failed for course {course_id}. "
-                    f"Bank: {bank_id}. Operation: {operation_id}. Status: {status}. "
-                    f"Error: {data.get('error_message') or 'unknown'}"
-                )
+                # Failure watcher logs are intentionally muted; event publishing still happens.
                 return
 
             await asyncio.sleep(5)
@@ -178,35 +180,56 @@ base_app = FastAPI(title="Course Memory AgentOS Service")
 @base_app.get("/health")
 async def health() -> JSONResponse:
     _log("[Agno Course Memory AgentOS] Health check received.")
-    return JSONResponse({"success": True, "service": "course-memory-agentos"}, status_code=200)
+    return JSONResponse(
+        {
+            "success": True,
+            "service": "course-memory-agentos",
+            "pid": os.getpid(),
+            "serviceCodeSnapshotMs": SERVICE_CODE_SNAPSHOT_MS,
+        },
+        status_code=200,
+    )
 
 
 @base_app.post("/v1/course-memory/assemble")
 async def assemble_course_memory(payload: CourseMemoryAssemblyInput) -> JSONResponse:
-    _log(
-        f"[Agno Course Memory Agent] Starting action 'retain_published_course_knowledge' for course {payload.courseId}."
-    )
+    # Start log muted to keep publish output concise.
     result = course_memory_workflow.run(input=payload.model_dump())
     content = result.content if isinstance(result.content, dict) else {"success": False}
-    if bool(content.get("success")) and bool(content.get("isAsync")) and content.get("operationId") and content.get("bankId"):
-        task = asyncio.create_task(
-            _watch_hindsight_operation(
-                course_id=payload.courseId,
-                bank_id=str(content["bankId"]),
-                operation_id=str(content["operationId"]),
-                requester_user_id=str(content.get("requesterUserId") or payload.requesterUserId or ""),
-                requester_name=str(content.get("requesterName") or payload.requesterName or ""),
-                hindsight_url=payload.hindsightApiUrl or "http://127.0.0.1:8888",
-                hindsight_api_key=payload.hindsightApiKey,
+    if bool(content.get("success")) and bool(content.get("isAsync")) and content.get("bankId"):
+        operation_ids = [
+            str(operation_id).strip()
+            for operation_id in (content.get("operationIds") or [content.get("operationId")])
+            if str(operation_id).strip()
+        ]
+        for operation_id in operation_ids:
+            task = asyncio.create_task(
+                _watch_hindsight_operation(
+                    course_id=payload.courseId,
+                    bank_id=str(content["bankId"]),
+                    operation_id=operation_id,
+                    requester_user_id=str(content.get("requesterUserId") or payload.requesterUserId or ""),
+                    requester_name=str(content.get("requesterName") or payload.requesterName or ""),
+                    hindsight_url=payload.hindsightApiUrl or "http://127.0.0.1:8888",
+                    hindsight_api_key=payload.hindsightApiKey,
+                )
             )
-        )
-        _background_tasks.add(task)
-        task.add_done_callback(_background_tasks.discard)
-    _log(
-        f"[Agno Course Memory Agent] Finished action 'retain_published_course_knowledge' for course {payload.courseId}."
-    )
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
+    # Finish log muted to keep publish output concise.
     return JSONResponse(content, status_code=200 if bool(content.get("success")) else 500)
 
+
+@base_app.post("/v1/course-memory/delete")
+async def delete_course_memory(payload: CourseMemoryDeleteInput) -> JSONResponse:
+    _log(
+        f"[Agno Course Memory Agent] Starting action 'delete_course_bank' for course {payload.courseId}."
+    )
+    content = delete_course_bank_in_hindsight(payload)
+    _log(
+        f"[Agno Course Memory Agent] Finished action 'delete_course_bank' for course {payload.courseId}."
+    )
+    return JSONResponse(content, status_code=200 if bool(content.get("success")) else 500)
 
 agent_os = AgentOS(
     name="Course Memory AgentOS",

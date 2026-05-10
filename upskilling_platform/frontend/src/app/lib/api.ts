@@ -1138,6 +1138,10 @@ export interface AssessmentQuestionResponse {
   order: number;
 }
 
+export interface AssessmentQuestionWithAnswerResponse extends AssessmentQuestionResponse {
+  correct_answer: string;
+}
+
 export interface AssessmentAttemptQuestionReview {
   id: string;
   assessment_id: string;
@@ -1460,6 +1464,34 @@ export async function createAssessmentQuestion(
 ): Promise<AssessmentQuestionResponse> {
   return api.post<AssessmentQuestionResponse>(
     `/api/v1/learning/courses/${courseId}/assessments/${assessmentId}/questions`,
+    data
+  );
+}
+
+export async function getAssessmentQuestionsForMemory(
+  courseId: string,
+  assessmentId: string,
+): Promise<AssessmentQuestionWithAnswerResponse[]> {
+  return api.get<AssessmentQuestionWithAnswerResponse[]>(
+    `/api/v1/learning/courses/${courseId}/assessments/${assessmentId}/memory-questions`,
+  );
+}
+
+export async function updateAssessmentQuestion(
+  courseId: string,
+  assessmentId: string,
+  questionId: string,
+  data: {
+    text?: string;
+    type?: string;
+    options?: string[];
+    correct_answer?: string;
+    points?: number;
+    order?: number;
+  }
+): Promise<AssessmentQuestionResponse> {
+  return api.put<AssessmentQuestionResponse>(
+    `/api/v1/learning/courses/${courseId}/assessments/${assessmentId}/questions/${questionId}`,
     data
   );
 }

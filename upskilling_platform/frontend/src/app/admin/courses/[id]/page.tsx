@@ -28,13 +28,17 @@ import { AiGeneratedLessonPlayer } from "@/app/components/learn/AiGeneratedLesso
 import { Button, buttonVariants } from "@/app/components/ui/Button";
 import { Input } from "@/app/components/ui/Input";
 import {
+  createAssessmentQuestion,
+  getAssessmentQuestionsForMemory,
   getCourseById,
   LEARNING_URL,
   toggleCoursePublish,
+  updateAssessmentQuestion,
   updateCourseById,
   updateCourseModule,
   updateModuleLesson,
   uploadCourseContent,
+  type AssessmentQuestionWithAnswerResponse,
   type ContentUploadResponse,
   type CourseDetailResponse,
 } from "@/app/lib/api";
@@ -53,9 +57,21 @@ type EditableLesson = {
   content_type: string;
   duration: number;
   order: number;
+  assessment_id: string | null;
+  quizQuestions: EditableQuizQuestion[];
   resources: ResourceLink[];
   newVideoFile: File | null;
   newFiles: File[];
+};
+
+type EditableQuizQuestion = {
+  id: string;
+  text: string;
+  type: string;
+  options: string[];
+  correct_answer: string;
+  points: number;
+  order: number;
 };
 
 type EditableModule = {
@@ -257,6 +273,14 @@ function isAiGeneratedCourse(course: Pick<EditableCourse | CourseDetailResponse,
   return category.includes("ai") || description.includes("ai-generated");
 }
 
+function isQuizLesson(lesson: Pick<EditableLesson, "assessment_id" | "quizQuestions" | "content_type">) {
+  return (
+    Boolean(String(lesson.assessment_id || "").trim()) ||
+    (Array.isArray(lesson.quizQuestions) && lesson.quizQuestions.length > 0) ||
+    String(lesson.content_type || "").trim().toLowerCase() === "quiz"
+  );
+}
+
 function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")
@@ -294,6 +318,20 @@ function buildStoredVideoReference(upload: ContentUploadResponse | null): string
     return null;
   }
   return `minio://${upload.bucket}/${upload.object_name}`;
+}
+
+function normalizeQuizQuestion(
+  question: AssessmentQuestionWithAnswerResponse
+): EditableQuizQuestion {
+  return {
+    id: question.id,
+    text: question.text,
+    type: question.type,
+    options: Array.isArray(question.options) ? question.options : [],
+    correct_answer: question.correct_answer,
+    points: question.points,
+    order: question.order,
+  };
 }
 
 function extractLessonEditorData(content: string | null | undefined): {
@@ -587,6 +625,24 @@ export default function AdminCourseDetailPage() {
       setLoading(true);
       setError(null);
       const detail = await getCourseById(courseId);
+      const quizQuestionMap = new Map<string, EditableQuizQuestion[]>();
+      const lessonsWithAssessment = detail.modules.flatMap((module) =>
+        module.lessons
+          .filter((lesson) => Boolean(lesson.assessment_id))
+          .map((lesson) => ({
+            lessonId: lesson.id,
+            assessmentId: String(lesson.assessment_id || ""),
+          }))
+      );
+      await Promise.all(
+        lessonsWithAssessment.map(async ({ lessonId, assessmentId }) => {
+          const questions = await getAssessmentQuestionsForMemory(detail.id, assessmentId);
+          quizQuestionMap.set(
+            lessonId,
+            questions.map(normalizeQuizQuestion),
+          );
+        })
+      );
       const computedDuration = calculateCourseDuration(detail.modules);
       setCourse(detail);
       setEditingCourse({
@@ -613,6 +669,8 @@ export default function AdminCourseDetailPage() {
               content_type: lesson.content_type,
               duration: lesson.duration,
               order: lesson.order,
+              assessment_id: lesson.assessment_id || null,
+              quizQuestions: quizQuestionMap.get(lesson.id) || [],
               resources: parsed.resources,
               newVideoFile: null,
               newFiles: [],
@@ -722,6 +780,38 @@ export default function AdminCourseDetailPage() {
     );
   };
 
+  const updateEditingQuizQuestion = (
+    moduleId: string,
+    lessonId: string,
+    questionId: string,
+    changes: Partial<EditableQuizQuestion>
+  ) => {
+    setEditingCourse((current) =>
+      current
+        ? {
+            ...current,
+            modules: current.modules.map((module) =>
+              module.id === moduleId
+                ? {
+                    ...module,
+                    lessons: module.lessons.map((lesson) =>
+                      lesson.id === lessonId
+                        ? {
+                            ...lesson,
+                            quizQuestions: lesson.quizQuestions.map((question) =>
+                              question.id === questionId ? { ...question, ...changes } : question
+                            ),
+                          }
+                        : lesson
+                    ),
+                  }
+                : module
+            ),
+          }
+        : current
+    );
+  };
+
   async function handleSave() {
     if (!editingCourse) {
       return;
@@ -767,7 +857,40 @@ export default function AdminCourseDetailPage() {
             content_type: videoUrl ? "video" : "resource",
             duration: lesson.duration,
             order: lesson.order,
+            assessment_id: lesson.assessment_id,
           });
+
+          if (lesson.assessment_id) {
+            for (const question of lesson.quizQuestions) {
+              const normalizedOptions = question.options
+                .map((option) => option.trim())
+                .filter(Boolean);
+              if (!question.text.trim() || normalizedOptions.length === 0 || !question.correct_answer.trim()) {
+                continue;
+              }
+
+              if (question.id.startsWith("new-question-")) {
+                await createAssessmentQuestion(editingCourse.id, lesson.assessment_id, {
+                  text: question.text.trim(),
+                  type: question.type,
+                  options: normalizedOptions,
+                  correct_answer: question.correct_answer.trim(),
+                  points: question.points,
+                  order: question.order,
+                });
+                continue;
+              }
+
+              await updateAssessmentQuestion(editingCourse.id, lesson.assessment_id, question.id, {
+                text: question.text.trim(),
+                type: question.type,
+                options: normalizedOptions,
+                correct_answer: question.correct_answer.trim(),
+                points: question.points,
+                order: question.order,
+              });
+            }
+          }
         }
       }
 
@@ -801,24 +924,6 @@ export default function AdminCourseDetailPage() {
 
     try {
       const updated = await toggleCoursePublish(course.id);
-
-      if (updated.is_published) {
-        const memoryResponse = await fetch("/api/course-memory-agent/published-course", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ courseId: course.id }),
-        });
-        const memoryData = (await memoryResponse.json().catch(() => null)) as
-          | { success?: boolean; error?: string }
-          | null;
-
-        if (!memoryResponse.ok || !memoryData?.success) {
-          throw new Error(
-            memoryData?.error ||
-              "Course published, but the Course Memory Agent failed to assemble the course payload."
-          );
-        }
-      }
 
       setCourse((current) => (current ? { ...current, is_published: updated.is_published } : current));
       setEditingCourse((current) =>
@@ -958,7 +1063,7 @@ export default function AdminCourseDetailPage() {
                         <BookOpen className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="grid gap-4 md:grid-cols-2">
+                                <div className="grid gap-4 md:grid-cols-2">
                           <div className="space-y-2 md:col-span-2">
                             <label className="text-xs font-medium text-slate-600">Title</label>
                             <Input
@@ -1067,9 +1172,9 @@ export default function AdminCourseDetailPage() {
                       </p>
                     </div>
                   </div>
+                  </div>
                 </div>
-              </div>
-            ) : (
+                            ) : (
               <section className="overflow-hidden rounded-3xl border border-[#2A5B4A] bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.22),_transparent_32%),radial-gradient(circle_at_76%_18%,_rgba(59,130,246,0.2),_transparent_26%),linear-gradient(135deg,_#102E2D_0%,_#132A3A_48%,_#0F172A_100%)] p-6 text-white shadow-[0_26px_70px_rgba(0,0,0,0.28)] sm:p-8">
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">
                   <BookOpen className="h-3.5 w-3.5" />
@@ -1421,11 +1526,17 @@ export default function AdminCourseDetailPage() {
                         >
                           {isEditMode ? (
                             <div className="space-y-4">
+                              {(() => {
+                                const editableLesson = lesson as EditableLesson;
+                                const quizLesson = isQuizLesson(editableLesson);
+
+                                return (
+                                  <>
                               <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                   <label className="text-xs font-medium text-slate-600">Lesson Title</label>
                                   <Input
-                                    value={(lesson as EditableLesson).title}
+                                    value={editableLesson.title}
                                     onChange={(e) =>
                                       updateEditingLesson(module.id, lesson.id, {
                                         title: e.target.value,
@@ -1438,7 +1549,7 @@ export default function AdminCourseDetailPage() {
                                   <label className="text-xs font-medium text-slate-600">Duration (minutes)</label>
                                   <Input
                                     type="number"
-                                    value={(lesson as EditableLesson).duration}
+                                    value={editableLesson.duration}
                                     onChange={(e) =>
                                       updateEditingLesson(module.id, lesson.id, {
                                         duration: parseInt(e.target.value, 10) || 0,
@@ -1453,7 +1564,7 @@ export default function AdminCourseDetailPage() {
                                 <div className="space-y-2 md:col-span-2">
                                   <label className="text-xs font-medium text-slate-600">Lesson Summary</label>
                                   <textarea
-                                    value={(lesson as EditableLesson).summary}
+                                    value={editableLesson.summary}
                                     onChange={(e) =>
                                       updateEditingLesson(module.id, lesson.id, {
                                         summary: e.target.value,
@@ -1465,97 +1576,209 @@ export default function AdminCourseDetailPage() {
                                 </div>
                               </div>
 
-                              {((lesson as EditableLesson).resources.length > 0 ||
-                                (lesson as EditableLesson).video_url) && (
+                              {!quizLesson && ((editableLesson.resources.length > 0 ||
+                                editableLesson.video_url) && (
                                 <div className="rounded-xl border border-slate-200 bg-white p-3">
                                   <p className="text-xs font-medium text-slate-900">
                                     Current Attached Content
                                   </p>
-                                  {(lesson as EditableLesson).video_url && (
+                                  {editableLesson.video_url && (
                                     <p className="mt-2 text-xs text-slate-500">
                                       Main video already attached
                                     </p>
                                   )}
-                                  {(lesson as EditableLesson).resources.length > 0 && (
+                                  {editableLesson.resources.length > 0 && (
                                     <ul className="mt-2 space-y-1 text-xs text-slate-500">
-                                      {(lesson as EditableLesson).resources.map((resource) => (
+                                      {editableLesson.resources.map((resource) => (
                                         <li key={`${lesson.id}-${resource.url}`}>{resource.title}</li>
                                       ))}
                                     </ul>
                                   )}
                                 </div>
-                              )}
+                              ))}
 
-                              <div className="grid gap-4 md:grid-cols-2">
-                                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4">
-                                  <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-600">
-                                    <FileVideo className="h-4 w-4" />
-                                    Replace / Add Main Video
-                                  </div>
-                                  <label
-                                    htmlFor={`lesson-${lesson.id}-video`}
-                                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-                                  >
-                                    <Upload className="h-4 w-4" />
-                                    Choose Video
-                                  </label>
-                                  <input
-                                    id={`lesson-${lesson.id}-video`}
-                                    type="file"
-                                    accept="video/mp4,video/webm,video/ogg"
-                                    className="sr-only"
-                                    onChange={async (e) => {
-                                      const nextVideo = e.target.files?.[0] || null;
-                                      if (!nextVideo) {
+                              {!quizLesson ? (
+                                <div className="grid gap-4 md:grid-cols-2">
+                                  <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+                                    <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-600">
+                                      <FileVideo className="h-4 w-4" />
+                                      Replace / Add Main Video
+                                    </div>
+                                    <label
+                                      htmlFor={`lesson-${lesson.id}-video`}
+                                      className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                                    >
+                                      <Upload className="h-4 w-4" />
+                                      Choose Video
+                                    </label>
+                                    <input
+                                      id={`lesson-${lesson.id}-video`}
+                                      type="file"
+                                      accept="video/mp4,video/webm,video/ogg"
+                                      className="sr-only"
+                                      onChange={async (e) => {
+                                        const nextVideo = e.target.files?.[0] || null;
+                                        if (!nextVideo) {
+                                          updateEditingLesson(module.id, lesson.id, {
+                                            newVideoFile: null,
+                                          });
+                                          return;
+                                        }
+
+                                        const detectedDuration = await getVideoDurationInMinutes(nextVideo);
                                         updateEditingLesson(module.id, lesson.id, {
-                                          newVideoFile: null,
+                                          newVideoFile: nextVideo,
+                                          duration: detectedDuration || editableLesson.duration,
                                         });
-                                        return;
-                                      }
-
-                                      const detectedDuration = await getVideoDurationInMinutes(nextVideo);
-                                      updateEditingLesson(module.id, lesson.id, {
-                                        newVideoFile: nextVideo,
-                                        duration: detectedDuration || (lesson as EditableLesson).duration,
-                                      });
-                                    }}
-                                  />
-                                  <SelectedFilesList
-                                    files={(lesson as EditableLesson).newVideoFile ? [(lesson as EditableLesson).newVideoFile as File] : []}
-                                    emptyLabel="No new video selected"
-                                  />
-                                </div>
-
-                                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4">
-                                  <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-600">
-                                    <Upload className="h-4 w-4" />
-                                    Add Support Files
+                                      }}
+                                    />
+                                    <SelectedFilesList
+                                      files={editableLesson.newVideoFile ? [editableLesson.newVideoFile as File] : []}
+                                      emptyLabel="No new video selected"
+                                    />
                                   </div>
-                                  <label
-                                    htmlFor={`lesson-${lesson.id}-files`}
-                                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
-                                  >
-                                    <Upload className="h-4 w-4" />
-                                    Choose Files
-                                  </label>
-                                  <input
-                                    id={`lesson-${lesson.id}-files`}
-                                    type="file"
-                                    accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.ppt,.pptx,.doc,.docx,.txt,.csv,.xls,.xlsx,.zip"
-                                    multiple
-                                    className="sr-only"
-                                    onChange={(e) =>
-                                      updateEditingLesson(module.id, lesson.id, {
-                                        newFiles: Array.from(e.target.files || []),
-                                      })
-                                    }
-                                  />
-                                  <SelectedFilesList
-                                    files={(lesson as EditableLesson).newFiles}
-                                    emptyLabel="No new support files selected"
-                                  />
+
+                                  <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4">
+                                    <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-600">
+                                      <Upload className="h-4 w-4" />
+                                      Add Support Files
+                                    </div>
+                                    <label
+                                      htmlFor={`lesson-${lesson.id}-files`}
+                                      className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                                    >
+                                      <Upload className="h-4 w-4" />
+                                      Choose Files
+                                    </label>
+                                    <input
+                                      id={`lesson-${lesson.id}-files`}
+                                      type="file"
+                                      accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.ppt,.pptx,.doc,.docx,.txt,.csv,.xls,.xlsx,.zip"
+                                      multiple
+                                      className="sr-only"
+                                      onChange={(e) =>
+                                        updateEditingLesson(module.id, lesson.id, {
+                                          newFiles: Array.from(e.target.files || []),
+                                        })
+                                      }
+                                    />
+                                    <SelectedFilesList
+                                      files={editableLesson.newFiles}
+                                      emptyLabel="No new support files selected"
+                                    />
+                                  </div>
                                 </div>
-                              </div>
+                              ) : null}
+
+                              {editableLesson.assessment_id ? (
+                                <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
+                                  <div>
+                                    <p className="text-sm font-semibold text-slate-900">Quiz Questions</p>
+                                    <p className="text-xs text-slate-500">
+                                      Review and edit the existing quiz questions, options, and correct answers.
+                                    </p>
+                                  </div>
+                                  {(lesson as EditableLesson).quizQuestions.length > 0 ? (
+                                    (lesson as EditableLesson).quizQuestions
+                                      .slice()
+                                      .sort((left, right) => left.order - right.order)
+                                      .map((question, questionIndex) => (
+                                        <div
+                                          key={question.id}
+                                          className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                                        >
+                                          <div className="grid gap-4 md:grid-cols-2">
+                                            <div className="space-y-2 md:col-span-2">
+                                              <label className="text-xs font-medium text-slate-600">
+                                                Question {questionIndex + 1}
+                                              </label>
+                                              <textarea
+                                                value={question.text}
+                                                onChange={(e) =>
+                                                  updateEditingQuizQuestion(module.id, lesson.id, question.id, {
+                                                    text: e.target.value,
+                                                  })
+                                                }
+                                                rows={2}
+                                                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                                              />
+                                            </div>
+                                            <div className="space-y-2">
+                                              <label className="text-xs font-medium text-slate-600">Type</label>
+                                              <select
+                                                value={question.type}
+                                                onChange={(e) =>
+                                                  updateEditingQuizQuestion(module.id, lesson.id, question.id, {
+                                                    type: e.target.value,
+                                                  })
+                                                }
+                                                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                                              >
+                                                <option value="multiple_choice">Multiple choice</option>
+                                                <option value="true_false">True / False</option>
+                                              </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                              <label className="text-xs font-medium text-slate-600">Points</label>
+                                              <Input
+                                                type="number"
+                                                min={1}
+                                                value={question.points}
+                                                onChange={(e) =>
+                                                  updateEditingQuizQuestion(module.id, lesson.id, question.id, {
+                                                    points: Math.max(1, Number(e.target.value) || 1),
+                                                  })
+                                                }
+                                                className="border-slate-200 bg-white text-slate-900"
+                                              />
+                                            </div>
+                                          </div>
+                                          <div className="grid gap-3 md:grid-cols-2">
+                                            {question.options.map((option, optionIndex) => (
+                                              <div key={`${question.id}-option-${optionIndex}`} className="space-y-2">
+                                                <label className="text-xs font-medium text-slate-600">
+                                                  Option {optionIndex + 1}
+                                                </label>
+                                                <Input
+                                                  value={option}
+                                                  onChange={(e) => {
+                                                    const nextOptions = [...question.options];
+                                                    nextOptions[optionIndex] = e.target.value;
+                                                    updateEditingQuizQuestion(module.id, lesson.id, question.id, {
+                                                      options: nextOptions,
+                                                    });
+                                                  }}
+                                                  className="border-slate-200 bg-white text-slate-900"
+                                                />
+                                              </div>
+                                            ))}
+                                          </div>
+                                          <div className="space-y-2">
+                                            <label className="text-xs font-medium text-slate-600">
+                                              Correct Answer
+                                            </label>
+                                            <Input
+                                              value={question.correct_answer}
+                                              onChange={(e) =>
+                                                updateEditingQuizQuestion(module.id, lesson.id, question.id, {
+                                                  correct_answer: e.target.value,
+                                                })
+                                              }
+                                              className="border-slate-200 bg-white text-slate-900"
+                                            />
+                                          </div>
+                                        </div>
+                                      ))
+                                  ) : (
+                                    <p className="text-xs text-slate-500">
+                                      No quiz questions were found for this assessment.
+                                    </p>
+                                  )}
+                                </div>
+                              ) : null}
+                                  </>
+                                );
+                              })()}
                             </div>
                           ) : (
                             <>

@@ -17,6 +17,29 @@ function getAuthTokenFromRequest(request: Request) {
   return match?.[1] ? `Bearer ${decodeURIComponent(match[1])}` : null;
 }
 
+function decodeJwtClaimsFromAuthorizationHeader(authorization: string | null): { sub?: string } | null {
+  if (!authorization?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  try {
+    const token = authorization.slice("Bearer ".length);
+    const [, payload] = token.split(".");
+    if (!payload) {
+      return null;
+    }
+    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { sub?: string };
+  } catch {
+    return null;
+  }
+}
+
+function detectCourseType(course: { category?: string | null; description?: string | null }) {
+  const category = String(course.category || "").toLowerCase();
+  const description = String(course.description || "").toLowerCase();
+  return category.includes("ai") || description.includes("ai-generated") ? "ai_generated" : "traditional";
+}
+
 export async function deleteManagedCourse(request: Request, courseId: string) {
   const authorization = getAuthTokenFromRequest(request);
 
@@ -46,14 +69,41 @@ export async function deleteManagedCourse(request: Request, courseId: string) {
 
   const course = (await courseResponse.json().catch(() => null)) as
     | {
+        id?: string;
         tenant_id?: string | null;
+        category?: string | null;
+        description?: string | null;
         modules?: Array<{
           lessons?: Array<{ id?: string; content?: string | null }>;
         }>;
       }
     | null;
 
-  await deletePublishedCourseMemory(courseId, course?.tenant_id || null, course);
+  const courseType = detectCourseType({
+    category: course?.category || null,
+    description: course?.description || null,
+  });
+  const requesterClaims = decodeJwtClaimsFromAuthorizationHeader(authorization);
+  console.log(
+    `[Agno Course Memory Agent] Course-memory workflow launched successfully for deleting a ${courseType} course ${courseId}.`,
+  );
+
+  const tenantId = String(course?.tenant_id || "").trim() || null;
+  const requesterUserId = String(requesterClaims?.sub || "").trim() || null;
+  if (tenantId) {
+    const deleteMemoryResult = await deletePublishedCourseMemory(
+      courseId,
+      tenantId,
+      requesterUserId,
+      course?.modules ? { modules: course.modules } : null,
+    );
+    if (!deleteMemoryResult.success) {
+      return Response.json(
+        { success: false, detail: "Failed to delete course memory before deleting the course." },
+        { status: 500 },
+      );
+    }
+  }
 
   const deleteResponse = await fetch(`${LEARNING_URL}/api/v1/courses/${courseId}`, {
     method: "DELETE",

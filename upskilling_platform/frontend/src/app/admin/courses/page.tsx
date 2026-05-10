@@ -513,29 +513,12 @@ export default function AdminCoursesPage() {
           ...finalCourse,
           is_published: published.is_published,
         };
-        if (published.is_published) {
-          const memoryResponse = await fetch("/api/course-memory-agent/published-course", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ courseId: createdCourse.id }),
-          });
-          const memoryData = (await memoryResponse.json().catch(() => null)) as
-            | { success?: boolean; error?: string }
-            | null;
-
-          if (!memoryResponse.ok || !memoryData?.success) {
-            throw new Error(
-              memoryData?.error ||
-                "Course published, but the Course Memory Agent failed to assemble the course payload.",
-            );
-          }
-        }
       }
 
       setCourses((current) => [finalCourse, ...current]);
       setSuccess(
         formData.is_published
-          ? "Course created and published successfully. The Course Memory Agent assembled the course content."
+          ? "Course created and published successfully. The Course Memory Agent synced the course bank."
           : "Course created successfully."
       );
       setShowCreateModal(false);

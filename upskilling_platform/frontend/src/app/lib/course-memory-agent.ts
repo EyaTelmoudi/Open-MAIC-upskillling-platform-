@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
 
@@ -16,11 +16,13 @@ type CourseMemoryPayload = {
   tenantId?: string | null;
   requesterUserId?: string | null;
   requesterName?: string | null;
+  forceRetention?: boolean;
   supplementalSources?: Array<{
     kind?: string | null;
     title?: string | null;
     text: string;
   }>;
+  previewMode?: string | null;
 };
 
 type CourseMemoryResult = {
@@ -28,6 +30,11 @@ type CourseMemoryResult = {
   workflowName: string;
   action: string;
   courseId: string;
+  skipCourseRetention?: boolean;
+  foundExistingCourseBank?: boolean;
+  bankExistenceCheckStatus?: number;
+  previewOnly?: boolean;
+  previewDocument?: Record<string, unknown>;
   bankId?: string;
   isAsync?: boolean;
   operationId?: string;
@@ -104,6 +111,7 @@ function getPredictedCourseDocumentIds(
 
 type ServiceState = {
   process: ChildProcessWithoutNullStreams | null;
+  startedAtMs?: number;
 };
 
 function getServiceState() {
@@ -112,7 +120,7 @@ function getServiceState() {
   };
 
   if (!globalScope[SERVICE_STATE_KEY]) {
-    globalScope[SERVICE_STATE_KEY] = { process: null };
+    globalScope[SERVICE_STATE_KEY] = { process: null, startedAtMs: 0 };
   }
 
   return globalScope[SERVICE_STATE_KEY];
@@ -177,23 +185,151 @@ async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function isServiceHealthy() {
+function getListenerPidsForPort(port: number) {
+  if (process.platform !== "win32") {
+    return [];
+  }
+
+  const probe = spawnSync("netstat", ["-ano", "-p", "tcp"], {
+    encoding: "utf8",
+    windowsHide: true,
+  });
+
+  if (probe.status !== 0 || !probe.stdout) {
+    return [];
+  }
+
+  const suffix = `:${port}`;
+  const pids = new Set<number>();
+  for (const line of probe.stdout.split(/\r?\n/)) {
+    if (!line.includes("LISTENING") || !line.includes(suffix)) {
+      continue;
+    }
+    const parts = line.trim().split(/\s+/);
+    if (parts.length < 5) {
+      continue;
+    }
+    const localAddress = parts[1] || "";
+    const pid = Number.parseInt(parts[4] || "", 10);
+    if (!localAddress.endsWith(suffix) || !Number.isFinite(pid) || pid <= 0) {
+      continue;
+    }
+    pids.add(pid);
+  }
+
+  return Array.from(pids);
+}
+
+function killProcessTree(pid: number) {
+  if (!Number.isFinite(pid) || pid <= 0) {
+    return;
+  }
+
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], {
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    return;
+  }
+
   try {
-    const response = await fetch(`${DEFAULT_SERVICE_URL}/health`, { cache: "no-store" });
-    return response.ok;
+    process.kill(pid, "SIGKILL");
   } catch {
-    return false;
+    // Ignore kill failures here; health polling below decides next step.
   }
 }
 
+async function getServiceHealth(): Promise<{
+  ok: boolean;
+  pid?: number;
+  serviceCodeSnapshotMs?: number;
+}> {
+  try {
+    const response = await fetch(`${DEFAULT_SERVICE_URL}/health`, { cache: "no-store" });
+    if (!response.ok) {
+      return { ok: false };
+    }
+    const payload = (await response.json().catch(() => null)) as
+      | { pid?: number; serviceCodeSnapshotMs?: number }
+      | null;
+    return {
+      ok: true,
+      pid: typeof payload?.pid === "number" ? payload.pid : undefined,
+      serviceCodeSnapshotMs:
+        typeof payload?.serviceCodeSnapshotMs === "number" ? payload.serviceCodeSnapshotMs : undefined,
+    };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function getAgentCodeLastUpdatedAtMs(repoRoot: string) {
+  const files = [
+    path.join(repoRoot, "agents", "course-memory", "app", "workflow.py"),
+    path.join(repoRoot, "agents", "course-memory", "app", "agent_os_service.py"),
+    path.join(repoRoot, "agents", "course-memory", "app", "run_agent_os_service.py"),
+  ];
+
+  let latest = 0;
+  for (const filePath of files) {
+    try {
+      latest = Math.max(latest, statSync(filePath).mtimeMs);
+    } catch {
+      // Ignore missing files here; health/startup logic will fail separately if needed.
+    }
+  }
+  return latest;
+}
+
 export async function ensureCourseMemoryAgentService() {
-  if (await isServiceHealthy()) {
+  const repoRoot = resolveRepoRoot();
+  const state = getServiceState();
+  const agentCodeLastUpdatedAtMs = getAgentCodeLastUpdatedAtMs(repoRoot);
+  const health = await getServiceHealth();
+  const shouldRestartRunningService =
+    Boolean(state.process) &&
+    !state.process?.killed &&
+    state.process?.exitCode === null &&
+    Number(state.startedAtMs || 0) > 0 &&
+    agentCodeLastUpdatedAtMs > Number(state.startedAtMs || 0);
+  const shouldRestartHealthyExternalService =
+    !state.process &&
+    health.ok &&
+    (Number(health.serviceCodeSnapshotMs || 0) <= 0 ||
+      agentCodeLastUpdatedAtMs > Number(health.serviceCodeSnapshotMs || 0));
+
+  if (shouldRestartRunningService) {
+    if (state.process?.pid) {
+      killProcessTree(state.process.pid);
+    } else {
+      state.process?.kill();
+    }
+    state.process = null;
+    state.startedAtMs = 0;
+  } else if (shouldRestartHealthyExternalService) {
+    if (health.pid) {
+      killProcessTree(health.pid);
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        if (!(await getServiceHealth()).ok) {
+          break;
+        }
+        await sleep(250);
+      }
+    }
+  } else if (health.ok) {
     return true;
   }
 
-  const state = getServiceState();
+  for (const pid of getListenerPidsForPort(8011)) {
+    if (state.process?.pid && pid === state.process.pid) {
+      continue;
+    }
+    killProcessTree(pid);
+  }
+  await sleep(500);
+
   if (!state.process || state.process.killed || state.process.exitCode !== null) {
-    const repoRoot = resolveRepoRoot();
     const pythonExecutable = resolveAgentPython(repoRoot);
     const workspace = resolveAgentWorkspace(repoRoot);
     const scriptPath = path.join(workspace, "app", "run_agent_os_service.py");
@@ -206,6 +342,7 @@ export async function ensureCourseMemoryAgentService() {
       cwd: workspace,
       stdio: ["ignore", "pipe", "pipe"],
     });
+    state.startedAtMs = Date.now();
 
     state.process.stdout.setEncoding("utf8");
     state.process.stderr.setEncoding("utf8");
@@ -223,11 +360,12 @@ export async function ensureCourseMemoryAgentService() {
         `[Agno Course Memory Agent] AgentOS service exited before becoming healthy. code=${code ?? "null"} signal=${signal ?? "null"}`,
       );
       state.process = null;
+      state.startedAtMs = 0;
     });
   }
 
   for (let attempt = 0; attempt < 120; attempt += 1) {
-    if (await isServiceHealthy()) {
+    if ((await getServiceHealth()).ok) {
       return true;
     }
     await sleep(250);
@@ -278,6 +416,10 @@ function buildCourseBankId(tenantId: string, courseId: string) {
   return `tenant:${tenantId.trim()}:course:${courseId}`;
 }
 
+function buildUserCourseBankId(tenantId: string, requesterUserId: string, courseId: string) {
+  return `tenant:${tenantId.trim()}:user:${requesterUserId.trim()}:course:${courseId}`;
+}
+
 function buildLegacyTenantCoursesBankId(tenantId: string) {
   return `tenant:${tenantId.trim()}:courses`;
 }
@@ -291,10 +433,10 @@ export async function assemblePublishedCourseForMemory(
     title?: string | null;
     text: string;
   }>,
+  previewMode?: string | null,
+  forceRetention?: boolean,
 ): Promise<CourseMemoryResult> {
-  console.log(
-    `[Agno Course Memory Agent] Starting action "retain_published_course_knowledge" for course ${courseId}.`,
-  );
+  // Verbose start log is intentionally muted to keep publish output concise.
 
   if (!(await ensureCourseMemoryAgentService())) {
     throw new Error("The Course Memory AgentOS service is not available.");
@@ -313,6 +455,8 @@ export async function assemblePublishedCourseForMemory(
     tenantId,
     requesterUserId: claims?.sub ?? null,
     requesterName: claims?.email ?? null,
+    forceRetention: Boolean(forceRetention),
+    previewMode: previewMode ?? null,
     supplementalSources:
       supplementalSources?.filter((source) => source.text.trim()).map((source) => ({
         kind: source.kind?.trim() || "supplemental_course_source",
@@ -338,19 +482,7 @@ export async function assemblePublishedCourseForMemory(
     throw new Error(result.error || "The Course Memory Agent workflow failed.");
   }
 
-  if (result.bankId && result.isAsync && result.operationId) {
-    console.log(
-      `[Agno Course Memory Agent] Hindsight retain queued for course ${courseId}. Bank: ${result.bankId}. Operation: ${result.operationId}.`,
-    );
-  } else if (result.bankId) {
-    console.log(
-      `[Agno Course Memory Agent] Hindsight retain succeeded for course ${courseId}. Bank: ${result.bankId}.`,
-    );
-  }
-
-  console.log(
-    `[Agno Course Memory Agent] Finished action "retain_published_course_knowledge" for course ${courseId}.`,
-  );
+  // Verbose Hindsight result logs are intentionally muted to keep publish output concise.
 
   return result;
 }
@@ -358,6 +490,7 @@ export async function assemblePublishedCourseForMemory(
 export async function deletePublishedCourseMemory(
   courseId: string,
   tenantId?: string | null,
+  requesterUserId?: string | null,
   courseDetails?: {
     modules?: Array<{
       lessons?: Array<{ id?: string; content?: string | null }>;
@@ -368,12 +501,55 @@ export async function deletePublishedCourseMemory(
     return { success: true, deletedDocuments: [] };
   }
 
+  const primaryBankId = buildCourseBankId(tenantId, courseId);
+  const userScopedBankId = requesterUserId?.trim()
+    ? buildUserCourseBankId(tenantId, requesterUserId, courseId)
+    : null;
   const predictedDocumentIds = getPredictedCourseDocumentIds(courseId, courseDetails);
-  const bankIds = [
-    buildCourseBankId(tenantId, courseId),
-    buildLegacyTenantCoursesBankId(tenantId),
-  ];
+  const bankIds = [primaryBankId, ...(userScopedBankId ? [userScopedBankId] : []), buildLegacyTenantCoursesBankId(tenantId)];
   const deletedDocuments = new Set<string>();
+
+  try {
+    await ensureCourseMemoryAgentService();
+    const deleteBankResponse = await fetch(`${DEFAULT_SERVICE_URL}/v1/course-memory/delete`, {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        courseId,
+        tenantId,
+        requesterUserId,
+        hindsightApiUrl: DEFAULT_HINDSIGHT_URL,
+        hindsightApiKey: DEFAULT_HINDSIGHT_API_KEY,
+      }),
+    });
+
+    if (deleteBankResponse.ok || deleteBankResponse.status === 404) {
+      const deletePayload = (await deleteBankResponse.json().catch(() => null)) as
+        | {
+            success?: boolean;
+            bankId?: string;
+            deletedBankIds?: string[];
+            deletedDocumentIds?: string[];
+          }
+        | null;
+      return {
+        success: deletePayload?.success !== false,
+        deletedDocuments:
+          deletePayload?.deletedDocumentIds?.filter((documentId) => String(documentId).trim()) || [primaryBankId],
+        bankId: String(deletePayload?.bankId || primaryBankId),
+      };
+    }
+
+    console.warn(
+      `[Agno Course Memory Agent] Failed to delete dedicated Hindsight bank ${primaryBankId} for course ${courseId}. Falling back to document cleanup. status=${deleteBankResponse.status}`,
+    );
+  } catch (error) {
+    console.warn(
+      `[Agno Course Memory Agent] Failed to delete dedicated Hindsight bank ${primaryBankId} for course ${courseId}. Falling back to document cleanup.`,
+      error,
+    );
+  }
 
   for (const bankId of bankIds) {
     const query = new URLSearchParams({
@@ -442,6 +618,6 @@ export async function deletePublishedCourseMemory(
   return {
     success: true,
     deletedDocuments: Array.from(deletedDocuments),
-    bankId: buildCourseBankId(tenantId, courseId),
+    bankId: primaryBankId,
   };
 }
