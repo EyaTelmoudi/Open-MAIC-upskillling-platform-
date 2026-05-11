@@ -362,13 +362,17 @@ async function loadPublishedCourseDataForLog(request: Request, courseId: string)
         const supportDocuments = await enrichSupportDocumentsWithPdfText(
           extractSupportDocumentsFromHtml(lesson.content),
         );
+        const resolvedContentType =
+          lesson.assessment_id && String(lesson.assessment_id).trim()
+            ? "quiz"
+            : lesson.content_type || null;
 
         lessons.push({
           lessonId: lesson.id || null,
           title: lesson.title || null,
           content: lesson.content || null,
           videoUrl: lesson.video_url || null,
-          contentType: lesson.content_type || null,
+          contentType: resolvedContentType,
           duration: lesson.duration ?? null,
           order: lesson.order ?? null,
           assessmentId: lesson.assessment_id || null,

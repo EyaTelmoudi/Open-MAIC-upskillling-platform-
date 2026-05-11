@@ -697,7 +697,7 @@ def submit_assessment(
             XPManager(db, rabbitmq).award_xp(
                 user_id=str(user_id),
                 action="perfect_score",
-                reason=f"Perfect score on {assessment.title}",
+                reason=f"Perfect score on {assessment.title} ({assessment.id})",
             )
             BadgeManager(db, rabbitmq).check_and_award_badges(
                 user_id=str(user_id),

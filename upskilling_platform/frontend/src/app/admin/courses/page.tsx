@@ -650,7 +650,12 @@ export default function AdminCoursesPage() {
             title: lesson.title,
             content: buildLessonContentFromResources(lesson.summary, resources),
             video_url: videoUrl,
-            content_type: videoUrl ? "video" : "resource",
+            content_type:
+              String(lesson.content_type || "").trim().toLowerCase() === "quiz"
+                ? "quiz"
+                : videoUrl
+                  ? "video"
+                  : "resource",
             duration: lesson.duration,
             order: lesson.order,
           });

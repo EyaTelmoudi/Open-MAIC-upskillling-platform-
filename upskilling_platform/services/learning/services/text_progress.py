@@ -4,10 +4,34 @@ import math
 from datetime import datetime
 from uuid import UUID
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from common.models import UserProgress, Lesson, Module, Enrollment, AssessmentAttempt, Course, User
+from common.models import UserProgress, Lesson, Module, Enrollment, AssessmentAttempt, Course, User, XPTransaction
 from services.learning.services.learner_context import touch_lesson_context
+
+
+def _course_completion_xp_already_awarded(
+    db: Session,
+    *,
+    user_id: UUID,
+    course: Course,
+) -> bool:
+    legacy_reason = f"Completed course {course.title}"
+    scoped_reason = f"Completed course {course.title} ({course.id})"
+    existing = (
+        db.query(XPTransaction)
+        .filter(
+            XPTransaction.user_id == user_id,
+            XPTransaction.amount == int(course.xp_reward or 0),
+            or_(
+                XPTransaction.reason == legacy_reason,
+                XPTransaction.reason == scoped_reason,
+            ),
+        )
+        .first()
+    )
+    return existing is not None
 
 
 def check_enrollment_completion(db: Session, user_id: UUID, course_id: UUID) -> None:
@@ -125,12 +149,18 @@ def check_enrollment_completion(db: Session, user_id: UUID, course_id: UUID) -> 
                 rabbitmq = RabbitMQClient()
                 xp_manager = XPManager(db, rabbitmq)
                 badge_manager = BadgeManager(db, rabbitmq)
-                xp_manager.award_xp(
-                    user_id=str(user_id),
-                    action="course_complete",
-                    reason=f"Completed course {course.title}",
-                    explicit_amount=course.xp_reward,
-                )
+                transaction = None
+                if _course_completion_xp_already_awarded(db, user_id=user_id, course=course):
+                    logger.info(
+                        f"Course completion XP already awarded for user {user_id}, course {course_id}"
+                    )
+                else:
+                    transaction = xp_manager.award_xp(
+                        user_id=str(user_id),
+                        action="course_complete",
+                        reason=f"Completed course {course.title} ({course.id})",
+                        explicit_amount=course.xp_reward,
+                    )
                 completed_course_count = badge_manager.get_completed_course_count(
                     str(user_id)
                 )
@@ -147,9 +177,10 @@ def check_enrollment_completion(db: Session, user_id: UUID, course_id: UUID) -> 
                             str(user_id)
                         ),
                     )
-                logger.info(
-                    f"Awarded {course.xp_reward} XP for user {user_id}, course {course_id}"
-                )
+                if transaction is not None:
+                    logger.info(
+                        f"Awarded {course.xp_reward} XP for user {user_id}, course {course_id}"
+                    )
             except Exception as e:
                 logger.error(f"XP award failed: {e}")
         else:

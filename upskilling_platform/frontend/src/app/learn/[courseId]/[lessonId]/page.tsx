@@ -877,6 +877,7 @@ export default function LearnPage() {
 
   const handleCoachMessage = useCallback(
     async (content: string) => {
+      const conversationTurns = coachMessages.filter((message) => message.role === "user").length + 1;
       const newUserMessage: Message = {
         id: crypto.randomUUID(),
         role: "user",
@@ -897,6 +898,10 @@ export default function LearnPage() {
             tenantId: user?.tenant_id,
             courseId,
             question: content,
+            source: "course-lesson-coach",
+            lessonId,
+            pagePath: `/learn/${courseId}/${lessonId}`,
+            conversationTurns,
           }),
         });
 

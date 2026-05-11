@@ -1,6 +1,7 @@
 """XP system for gamification — awards XP for learning actions."""
 
 import logging
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -12,6 +13,7 @@ from common.messaging import RabbitMQClient
 from .utils import DEFAULT_TIMEZONE
 
 logger = logging.getLogger(__name__)
+COURSE_REASON_ID_PATTERN = re.compile(r"\((?P<course_id>[0-9a-fA-F-]{36})\)$")
 
 XP_CONFIG = {
     "lesson_complete": 50,
@@ -66,6 +68,15 @@ class XPManager:
         if reason is None:
             reason = action.replace("_", " ").title()
 
+        if self._is_duplicate_award(user_id=user_id, action=action, reason=reason):
+            logger.info(
+                "Skipping duplicate XP award for user %s, action %s, reason %s",
+                user_id,
+                action,
+                reason,
+            )
+            return None
+
         transaction = XPTransaction(
             user_id=user_id,
             amount=amount,
@@ -107,6 +118,41 @@ class XPManager:
 
         logger.info(f"Awarded {amount} XP to user {user_id} for {action}")
         return transaction
+
+    def _is_duplicate_award(self, *, user_id: str, action: str, reason: str) -> bool:
+        """Prevent the same one-time reward from being inserted twice."""
+        if action not in {"course_complete", "perfect_score"}:
+            return False
+
+        course_id_match = COURSE_REASON_ID_PATTERN.search(reason or "")
+        if course_id_match:
+            entity_id = course_id_match.group("course_id")
+            existing_for_entity = self.db.execute(
+                select(XPTransaction).where(
+                    XPTransaction.user_id == user_id,
+                    XPTransaction.reason.like(f"%({entity_id})"),
+                )
+            ).scalar_one_or_none()
+            if existing_for_entity is not None:
+                return True
+
+            legacy_reason = reason[: reason.rfind(" (")]
+            existing_legacy_reason = self.db.execute(
+                select(XPTransaction).where(
+                    XPTransaction.user_id == user_id,
+                    XPTransaction.reason == legacy_reason,
+                )
+            ).scalar_one_or_none()
+            if existing_legacy_reason is not None:
+                return True
+
+        existing_same_reason = self.db.execute(
+            select(XPTransaction).where(
+                XPTransaction.user_id == user_id,
+                XPTransaction.reason == reason,
+            )
+        ).scalar_one_or_none()
+        return existing_same_reason is not None
 
     def _check_anti_gaming(self, user_id: str, action: str) -> bool:
         """Check for suspicious activity patterns."""

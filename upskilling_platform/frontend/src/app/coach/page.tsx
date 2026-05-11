@@ -137,6 +137,7 @@ export default function CoachPage() {
   }, [availableCourses]);
 
   const handleSendMessage = async (content: string) => {
+    const conversationTurns = messages.filter((message) => message.role === "user").length + 1;
     const newUserMessage = {
       id: crypto.randomUUID(),
       role: "user" as const,
@@ -156,6 +157,9 @@ export default function CoachPage() {
           tenantId,
           courseId: selectedCourseId,
           question: content,
+          source: "coach-page",
+          pagePath: "/coach",
+          conversationTurns,
         }),
       });
 

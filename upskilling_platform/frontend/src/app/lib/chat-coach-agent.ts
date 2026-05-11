@@ -10,6 +10,11 @@ type ChatCoachPayload = {
   courseId: string;
   userId?: string;
   question?: string;
+  source?: "coach-page" | "course-lesson-coach";
+  lessonId?: string;
+  pagePath?: string;
+  authToken?: string;
+  conversationTurns?: number;
 };
 
 type ChatCoachResult = {
@@ -22,6 +27,8 @@ type ChatCoachResult = {
   bankId?: string;
   question?: string;
   answer?: string;
+  validatedContext?: Record<string, unknown>;
+  questionIntent?: Record<string, unknown>;
   basedOn?: Record<string, unknown>;
   supportingMemories?: Array<Record<string, unknown>>;
   trace?: Record<string, unknown>;
@@ -56,7 +63,7 @@ function resolveAgentWorkspace(repoRoot: string) {
 function pythonHasChatCoachRuntime(pythonExecutable: string) {
   const probe = spawnSync(
     pythonExecutable,
-    ["-c", "import agno, fastapi, httpx, pydantic, uvicorn"],
+    ["-c", "import agno, fastapi, httpx, pydantic, uvicorn, sqlalchemy, jwt"],
     {
       stdio: "ignore",
       windowsHide: true,
@@ -149,22 +156,6 @@ export async function ensureChatCoachAgentService() {
 }
 
 export async function askChatCoachQuestion(payload: ChatCoachPayload): Promise<ChatCoachResult> {
-  console.log(
-    `[Agno Chat Coach Agent] Starting action "ask_hindsight_course_question" for course ${payload.courseId}.`,
-  );
-  console.log(
-    JSON.stringify(
-      {
-        tenantId: payload.tenantId,
-        userId: payload.userId,
-        courseId: payload.courseId,
-        question: payload.question,
-      },
-      null,
-      2,
-    ),
-  );
-
   if (!(await ensureChatCoachAgentService())) {
     throw new Error("The Chat Coach AgentOS service is not available.");
   }
@@ -177,31 +168,18 @@ export async function askChatCoachQuestion(payload: ChatCoachPayload): Promise<C
   });
 
   const data = await response.json().catch(() => null);
-  if (!response.ok || !data) {
-    throw new Error("The Chat Coach Agent service did not return a valid response.");
+  if (!data) {
+    throw new Error("The Chat Coach Agent service did not return a valid JSON response.");
   }
 
   const result = data as ChatCoachResult;
+  if (!response.ok) {
+    throw new Error(result.error || "The Chat Coach Agent service returned an error.");
+  }
+
   if (!result.success) {
     throw new Error(result.error || "The Chat Coach Agent workflow failed.");
   }
-
-  console.log("[Agno Chat Coach Agent] Workflow result received from AgentOS:");
-  console.log(
-    JSON.stringify(
-      {
-        answer: result.answer,
-        supportingMemories: result.supportingMemories,
-        basedOn: result.basedOn,
-      },
-      null,
-      2,
-    ),
-  );
-
-  console.log(
-    `[Agno Chat Coach Agent] Finished action "ask_hindsight_course_question" for course ${payload.courseId}.`,
-  );
 
   return result;
 }

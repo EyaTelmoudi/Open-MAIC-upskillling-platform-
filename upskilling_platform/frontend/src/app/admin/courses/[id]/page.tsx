@@ -105,6 +105,7 @@ type PreviewLesson = {
   content_type: string;
   duration: number;
   order: number;
+  quizQuestions: EditableQuizQuestion[];
 };
 
 const difficultyStyles: Record<string, string> = {
@@ -574,6 +575,15 @@ function flattenCourseLessons(course: CourseDetailResponse | null): PreviewLesso
           content_type: lesson.content_type,
           duration: lesson.duration,
           order: lesson.order,
+          quizQuestions: (lesson.quiz_questions || []).map((question) => ({
+            id: question.id,
+            text: question.text,
+            type: question.type,
+            options: question.options,
+            correct_answer: question.correct_answer,
+            points: question.points,
+            order: question.order,
+          })),
         }))
     );
 }
@@ -643,18 +653,38 @@ export default function AdminCourseDetailPage() {
           );
         })
       );
-      const computedDuration = calculateCourseDuration(detail.modules);
-      setCourse(detail);
-      setEditingCourse({
-        id: detail.id,
-        title: detail.title,
-        description: detail.description || "",
-        category: detail.category,
-        difficulty: detail.difficulty,
-        duration: computedDuration,
-        xp_reward: detail.xp_reward,
-        is_published: detail.is_published,
+      const detailWithQuizQuestions: CourseDetailResponse = {
+        ...detail,
         modules: detail.modules.map((module) => ({
+          ...module,
+          lessons: module.lessons.map((lesson) => ({
+            ...lesson,
+            quiz_questions:
+              quizQuestionMap.get(lesson.id)?.map((question) => ({
+                id: question.id,
+                assessment_id: String(lesson.assessment_id || ""),
+                text: question.text,
+                type: question.type,
+                options: question.options,
+                correct_answer: question.correct_answer,
+                points: question.points,
+                order: question.order,
+              })) || lesson.quiz_questions,
+          })),
+        })),
+      };
+      const computedDuration = calculateCourseDuration(detail.modules);
+      setCourse(detailWithQuizQuestions);
+      setEditingCourse({
+        id: detailWithQuizQuestions.id,
+        title: detailWithQuizQuestions.title,
+        description: detailWithQuizQuestions.description || "",
+        category: detailWithQuizQuestions.category,
+        difficulty: detailWithQuizQuestions.difficulty,
+        duration: computedDuration,
+        xp_reward: detailWithQuizQuestions.xp_reward,
+        is_published: detailWithQuizQuestions.is_published,
+        modules: detailWithQuizQuestions.modules.map((module) => ({
           id: module.id,
           title: module.title,
           description: module.description || "",
@@ -854,7 +884,7 @@ export default function AdminCourseDetailPage() {
             title: lesson.title,
             content: buildLessonContentFromResources(lesson.summary, resources),
             video_url: videoUrl,
-            content_type: videoUrl ? "video" : "resource",
+            content_type: isQuizLesson(lesson) ? "quiz" : videoUrl ? "video" : "resource",
             duration: lesson.duration,
             order: lesson.order,
             assessment_id: lesson.assessment_id,
@@ -1375,6 +1405,56 @@ export default function AdminCourseDetailPage() {
                                 {selectedPreviewLessonData.summary}
                               </p>
                             ) : null}
+                            {selectedPreviewLesson.quizQuestions.length > 0 ? (
+                              <div className="mt-6 space-y-4">
+                                {selectedPreviewLesson.quizQuestions
+                                  .slice()
+                                  .sort((left, right) => left.order - right.order)
+                                  .map((question, questionIndex) => (
+                                    <div
+                                      key={question.id}
+                                      className="rounded-2xl border border-amber-200 bg-white/90 p-4"
+                                    >
+                                      <div className="flex items-center justify-between gap-3">
+                                        <p className="text-sm font-semibold text-slate-950">
+                                          Question {questionIndex + 1}
+                                        </p>
+                                        <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
+                                          {question.points} pt{question.points === 1 ? "" : "s"}
+                                        </span>
+                                      </div>
+                                      <p className="mt-3 text-sm leading-6 text-slate-800">
+                                        {question.text}
+                                      </p>
+                                      <div className="mt-4 space-y-2">
+                                        {question.options.map((option, optionIndex) => {
+                                          const isCorrect = option.trim() === question.correct_answer.trim();
+                                          return (
+                                            <div
+                                              key={`${question.id}-option-${optionIndex}`}
+                                              className={`rounded-xl border px-3 py-2 text-sm ${
+                                                isCorrect
+                                                  ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                                                  : "border-slate-200 bg-slate-50 text-slate-700"
+                                              }`}
+                                            >
+                                              <span className="font-medium">
+                                                Option {optionIndex + 1}:
+                                              </span>{" "}
+                                              {option}
+                                              {isCorrect ? " (Correct answer)" : ""}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            ) : (
+                              <p className="mt-4 text-sm text-slate-600">
+                                No quiz questions were found for this lesson.
+                              </p>
+                            )}
                           </div>
                         ) : (
                           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

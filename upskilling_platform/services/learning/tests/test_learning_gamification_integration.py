@@ -124,7 +124,7 @@ def test_course_completion_awards_course_complete_xp(monkeypatch):
         {
             "user_id": str(user_id),
             "action": "course_complete",
-            "reason": "Completed course AI Foundations",
+            "reason": f"Completed course AI Foundations ({course_id})",
             "explicit_amount": 350,
         }
     ]

@@ -1368,7 +1368,20 @@ export async function createCourse(data: {
 }
 
 export async function getCourseById(courseId: string): Promise<CourseDetailResponse> {
-  return api.get<CourseDetailResponse>(`/api/v1/learning/courses/${courseId}`);
+  const course = await api.get<CourseDetailResponse>(`/api/v1/learning/courses/${courseId}`);
+  return {
+    ...course,
+    modules: (course.modules || []).map((module) => ({
+      ...module,
+      lessons: (module.lessons || []).map((lesson) => ({
+        ...lesson,
+        content_type:
+          lesson.assessment_id && String(lesson.assessment_id).trim()
+            ? "quiz"
+            : lesson.content_type,
+      })),
+    })),
+  };
 }
 
 export async function updateCourseById(
