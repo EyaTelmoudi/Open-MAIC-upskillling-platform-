@@ -15,7 +15,11 @@ import {
 } from "@/app/components/learn/AiGeneratedLessonPlayer";
 import { AiPlatformQuiz } from "@/app/components/learn/AiPlatformQuiz";
 import { api, type GamificationProfileResponse } from "@/app/lib/api";
-import { readCoachChatMessages, writeCoachChatMessages } from "@/app/lib/coach-chat-storage";
+import {
+  createCoachSession,
+  getCoachSessionDetail,
+  listCoachSessions,
+} from "@/app/lib/coach-chat-sessions";
 import { useAuth } from "@/app/context/AuthContext";
 import { Quiz } from "@/app/components/learn/Quiz";
 import { ProgressTracker } from "@/app/lib/progressTracker";
@@ -296,6 +300,7 @@ export default function LearnPage() {
   const [coachOpen, setCoachOpen] = useState(false);
   const [coachTyping, setCoachTyping] = useState(false);
   const [coachMessages, setCoachMessages] = useState<Message[]>([]);
+  const [coachSessionId, setCoachSessionId] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressTrackerRef = useRef<ProgressTracker | null>(null);
   const completionSequenceRunningRef = useRef(false);
@@ -312,30 +317,34 @@ export default function LearnPage() {
   }, [courseId, lessonId, user]);
 
   useEffect(() => {
-    const storedMessages = readCoachChatMessages(user?.id, course?.id || courseId);
-    if (storedMessages.length > 0) {
-      setCoachMessages(storedMessages);
-      return;
+    async function loadLessonCoachSession() {
+      if (!user?.id || !courseId || !lessonId) {
+        return;
+      }
+
+      try {
+        const sessions = await listCoachSessions({
+          courseId,
+          lessonId,
+          source: "course-lesson-coach",
+        });
+        const active = sessions.find((session) => session.status === "active") || sessions[0] || null;
+        if (active) {
+          const detail = await getCoachSessionDetail(active.id);
+          setCoachSessionId(active.id);
+          setCoachMessages(detail.messages);
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to load lesson coach session:", error);
+      }
+
+      setCoachSessionId(null);
+      setCoachMessages([]);
     }
 
-    setCoachMessages([
-      {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: course
-          ? `I am following "${course.title}" with you. Ask me about this course or the current lesson anytime.`
-          : "Ask me about this course or the current lesson anytime.",
-        timestamp: new Date().toISOString(),
-      },
-    ]);
-  }, [course?.id, course?.title, courseId, user?.id]);
-
-  useEffect(() => {
-    if (coachMessages.length === 0) {
-      return;
-    }
-    writeCoachChatMessages(user?.id, course?.id || courseId, coachMessages);
-  }, [coachMessages, course?.id, courseId, user?.id]);
+    void loadLessonCoachSession();
+  }, [course?.title, courseId, lessonId, user?.id]);
 
   useEffect(() => {
     return () => {
@@ -836,6 +845,7 @@ export default function LearnPage() {
       markPendingCompletedLesson(courseId, lessonId);
       await api.post(`/api/v1/learning/progress/${lessonId}/complete`, {
         user_id: user.id,
+        course_id: courseId,
         status: "completed",
       });
       const persistedProgress = await loadProgress();
@@ -877,7 +887,19 @@ export default function LearnPage() {
 
   const handleCoachMessage = useCallback(
     async (content: string) => {
-      const conversationTurns = coachMessages.filter((message) => message.role === "user").length + 1;
+      let sessionId = coachSessionId;
+      if (!sessionId && user?.tenant_id) {
+        const created = await createCoachSession({
+          tenantId: user.tenant_id,
+          courseId,
+          lessonId,
+          source: "course-lesson-coach",
+          pagePath: `/learn/${courseId}/${lessonId}`,
+        });
+        sessionId = created.id;
+        setCoachSessionId(sessionId);
+      }
+
       const newUserMessage: Message = {
         id: crypto.randomUUID(),
         role: "user",
@@ -901,7 +923,7 @@ export default function LearnPage() {
             source: "course-lesson-coach",
             lessonId,
             pagePath: `/learn/${courseId}/${lessonId}`,
-            conversationTurns,
+            sessionId,
           }),
         });
 
@@ -910,6 +932,7 @@ export default function LearnPage() {
               success?: boolean;
               result?: {
                 answer?: string;
+                sessionId?: string;
                 basedOn?: {
                   memories?: Array<{
                     text?: string;
@@ -929,21 +952,12 @@ export default function LearnPage() {
           throw new Error(body?.error || "The AI Coach could not answer your question.");
         }
 
-        const aiResponse: Message = {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: body.result.answer || "I could not generate an answer.",
-          timestamp: new Date().toISOString(),
-          sources: (body.result.supportingMemories || body.result.basedOn?.memories || [])
-            .slice(0, 3)
-            .map((memory, index) => ({
-              title: `Course memory ${index + 1}`,
-              lesson: memory.type || "observation",
-              snippet: memory.text || "",
-            })),
-        };
-
-        setCoachMessages((prev) => [...prev, aiResponse]);
+        const effectiveSessionId = body.result.sessionId || sessionId;
+        if (effectiveSessionId) {
+          const detail = await getCoachSessionDetail(effectiveSessionId);
+          setCoachSessionId(effectiveSessionId);
+          setCoachMessages(detail.messages);
+        }
       } catch (error) {
         const aiErrorResponse: Message = {
           id: crypto.randomUUID(),
@@ -959,7 +973,7 @@ export default function LearnPage() {
         setCoachTyping(false);
       }
     },
-    [courseId, user?.tenant_id],
+    [coachSessionId, course?.title, courseId, lessonId, user?.tenant_id],
   );
 
   const handleEnroll = async () => {

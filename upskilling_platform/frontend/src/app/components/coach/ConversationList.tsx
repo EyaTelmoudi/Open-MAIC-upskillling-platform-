@@ -15,18 +15,25 @@ interface ConversationListProps {
   conversations: Conversation[];
   activeId: string;
   onSelect: (id: string) => void;
+  onCreate?: () => void;
 }
 
 export function ConversationList({
   conversations,
   activeId,
   onSelect,
+  onCreate,
 }: ConversationListProps) {
   return (
     <div className="flex w-[280px] flex-col border-r border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-4 py-4">
         <h2 className="text-sm font-semibold text-text-primary">Conversations</h2>
-        <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors hover:bg-primary/20">
+        <button
+          onClick={onCreate}
+          className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors hover:bg-primary/20"
+          aria-label="Start a new conversation"
+          type="button"
+        >
           <Plus className="h-4 w-4" />
         </button>
       </div>

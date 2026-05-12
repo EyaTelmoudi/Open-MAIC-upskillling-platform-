@@ -10,9 +10,43 @@ import {
   assemblePublishedCourseForMemory,
 } from "@/app/lib/course-memory-agent";
 import { deleteManagedCourse } from "@/app/lib/course-deletion";
+import { sendLearnerMemoryEvent } from "@/app/lib/learner-memory-agent";
 
 const DEFAULT_HINDSIGHT_URL = process.env.HINDSIGHT_URL || "http://127.0.0.1:8888";
 const DEFAULT_HINDSIGHT_API_KEY = process.env.HINDSIGHT_API_KEY || "";
+
+function decodeJwtClaims(token: string | null): { tenantId?: string | null; sub?: string | null } | null {
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const [, payload] = token.split(".");
+    if (!payload) {
+      return null;
+    }
+
+    const json = Buffer.from(payload, "base64url").toString("utf8");
+    return JSON.parse(json) as { tenantId?: string | null; sub?: string | null };
+  } catch {
+    return null;
+  }
+}
+
+function getTokenFromRequest(request: Request) {
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice("Bearer ".length);
+  }
+
+  const cookie = request.headers.get("cookie") || "";
+  const match = cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+function cleanText(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
 
 function buildTargetUrl(pathSegments: string[], request: Request) {
   const incomingUrl = new URL(request.url);
@@ -1128,6 +1162,135 @@ async function syncCourseMemoryAfterMutation(
   }
 }
 
+function isLessonCompletionMutation(pathSegments: string[], method: string) {
+  return method.toUpperCase() === "POST" && pathSegments[0] === "progress" && pathSegments[2] === "complete" && Boolean(pathSegments[1]);
+}
+
+function isQuizSubmitMutation(pathSegments: string[], method: string) {
+  return (
+    method.toUpperCase() === "POST" &&
+    pathSegments[0] === "courses" &&
+    Boolean(pathSegments[1]) &&
+    pathSegments[2] === "assessments" &&
+    Boolean(pathSegments[3]) &&
+    pathSegments[4] === "submit"
+  );
+}
+
+async function syncLearnerMemoryAfterMutation(
+  request: Request,
+  method: string,
+  pathSegments: string[],
+  response: Response,
+  requestBody: Record<string, unknown> | null,
+): Promise<void> {
+  if (!response.ok) {
+    return;
+  }
+
+  const token = getTokenFromRequest(request);
+  const claims = decodeJwtClaims(token);
+  const tenantId = cleanText(claims?.tenantId);
+  const userId = cleanText(claims?.sub) || cleanText(requestBody?.user_id);
+
+  if (!tenantId || !userId) {
+    return;
+  }
+
+  if (isLessonCompletionMutation(pathSegments, method)) {
+    const lessonId = cleanText(pathSegments[1]);
+    const courseId = cleanText(requestBody?.course_id);
+    if (!lessonId || !courseId) {
+      console.log("[Agno Learner Memory Agent] Skipping lesson completion trigger because course_id or lesson_id is missing.");
+      return;
+    }
+
+    console.log(
+      `[Agno Learner Memory Agent] Real platform trigger detected: lesson_completion course=${courseId} lesson=${lessonId} user=${userId}`,
+    );
+    try {
+      const result = await sendLearnerMemoryEvent(
+        {
+          tenantId,
+          userId,
+          courseId,
+          eventType: "lesson_completion",
+          lessonId,
+          source: "learning-progress-complete",
+        },
+        "/v1/learner-memory/lesson-completion",
+      );
+
+      console.log("[Agno Learner Memory Agent] Learner memory event processed from platform:");
+      console.log(JSON.stringify(result, null, 2));
+    } catch (error) {
+      console.error(
+        `[Agno Learner Memory Agent] Lesson completion trigger failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      );
+    }
+    return;
+  }
+
+  if (isQuizSubmitMutation(pathSegments, method)) {
+    const courseId = cleanText(pathSegments[1]);
+    const quizId = cleanText(pathSegments[3]);
+    const responseBody = (await response.clone().json().catch(() => null)) as
+      | {
+          score?: number | null;
+          passed?: boolean | null;
+          questions?: Array<{
+            is_correct?: boolean | null;
+            text?: string | null;
+          }>;
+        }
+      | null;
+
+    if (!courseId || !quizId || !responseBody) {
+      return;
+    }
+
+    const missedTopics = (responseBody.questions || [])
+      .filter((question) => question?.is_correct === false)
+      .map((question) => cleanText(question?.text))
+      .filter(Boolean)
+      .slice(0, 5);
+
+    console.log(
+      `[Agno Learner Memory Agent] Real platform trigger detected: quiz_result course=${courseId} quiz=${quizId} user=${userId}`,
+    );
+    try {
+      const result = await sendLearnerMemoryEvent(
+        {
+          tenantId,
+          userId,
+          courseId,
+          eventType: "quiz_result",
+          quizId,
+          scorePercent:
+            typeof responseBody.score === "number" && Number.isFinite(responseBody.score)
+              ? responseBody.score
+              : undefined,
+          passed: typeof responseBody.passed === "boolean" ? responseBody.passed : undefined,
+          missedTopics,
+          source: "learning-quiz-submit",
+        },
+        "/v1/learner-memory/quiz-result",
+      );
+
+      console.log("[Agno Learner Memory Agent] Learner memory event processed from platform:");
+      console.log(JSON.stringify(result, null, 2));
+    } catch (error) {
+      console.error(
+        `[Agno Learner Memory Agent] Quiz result trigger failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      );
+    }
+  }
+}
+
 export async function GET(
   request: Request,
   context: { params: Promise<{ path: string[] }> },
@@ -1141,8 +1304,11 @@ export async function POST(
   context: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await context.params;
+  const clonedRequest = request.clone();
+  const requestBody = (await clonedRequest.json().catch(() => null)) as Record<string, unknown> | null;
   const response = await proxyToLearning(request, path);
   await syncCourseMemoryAfterMutation(request, request.method, path, response);
+  await syncLearnerMemoryAfterMutation(request, request.method, path, response, requestBody);
   return response;
 }
 

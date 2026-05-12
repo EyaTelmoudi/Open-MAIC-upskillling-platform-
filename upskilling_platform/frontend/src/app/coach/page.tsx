@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/app/components/layout/AppShell";
 import { ChatMessages, type Message } from "@/app/components/coach/ChatMessages";
 import { ChatInput } from "@/app/components/coach/ChatInput";
 import { ConversationList } from "@/app/components/coach/ConversationList";
 import { Select } from "@/app/components/ui/Select";
 import { api } from "@/app/lib/api";
+import {
+  activateCoachSession,
+  createCoachSession,
+  getCoachSessionDetail,
+  listCoachSessions,
+  type CoachSessionListItem,
+} from "@/app/lib/coach-chat-sessions";
 import { Sparkles } from "lucide-react";
 import { useAuth } from "@/app/context/AuthContext";
 
@@ -27,33 +34,25 @@ type CoachCourseOption = {
   completedAt: string | null;
 };
 
-const starterMessages: Message[] = [
-  {
-    id: "1",
-    role: "assistant",
-    content:
-      "Hello! I'm your AI Learning Coach. Ask me a question about your retained course knowledge and I will query Hindsight for the answer and supporting evidence.",
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-  },
-];
+function starterMessages(courseTitle?: string | null): Message[] {
+  void courseTitle;
+  return [];
+}
 
 export default function CoachPage() {
   const { tenantId, user } = useAuth();
-  const [messages, setMessages] = useState(starterMessages);
+  const [messages, setMessages] = useState<Message[]>(starterMessages());
   const [availableCourses, setAvailableCourses] = useState<CoachCourseOption[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState(COURSE_MEMORY_DEMO_COURSE_ID);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
-  const [conversations] = useState([
-    {
-      id: "1",
-      title: "HTML Course Coach",
-      preview: "Ask about the retained HTML course",
-      lastMessage: "Now",
-      unread: false,
-    },
-  ]);
-  const [activeConversation, setActiveConversation] = useState("1");
+  const [conversations, setConversations] = useState<CoachSessionListItem[]>([]);
+  const [activeConversation, setActiveConversation] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const draftConversationKeysRef = useRef<Set<string>>(new Set());
+  const selectedCourse = useMemo(
+    () => availableCourses.find((course) => course.id === selectedCourseId) || null,
+    [availableCourses, selectedCourseId],
+  );
 
   useEffect(() => {
     async function loadCoachCourses() {
@@ -115,6 +114,52 @@ export default function CoachPage() {
     void loadCoachCourses();
   }, [user?.id]);
 
+  useEffect(() => {
+    async function loadSessions() {
+      if (!user?.id || !selectedCourseId || !tenantId) {
+        return;
+      }
+
+      const scopeKey = `${user.id}:${selectedCourseId}:coach-page`;
+
+      try {
+        const sessions = (await listCoachSessions({
+          courseId: selectedCourseId,
+          source: undefined,
+        })).filter((session) => session.turnCount > 0);
+
+        setConversations(sessions);
+
+        if (!draftConversationKeysRef.current.has(scopeKey)) {
+          draftConversationKeysRef.current.add(scopeKey);
+          setActiveConversation("");
+          setMessages(starterMessages(selectedCourse?.title || null));
+          return;
+        }
+
+        const active = sessions.find((session) => session.status === "active") || sessions[0] || null;
+        if (!active) {
+          setActiveConversation("");
+          setMessages(starterMessages(selectedCourse?.title || null));
+          return;
+        }
+
+        setActiveConversation(active.id);
+        const detail = await getCoachSessionDetail(active.id);
+        setMessages(
+          detail.messages.length > 0 ? detail.messages : starterMessages(selectedCourse?.title || null),
+        );
+      } catch (error) {
+        console.error("Failed to load coach sessions:", error);
+        setConversations([]);
+        setActiveConversation("");
+        setMessages(starterMessages(selectedCourse?.title || null));
+      }
+    }
+
+    void loadSessions();
+  }, [selectedCourse?.title, selectedCourseId, tenantId, user?.id]);
+
   const courseOptions = useMemo(() => {
     if (availableCourses.length === 0) {
       return [
@@ -136,8 +181,47 @@ export default function CoachPage() {
     }));
   }, [availableCourses]);
 
+  const createNewConversation = async () => {
+    const scopeKey = `${user?.id || "anonymous"}:${selectedCourseId}:coach-page`;
+    draftConversationKeysRef.current.add(scopeKey);
+    setActiveConversation("");
+    setMessages(starterMessages(selectedCourse?.title || null));
+  };
+
+  const openConversation = async (sessionId: string) => {
+    try {
+      await activateCoachSession(sessionId);
+        const [sessions, detail] = await Promise.all([
+          listCoachSessions({
+            courseId: selectedCourseId,
+            source: undefined,
+          }),
+          getCoachSessionDetail(sessionId),
+        ]);
+        setConversations(sessions.filter((session) => session.turnCount > 0));
+        setActiveConversation(sessionId);
+        setMessages(detail.messages.length > 0 ? detail.messages : starterMessages(selectedCourse?.title || null));
+    } catch (error) {
+      console.error("Failed to open coach session:", error);
+    }
+  };
+
   const handleSendMessage = async (content: string) => {
-    const conversationTurns = messages.filter((message) => message.role === "user").length + 1;
+    let sessionId = activeConversation;
+    if (!sessionId) {
+      if (!tenantId) {
+        return;
+      }
+      const created = await createCoachSession({
+        tenantId,
+        courseId: selectedCourseId,
+        source: "coach-page",
+        pagePath: "/coach",
+      });
+      sessionId = created.id;
+      setActiveConversation(sessionId);
+    }
+
     const newUserMessage = {
       id: crypto.randomUUID(),
       role: "user" as const,
@@ -159,7 +243,7 @@ export default function CoachPage() {
           question: content,
           source: "coach-page",
           pagePath: "/coach",
-          conversationTurns,
+          sessionId,
         }),
       });
 
@@ -168,6 +252,7 @@ export default function CoachPage() {
             success?: boolean;
             result?: {
               answer?: string;
+              sessionId?: string;
               basedOn?: {
                 memories?: Array<{
                   text?: string;
@@ -187,18 +272,19 @@ export default function CoachPage() {
         throw new Error(body?.error || "The AI Coach could not answer your question.");
       }
 
-      const aiResponse = {
-        id: crypto.randomUUID(),
-        role: "assistant" as const,
-        content: body.result.answer || "I could not generate an answer.",
-        timestamp: new Date().toISOString(),
-        sources: (body.result.supportingMemories || body.result.basedOn?.memories || []).slice(0, 3).map((memory, index) => ({
-          title: `Hindsight memory ${index + 1}`,
-          lesson: memory.type || "observation",
-          snippet: memory.text || "",
-        })),
-      };
-      setMessages((prev) => [...prev, aiResponse]);
+      const effectiveSessionId = body.result.sessionId || sessionId;
+      if (effectiveSessionId) {
+        const [sessions, detail] = await Promise.all([
+          listCoachSessions({
+            courseId: selectedCourseId,
+            source: undefined,
+          }),
+          getCoachSessionDetail(effectiveSessionId),
+        ]);
+        setConversations(sessions.filter((session) => session.turnCount > 0));
+        setActiveConversation(effectiveSessionId);
+        setMessages(detail.messages.length > 0 ? detail.messages : starterMessages(selectedCourse?.title || null));
+      }
     } catch (error) {
       const aiErrorResponse = {
         id: crypto.randomUUID(),
@@ -226,9 +312,16 @@ export default function CoachPage() {
     <AppShell fullBleed>
       <div className="flex h-[calc(100vh-76px)] min-h-0 overflow-hidden">
         <ConversationList
-          conversations={conversations}
+          conversations={conversations.map((conversation) => ({
+            id: conversation.id,
+            title: conversation.title,
+            preview: conversation.preview,
+            lastMessage: new Date(conversation.lastActivityAt).toLocaleString(),
+            unread: false,
+          }))}
           activeId={activeConversation}
-          onSelect={setActiveConversation}
+          onSelect={openConversation}
+          onCreate={createNewConversation}
         />
 
         <div className="flex min-w-0 flex-1 flex-col border border-border bg-card">

@@ -172,6 +172,8 @@ def _log_validation_context_layers(context: dict[str, Any]) -> None:
 
     session_security_layer = {
         "user_bank_id": context.get("user_bank_id"),
+        "session_id": context.get("session_id"),
+        "session_turns": context.get("session_turns"),
         "conversation_turns": context.get("conversation_turns"),
         "rate_limit": context.get("rate_limit"),
         "updated_at": context.get("updated_at"),
@@ -304,9 +306,22 @@ class ChatCoachQuestionInput(BaseModel):
     hindsightApiKey: str | None = None
     authToken: str | None = None
     conversationTurns: int = 0
+    sessionId: str | None = None
+    sessionTurns: list[dict[str, Any]] = []
     source: str | None = None
     lessonId: str | None = None
     pagePath: str | None = None
+
+
+def _log_session_context(payload: ChatCoachQuestionInput) -> None:
+    session_id = _clean_text(payload.sessionId) or "none"
+    session_turns = payload.sessionTurns if isinstance(payload.sessionTurns, list) else []
+    _log(
+        f"[Agno Chat Coach Agent] Session context received. sessionId={session_id} priorSessionTurnCount={len(session_turns)}"
+    )
+    if session_turns:
+        _log("[Agno Chat Coach Agent] Incoming sessionTurns context:")
+        _log(json.dumps(session_turns, indent=2, ensure_ascii=False))
 
 
 def _load_platform_dependencies():
@@ -1546,6 +1561,7 @@ def _build_question_intent_from_content(previous_content: dict[str, Any]) -> dic
 
 def validate_and_collect_context(step_input: StepInput) -> StepOutput:
     payload = ChatCoachQuestionInput.model_validate(step_input.input)
+    _log_session_context(payload)
     bank_id = _build_course_bank_id(payload.tenantId, payload.courseId)
     user_bank_id = _build_user_bank_id(payload.tenantId, payload.userId or "anonymous")
     hindsight_url = (payload.hindsightApiUrl or DEFAULT_HINDSIGHT_URL).rstrip("/")
@@ -1864,6 +1880,8 @@ def validate_and_collect_context(step_input: StepInput) -> StepOutput:
             "quiz_scores": quiz_scores,
             "weak_areas": weak_areas,
             "weak_topics": weak_topics,
+            "session_id": _clean_text(payload.sessionId) or None,
+            "session_turns": payload.sessionTurns if isinstance(payload.sessionTurns, list) else [],
             "conversation_turns": max(0, int(payload.conversationTurns or 0)),
             "learner_enrolled": enrollment is not None,
             "learner_enrollment_status": enrollment.status if enrollment else "not_enrolled",
@@ -1901,6 +1919,8 @@ def validate_and_collect_context(step_input: StepInput) -> StepOutput:
             "validatedContext": validated_context,
             "validationContextIsValid": _is_validation_context_valid(validated_context),
             "conversationTurns": validated_context["conversation_turns"],
+            "sessionId": validated_context["session_id"],
+            "sessionTurns": validated_context["session_turns"],
             "hindsightApiUrl": payload.hindsightApiUrl,
             "hindsightApiKey": payload.hindsightApiKey,
         },
@@ -2011,12 +2031,14 @@ def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
                     "answer": answer or progress_payload.get("answer"),
                     "validatedContext": validated_context,
                     "validationContextIsValid": True,
-                    "questionIntent": question_intent,
-                    "basedOn": {},
-                    "supportingMemories": [],
-                    "trace": None,
-                    "usage": None,
-                    "structuredAnswer": progress_payload,
+                "questionIntent": question_intent,
+                "basedOn": {},
+                "supportingMemories": [],
+                "sessionId": validated_context.get("session_id"),
+                "sessionTurns": validated_context.get("session_turns"),
+                "trace": None,
+                "usage": None,
+                "structuredAnswer": progress_payload,
                 },
                 success=True,
             )
@@ -2120,6 +2142,8 @@ def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
                 "questionIntent": question_intent,
                 "basedOn": _as_dict(reflect_result.get("based_on")),
                 "supportingMemories": supporting_memories,
+                "sessionId": validated_context.get("session_id"),
+                "sessionTurns": validated_context.get("session_turns"),
                 "trace": _as_dict(reflect_result.get("trace")),
                 "usage": _as_dict(reflect_result.get("usage")),
                 "structuredAnswer": structured_answer,
@@ -2146,6 +2170,8 @@ def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
             "questionIntent": {},
             "basedOn": {},
             "supportingMemories": [],
+            "sessionId": _clean_text(payload.sessionId) or None,
+            "sessionTurns": payload.sessionTurns if isinstance(payload.sessionTurns, list) else [],
             "trace": None,
             "usage": None,
         },

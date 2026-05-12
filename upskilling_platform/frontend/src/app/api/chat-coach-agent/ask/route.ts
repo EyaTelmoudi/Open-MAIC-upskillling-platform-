@@ -1,4 +1,10 @@
 import { askChatCoachQuestion } from "@/app/lib/chat-coach-agent";
+import {
+  appendCoachTurn,
+  getOrCreateActiveCoachSession,
+  type CoachSessionSource,
+} from "@/app/lib/coach-session-db";
+import { sendLearnerMemoryEvent } from "@/app/lib/learner-memory-agent";
 
 const DEFAULT_COURSE_ID = "30e2a552-f281-496e-99b8-cbab2fbff07b";
 
@@ -237,16 +243,63 @@ function logClassificationInputForTerminal(
   );
 }
 
+type WorkflowSessionTurn = {
+  turn_id: string;
+  session_id: string;
+  user_message: string;
+  agent_answer: string;
+  intent: string | null;
+  topic: string | null;
+  is_repeat: boolean;
+  classification_mode: string | null;
+  created_at: string;
+  supporting_memories: Array<Record<string, unknown>>;
+};
+
+type PersistedSessionTurn = {
+  id: string;
+  sessionId: string;
+  userMessage: string;
+  agentAnswer: string;
+  intent: string | null;
+  topic: string | null;
+  isRepeat: boolean;
+  classificationMode: string | null;
+  createdAt: string;
+  supportingMemories: Array<Record<string, unknown>>;
+};
+
+function buildWorkflowSessionTurns(turns: PersistedSessionTurn[] | undefined): WorkflowSessionTurn[] {
+  return (turns || []).map((turn) => ({
+    turn_id: turn.id,
+    session_id: turn.sessionId,
+    user_message: turn.userMessage,
+    agent_answer: turn.agentAnswer,
+    intent: turn.intent,
+    topic: turn.topic,
+    is_repeat: turn.isRepeat,
+    classification_mode: turn.classificationMode,
+    created_at: turn.createdAt,
+    supporting_memories: turn.supportingMemories,
+  }));
+}
+
+function logSessionTurnsForTerminal(sessionId: string, sessionTurns: WorkflowSessionTurn[]) {
+  console.log(`[Agno Chat Coach Agent] Session turns prepared for sessionId=${sessionId}:`);
+  console.log(JSON.stringify(sessionTurns, null, 2));
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => ({}))) as {
       tenantId?: string | null;
       courseId?: string | null;
       question?: string | null;
-      source?: "coach-page" | "course-lesson-coach" | null;
+      source?: "coach-page" | "course-page" | "course-lesson-coach" | null;
       lessonId?: string | null;
       pagePath?: string | null;
       conversationTurns?: number | null;
+      sessionId?: string | null;
     };
 
     const token = getTokenFromRequest(request);
@@ -255,13 +308,12 @@ export async function POST(request: Request) {
     const userId = claims?.sub?.trim() || null;
     const courseId = body.courseId?.trim() || DEFAULT_COURSE_ID;
     const question = body.question?.trim();
-    const source = body.source === "course-lesson-coach" ? "course-lesson-coach" : "coach-page";
+    const sessionSource: CoachSessionSource =
+      body.source === "course-lesson-coach" || body.source === "course-page" ? body.source : "coach-page";
+    const source = sessionSource === "course-lesson-coach" ? "course-lesson-coach" : "coach-page";
     const lessonId = body.lessonId?.trim() || null;
     const pagePath = body.pagePath?.trim() || null;
-    const conversationTurns =
-      typeof body.conversationTurns === "number" && Number.isFinite(body.conversationTurns)
-        ? Math.max(0, Math.floor(body.conversationTurns))
-        : 0;
+    const requestedSessionId = body.sessionId?.trim() || null;
 
     if (!tenantId) {
       return Response.json(
@@ -285,7 +337,29 @@ export async function POST(request: Request) {
     }
 
     console.log(
-      `[Agno Chat Coach Agent] AI coaching agent starts working. source=${source} course=${courseId}${lessonId ? ` lesson=${lessonId}` : ""}${pagePath ? ` path=${pagePath}` : ""}`,
+      `[Agno Chat Coach Agent] AI coaching agent starts working. source=${sessionSource} course=${courseId}${lessonId ? ` lesson=${lessonId}` : ""}${pagePath ? ` path=${pagePath}` : ""}`,
+    );
+
+    const activeSession = await getOrCreateActiveCoachSession(
+      {
+        tenantId,
+        userId,
+        courseId,
+        lessonId,
+        source: sessionSource,
+        pagePath,
+      },
+      requestedSessionId,
+    );
+    const currentTurnCount = activeSession.session.turnCount;
+    const conversationTurns = currentTurnCount + 1;
+    const resolvedSessionSource = activeSession.session.source;
+    const resolvedLessonId = lessonId || activeSession.session.lessonId || null;
+    const resolvedSourceForAgent =
+      resolvedSessionSource === "course-lesson-coach" ? "course-lesson-coach" : "coach-page";
+
+    console.log(
+      `[Agno Chat Coach Agent] Resolved discussion session. sessionId=${activeSession.session.id} status=${activeSession.session.status} turnCount=${activeSession.session.turnCount} source=${resolvedSessionSource}${resolvedLessonId ? ` lesson=${resolvedLessonId}` : ""}`,
     );
 
     const result = await askChatCoachQuestion({
@@ -293,11 +367,13 @@ export async function POST(request: Request) {
       courseId,
       userId,
       question,
-      source,
-      lessonId: lessonId || undefined,
+      source: resolvedSourceForAgent,
+      lessonId: resolvedLessonId || undefined,
       pagePath: pagePath || undefined,
       authToken: token || undefined,
       conversationTurns,
+      sessionId: activeSession.session.id,
+      sessionTurns: [],
     });
 
     const normalizedResult = {
@@ -309,7 +385,96 @@ export async function POST(request: Request) {
     logClassificationInputForTerminal(question, result.validatedContext);
     logQuestionIntentForTerminal(result.questionIntent);
 
-    return Response.json({ success: true, result: normalizedResult }, { status: 200 });
+    const topic = cleanText(result.questionIntent?.topic);
+    const intent = cleanText(result.questionIntent?.intent);
+    const isRepeat = Boolean(result.questionIntent?.is_repeat);
+    const supportingMemories = (normalizedResult.supportingMemories ||
+      normalizedResult.basedOn?.memories ||
+      []) as Array<Record<string, unknown>>;
+
+    const persistedSession = await appendCoachTurn({
+      sessionId: activeSession.session.id,
+      userId,
+      userMessage: question,
+      agentAnswer: normalizedResult.answer || "I could not generate an answer.",
+      intent: intent || null,
+      topic: topic || null,
+      isRepeat,
+      classificationMode: cleanText(result.questionIntent?.classification_mode) || null,
+      supportingMemories,
+    });
+    const sessionTurns = buildWorkflowSessionTurns(
+      (persistedSession?.turns || []) as PersistedSessionTurn[],
+    );
+
+    logSessionTurnsForTerminal(activeSession.session.id, sessionTurns);
+
+    console.log(
+      `[Agno Learner Memory Agent] Real platform trigger detected: coaching_turn course=${courseId}${resolvedLessonId ? ` lesson=${resolvedLessonId}` : ""} user=${userId}`,
+    );
+    try {
+      const learnerMemoryResult = await sendLearnerMemoryEvent(
+        {
+          tenantId,
+          userId,
+          courseId,
+          eventType: "question",
+          lessonId: resolvedLessonId || undefined,
+          topic: topic || undefined,
+          intent: intent || undefined,
+          questionText: question,
+          sessionId: activeSession.session.id,
+          sessionTurns:
+            sessionTurns.length > 0
+              ? sessionTurns
+              : [
+                  {
+                    turn_id: crypto.randomUUID(),
+                    session_id: activeSession.session.id,
+                    user_message: question,
+                    agent_answer: normalizedResult.answer || "I could not generate an answer.",
+                    intent: intent || null,
+                    topic: topic || null,
+                    is_repeat: isRepeat,
+                    classification_mode: cleanText(result.questionIntent?.classification_mode) || null,
+                    created_at: new Date().toISOString(),
+                    supporting_memories: supportingMemories,
+                  },
+                ],
+          source: resolvedSessionSource,
+        },
+        "/v1/learner-memory/coaching-turn",
+      );
+
+      console.log("[Agno Learner Memory Agent] Learner memory event processed from platform:");
+      console.log(JSON.stringify(learnerMemoryResult, null, 2));
+    } catch (error) {
+      console.error(
+        `[Agno Learner Memory Agent] Coaching turn trigger failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      );
+    }
+
+    return Response.json(
+      {
+        success: true,
+        result: {
+          ...normalizedResult,
+          sessionId: activeSession.session.id,
+          session: persistedSession
+            ? {
+                id: persistedSession.id,
+                title: persistedSession.title,
+                turnCount: persistedSession.turnCount,
+                status: persistedSession.status,
+                lastActivityAt: persistedSession.lastActivityAt,
+              }
+            : null,
+        },
+      },
+      { status: 200 },
+    );
   } catch (error) {
     const message =
       error instanceof Error
