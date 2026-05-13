@@ -7,7 +7,7 @@
 - **Architecture:** DDD with 4 bounded contexts (Identity & Access, Learning & Engagement, AI Agents, Notifications), Docker + Kubernetes, RabbitMQ for messaging, AGNO for agent orchestration
 - **Constraints:** Solo developer, 5 sprints × 1 week = 5 weeks, multi-tenant enterprise B2B (Tenant = Company)
 - **Out of Scope:** Self-registration, multi-language
-- **Success Criteria:** Live demo with AI coaching (AGNO + Hindsight + 6 agents), recommendation engine, gamification (XP/badge/leaderboards), team management, RabbitMQ message bus, deployed on Docker/Azure
+- **Success Criteria:** Live demo with AI coaching (AGNO + Hindsight + 7 agents), recommendation engine, gamification (XP/badge/leaderboards), adaptive solo challenges, team management, RabbitMQ message bus, deployed on Docker/Azure
 - **Total Sprints:** 5 sprints × 1 week = 5 weeks
 - **Deadline:** June 2026 (University graduation defense)
 
@@ -83,10 +83,11 @@
                           ▼
            ┌─────────────────────────────┐
            │    AGNO (Agent Runtime)     │
-           │  6 Agents: Chat Coach,     │
-           │  Recommendation, Gamifi,   │
-           │  Course Maker, Content Lib, │
-           │  Skill Gap Analyzer         │
+           │  7 Agents: Chat Coach,     │
+           │  Solo Challenge, Recommend, │
+           │  Gamifi, Course Maker,      │
+           │  Content Lib, Skill Gap     │
+           │  Analyzer                    │
            └─────────────────────────────┘
 ```
 
@@ -99,7 +100,7 @@
 | BC-0 | Tenant Management (Super Admin) | 8000 (via Traefik) | Tenant CRUD, Super Admin auth, cross-tenant analytics |
 | BC-1 | Identity & Access | 8001 | **Two-Tier Identity Management:** (1) Super Admin level — manages Tenant Admin accounts only (tenantId=null), (2) Tenant Admin level — manages own company's users (tenantId in JWT); JWT validation, Azure Entra ID (per-tenant), local admin auth, RBAC |
 | BC-2 | Learning & Engagement | 8002 | Courses, enrollment, progress, gamification, teams, goals, analytics |
-| BC-3 | AI Agents | 8003 | 6 AI agents (Chat Coach, Recommendation, Gamification, Course Maker, Content Librarian, Skill Gap Analyzer), AGNO orchestration, Hindsight memory |
+| BC-3 | AI Agents | 8003 | 7 AI agents (Chat Coach, Solo Challenge, Recommendation, Gamification, Course Maker, Content Librarian, Skill Gap Analyzer), AGNO orchestration, Hindsight memory |
 | BC-4 | Notifications | 8004 | Email, push, SMS, real-time (Socket.io + RabbitMQ) |
 
 ---
@@ -124,7 +125,7 @@
 | Sprint 1 | Project Setup + Identity & Access + Super Admin Features | 1 week | [SPRINTS/SPRINT-1-infrastructure.md](SPRINTS/SPRINT-1-infrastructure.md) | 🔄 Active (39 done + 54 SP pending) | ❌ Backend |
 | Sprint 2 | Learning & Engagement (core) | 1 week | [SPRINTS/SPRINT-2-learning-platform.md](SPRINTS/SPRINT-2-learning-platform.md) | ✅ Done | ✅ Platform! |
 | Sprint 3 | Gamification + Goals + Teams | 1 week | [SPRINTS/SPRINT-3-notifications-rabbitmq.md](SPRINTS/SPRINT-3-notifications-rabbitmq.md) | ⏳ Pending | ✅ Gamification! |
-| Sprint 4 | AI Agents (AGNO + Hindsight + 6 Agents) | 1 week | [SPRINTS/SPRINT-4-ai-agents.md](SPRINTS/SPRINT-4-ai-agents.md) | ⏳ Pending | ✅ AI Coach! |
+| Sprint 4 | AI Agents (AGNO + Hindsight + 7 Agents) | 1 week | [SPRINTS/SPRINT-4-ai-agents.md](SPRINTS/SPRINT-4-ai-agents.md) | ⏳ Pending | ✅ AI Coach! |
 | Sprint 5 | Analytics + Notifications + Integration + Tests | 1 week | [SPRINTS/SPRINT-5-final-testing.md](SPRINTS/SPRINT-5-final-testing.md) | ⏳ Pending | 🎯 Defense! |
 
 **Status legend:** ⏳ Pending | 🔄 Active | ✅ Done | 🚧 Blocked
@@ -302,6 +303,83 @@ The `course memory agent` is now the dedicated synchronization workflow between 
     - prepared overview / lesson / quiz / supplemental source previews
     - start and completion of each retain operation
     - delete operations against banks and retained documents
+
+### Solo Challenge Agent Plan
+
+The `solo challenge agent` is the learner-facing adaptive practice agent that turns weak-topic detection into personalized daily missions and graded free-text challenges.
+
+- **AgentOS runtime**
+  - planned workspace: `agents/solo-challenge/`
+  - planned port: `8013`
+  - launch mode:
+    - proactive on learner login to prepare today's challenge state
+    - interactive when the learner opens the challenge widget or submits an answer
+
+- **Primary responsibilities**
+  - read learner quiz history, weak topics, XP tier, streak state, and course progress
+  - rank weak spots per learner and per topic
+  - generate grounded challenge prompts from course memory only
+  - score free-text learner responses on:
+    - accuracy
+    - depth
+    - application
+  - adapt difficulty after each attempt
+  - award XP, update streaks, and track daily missions
+  - hand weak areas to the chat-coach agent when extra coaching is needed
+
+- **Core workflow**
+  1. validate tenant, learner, course, enrollment, progress, quiz history, and Hindsight course-bank presence
+  2. run two parallel analyses:
+     - Branch A: failed / low-score quiz scan
+     - Branch B: Hindsight recall for confusion flags and known learner difficulties
+  3. merge both branches into a ranked weak-topic list
+  4. choose challenge type and difficulty level `1..5` using weak-topic rank and learner XP tier
+  5. retrieve grounded passages from the course Hindsight bank
+  6. generate one timed free-text challenge using only retrieved course passages
+  7. score the learner response and return structured feedback with lesson citations
+  8. update XP, streak, daily-mission progress, per-topic difficulty, and optional coach handoff
+
+- **Supported challenge formats**
+  - explain in your own words
+  - spot the mistake
+  - apply to a scenario
+  - rank or order concepts
+  - teach it back
+  - true or false plus justification
+
+- **Adaptive rules**
+  - if average score `>= 75`:
+    - increase topic difficulty by `+1`
+    - award XP bonus
+  - if average score `< 50`:
+    - decrease topic difficulty by `-1`
+    - award partial XP
+  - if response time is under `30s` with a passing score:
+    - apply speed multiplier
+
+- **Gamification loops**
+  - 3 daily challenges to maintain streak
+  - bonus hard-mode challenge after completing all daily missions
+  - per-topic mastery tracking, so a learner can be high level on one topic and low level on another
+  - `Topic Master` badge after passing difficulty 5 three times in a row on the same topic
+
+- **Dependencies**
+  - PostgreSQL:
+    - enrollment, progress, quiz attempts, XP, streak, and badge state
+  - Hindsight:
+    - course bank recall
+    - learner memory recall for confusion and difficulty signals
+  - chat-coach:
+    - receives weak-topic follow-up flag when depth score is below threshold
+
+- **Frontend integration**
+  - login-time bootstrap loads challenge summary for the learner dashboard
+  - challenge widget shows:
+    - daily mission progress
+    - current streak
+    - active challenge
+    - countdown state
+    - debrief with citations and next step
 
 ---
 

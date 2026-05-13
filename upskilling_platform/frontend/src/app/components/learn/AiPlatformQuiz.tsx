@@ -44,9 +44,11 @@ type QuizResult = {
 export function AiPlatformQuiz({
   lessonId,
   onComplete,
+  onAttemptEvaluated,
 }: {
   lessonId: string;
   onComplete?: () => void | Promise<void>;
+  onAttemptEvaluated?: (result: QuizResult) => void | Promise<void>;
 }) {
   const [quiz, setQuiz] = useState<QuizPayload | null>(null);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
@@ -142,6 +144,9 @@ export function AiPlatformQuiz({
         throw new Error(data.error || "Failed to submit AI-generated quiz");
       }
       setResult(data.result);
+      if (onAttemptEvaluated) {
+        await onAttemptEvaluated(data.result);
+      }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Failed to submit AI-generated quiz");
     } finally {

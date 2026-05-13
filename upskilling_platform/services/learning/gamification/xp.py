@@ -19,6 +19,7 @@ XP_CONFIG = {
     "lesson_complete": 50,
     "quiz_pass": 100,
     "course_complete": 200,
+    "solo_challenge_success": 50,
     "daily_login": 10,
     "streak_bonus": {
         7: 50,

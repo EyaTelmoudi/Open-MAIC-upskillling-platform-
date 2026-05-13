@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/app/components/layout/Sidebar";
+import { SoloChallengeWelcomePopup } from "@/app/components/challenges/SoloChallengeWelcomePopup";
 import { AuthGuard } from "@/app/components/auth/AuthGuard";
 import { useAuth } from "@/app/context/AuthContext";
 import {
+  awardGamificationXp,
   getAvatarUrl,
   getEnrollments,
   getGamificationProfile,
@@ -41,6 +43,9 @@ import {
 
 const THEME_PREF_VERSION = 2;
 const SF_PREFERENCES_STORAGE_KEY = "sf_preferences";
+const SOLO_CHALLENGE_SESSION_KEY = "sf_solo_challenge_welcome_seen";
+const LOGIN_SESSION_STORAGE_KEY = "sf_login_session_id";
+const SOLO_CHALLENGE_PENDING_LOGIN_KEY = "sf_solo_challenge_pending_login_session";
 const GLOBAL_BADGE_BURSTS = [
   { kind: "sparkles", left: "10%", top: "18%", delay: "0s", duration: "3.1s" },
   { kind: "trophy", left: "22%", top: "76%", delay: "0.2s", duration: "3.5s" },
@@ -115,6 +120,36 @@ export function AppShell({
     title: string;
     message: string;
   } | null>(null);
+  const [isSoloChallengeWelcomeOpen, setIsSoloChallengeWelcomeOpen] = useState(false);
+  const [isSoloChallengeStarting, setIsSoloChallengeStarting] = useState(false);
+  const [isSoloChallengeSubmitting, setIsSoloChallengeSubmitting] = useState(false);
+  const [soloChallengeError, setSoloChallengeError] = useState<string | null>(null);
+  const [soloChallengeQuiz, setSoloChallengeQuiz] = useState<{
+    courseId?: string | null;
+    courseTitle?: string | null;
+    lessonId?: string | null;
+    lessonTitle?: string | null;
+    assessmentId?: string | null;
+    source?: string;
+    focusMode?: string;
+    questionCount?: number;
+    questions?: Array<{
+      questionId: string;
+      text: string;
+      questionType: string;
+      displayOrder: number;
+      generationMode?: string;
+      correctOptionId?: string | null;
+      explanation?: string | null;
+      options: Array<{
+        id: string;
+        value: string;
+        label: string;
+      }>;
+    }>;
+  } | null>(null);
+  const [soloChallengeSelectedOptionId, setSoloChallengeSelectedOptionId] = useState<string | null>(null);
+  const [soloChallengeAnswerResult, setSoloChallengeAnswerResult] = useState<"correct" | "incorrect" | null>(null);
   const { user, logout } = useAuth();
   const profileHref = routes.profile;
   const displayName = user
@@ -310,6 +345,150 @@ export function AppShell({
     const timer = setTimeout(() => setCourseMemoryNotice(null), 9000);
     return () => clearTimeout(timer);
   }, [courseMemoryNotice]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!user) {
+      setIsSoloChallengeWelcomeOpen(false);
+      return;
+    }
+
+    const loginSessionId =
+      window.sessionStorage.getItem(LOGIN_SESSION_STORAGE_KEY) || "default";
+    const pendingLoginSessionId =
+      window.sessionStorage.getItem(SOLO_CHALLENGE_PENDING_LOGIN_KEY);
+    const sessionKey = `${SOLO_CHALLENGE_SESSION_KEY}:${user.id}:${loginSessionId}`;
+    if (pendingLoginSessionId !== loginSessionId) {
+      setIsSoloChallengeWelcomeOpen(false);
+      return;
+    }
+
+    if (window.sessionStorage.getItem(sessionKey) === "1") {
+      setIsSoloChallengeWelcomeOpen(false);
+      return;
+    }
+
+    setIsSoloChallengeWelcomeOpen(true);
+    setSoloChallengeError(null);
+  }, [user]);
+
+  const handleSoloChallengePopupClose = () => {
+    if (typeof window !== "undefined" && user) {
+      const loginSessionId =
+        window.sessionStorage.getItem(LOGIN_SESSION_STORAGE_KEY) || "default";
+      const sessionKey = `${SOLO_CHALLENGE_SESSION_KEY}:${user.id}:${loginSessionId}`;
+      window.sessionStorage.setItem(sessionKey, "1");
+      window.sessionStorage.removeItem(SOLO_CHALLENGE_PENDING_LOGIN_KEY);
+    }
+
+    setIsSoloChallengeWelcomeOpen(false);
+    setIsSoloChallengeStarting(false);
+    setIsSoloChallengeSubmitting(false);
+    setSoloChallengeError(null);
+    setSoloChallengeQuiz(null);
+    setSoloChallengeSelectedOptionId(null);
+    setSoloChallengeAnswerResult(null);
+  };
+
+  const handleSoloChallengePopupAccept = async () => {
+    if (!user || isSoloChallengeStarting) {
+      return;
+    }
+
+    setIsSoloChallengeStarting(true);
+    setSoloChallengeError(null);
+
+    try {
+      const response = await fetch("/api/solo-challenge-agent/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tenantId: user.tenant_id,
+          userId: user.id,
+          role: user.role,
+          pagePath: pathname || "/courses",
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        throw new Error(
+          (data && typeof data.error === "string" && data.error) ||
+            "The Solo Challenge Agent could not start.",
+        );
+      }
+
+      setSoloChallengeQuiz(data.recreatedQuiz ?? null);
+      setSoloChallengeSelectedOptionId(null);
+      setSoloChallengeAnswerResult(null);
+      if (!data.recreatedQuiz?.questions?.length) {
+        throw new Error("The Solo Challenge Agent did not return a quiz question.");
+      }
+    } catch (error) {
+      setSoloChallengeError(
+        error instanceof Error ? error.message : "The Solo Challenge Agent could not start.",
+      );
+    } finally {
+      setIsSoloChallengeStarting(false);
+    }
+  };
+
+  const handleSoloChallengeSubmitAnswer = async () => {
+    if (!soloChallengeQuiz || !soloChallengeSelectedOptionId || isSoloChallengeSubmitting) {
+      return;
+    }
+
+    const activeQuestion = soloChallengeQuiz.questions?.[0];
+    if (!activeQuestion) {
+      setSoloChallengeError("The solo challenge question is missing.");
+      return;
+    }
+    if (!activeQuestion.correctOptionId) {
+      setSoloChallengeError("The solo challenge answer key is missing.");
+      return;
+    }
+
+    const isCorrect = activeQuestion.correctOptionId === soloChallengeSelectedOptionId;
+
+    setIsSoloChallengeSubmitting(true);
+    setSoloChallengeError(null);
+
+    try {
+      if (!isCorrect) {
+        setSoloChallengeAnswerResult("incorrect");
+        return;
+      }
+
+      await awardGamificationXp({
+        action: "lesson_complete",
+        reason: `Solo challenge success (${activeQuestion.questionId})`,
+      });
+      setSoloChallengeAnswerResult("correct");
+    } catch (error) {
+      setSoloChallengeError(
+        error instanceof Error ? error.message : "The solo challenge reward could not be granted.",
+      );
+    } finally {
+      setIsSoloChallengeSubmitting(false);
+    }
+  };
+
+  const handleSoloChallengeRetry = () => {
+    setSoloChallengeSelectedOptionId(null);
+    setSoloChallengeAnswerResult(null);
+    setSoloChallengeError(null);
+  };
+
+  const handleSoloChallengeOpenCoach = () => {
+    if (typeof window !== "undefined") {
+      window.location.href = "/coach";
+    }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -784,6 +963,22 @@ export function AppShell({
           </div>
         </div>
       )}
+      <SoloChallengeWelcomePopup
+        open={isSoloChallengeWelcomeOpen}
+        isStarting={isSoloChallengeStarting}
+        isSubmittingAnswer={isSoloChallengeSubmitting}
+        errorMessage={soloChallengeError}
+        quiz={soloChallengeQuiz}
+        selectedOptionId={soloChallengeSelectedOptionId}
+        answerResult={soloChallengeAnswerResult}
+        awardedXp={50}
+        onClose={handleSoloChallengePopupClose}
+        onAccept={handleSoloChallengePopupAccept}
+        onSelectOption={setSoloChallengeSelectedOptionId}
+        onSubmitAnswer={handleSoloChallengeSubmitAnswer}
+        onRetryChallenge={handleSoloChallengeRetry}
+        onOpenCoach={handleSoloChallengeOpenCoach}
+      />
       <style jsx global>{`
         @keyframes badge-pop {
           0% {

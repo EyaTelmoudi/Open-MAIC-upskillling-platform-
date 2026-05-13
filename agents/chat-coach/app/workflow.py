@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.util
 import json
 import os
 import re
@@ -8,6 +9,8 @@ import sys
 import time
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+from functools import partial
+from pathlib import Path
 from queue import Queue
 from threading import Thread
 from typing import Any
@@ -16,7 +19,13 @@ from uuid import UUID
 import httpx
 from pydantic import BaseModel
 
-from agno.workflow import Step, StepInput, StepOutput, Workflow
+from agno.workflow import Parallel, Step, StepInput, StepOutput, Workflow
+
+from .answer_from_context import answer_from_merged_context_step
+from .build_answer_context import build_answer_context_step
+from .parallel_question_classification import classify_question_intent_parallel
+from .parallel_user_information import collect_user_information_parallel
+from .quality_gate_answer import quality_gate_answer_step
 
 
 DEFAULT_HINDSIGHT_URL = os.getenv("HINDSIGHT_API_URL", "http://127.0.0.1:8888")
@@ -29,7 +38,6 @@ DEFAULT_CLASSIFICATION_MODEL = os.getenv("COACH_MODE_JUDGE_MODEL", "openai/gpt-o
 CHAT_COACH_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("CHAT_COACH_RATE_LIMIT_WINDOW_SECONDS", "60"))
 CHAT_COACH_RATE_LIMIT_REQUESTS = int(os.getenv("CHAT_COACH_RATE_LIMIT_REQUESTS", "12"))
 HINDSIGHT_REFLECT_READ_TIMEOUT_SECONDS = float(os.getenv("CHAT_COACH_HINDSIGHT_REFLECT_READ_TIMEOUT_SECONDS", "150"))
-HINDSIGHT_RECALL_READ_TIMEOUT_SECONDS = float(os.getenv("CHAT_COACH_HINDSIGHT_RECALL_READ_TIMEOUT_SECONDS", "60"))
 
 _RATE_LIMIT_BUCKETS: dict[str, list[float]] = defaultdict(list)
 _WEAK_TOPIC_STOP_WORDS = {
@@ -106,35 +114,26 @@ _STOP_WORDS = {
     "with",
 }
 
-CLASSIFICATION_PROMPT = """
-You are classifying a learner question for a specific course coaching agent.
 
-Course: {course_name}
-Current lesson: {lesson_name}
-Learner's completed lessons: {completed_lessons}
-Learner's known weak areas: {weak_areas}
-Conversation turns so far: {turns}
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
 
-Question: "{question}"
 
-Classify this question. Return ONLY valid JSON, no other text:
-{{
-  "intent": one of ["concept", "quiz", "stuck", "progress", "off_topic"],
-  "topic": "short topic name (e.g. 'recursion', 'binary search')",
-  "difficulty_expected": one of ["basic", "intermediate", "advanced"],
-  "is_course_related": true or false,
-  "is_repeat": true or false,
-  "reasoning": "one sentence explanation of your classification"
-}}
+def _learner_memory_workflow() -> Any:
+    workflow_path = _repo_root() / "agents" / "learner-memory" / "app" / "workflow.py"
+    module_name = f"openmaic_learner_memory_workflow_{int(time.time() * 1000)}"
+    spec = importlib.util.spec_from_file_location(module_name, workflow_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load learner-memory workflow from {workflow_path}")
 
-intent definitions:
-- concept: learner wants to understand something from the course material
-- quiz: learner is asking about a quiz question, result, or mistake
-- stuck: learner says they don't understand or asks for simpler explanation
-- progress: learner asks what to study next, how they're doing, or where they are
-- off_topic: question is unrelated to this course
-""".strip()
-
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    if hasattr(module, "LessonReference"):
+        module.LessonReference.model_rebuild(_types_namespace=module.__dict__)
+    if hasattr(module, "LearnerLessonMemoryInput"):
+        module.LearnerLessonMemoryInput.model_rebuild(_types_namespace=module.__dict__)
+    return module
 
 def _log(message: str) -> None:
     try:
@@ -171,7 +170,6 @@ def _log_validation_context_layers(context: dict[str, Any]) -> None:
     }
 
     session_security_layer = {
-        "user_bank_id": context.get("user_bank_id"),
         "session_id": context.get("session_id"),
         "session_turns": context.get("session_turns"),
         "conversation_turns": context.get("conversation_turns"),
@@ -222,31 +220,6 @@ def _build_classification_input(question: str, context: dict[str, Any]) -> dict[
     }
 
 
-def _log_classification_input(question: str, context: dict[str, Any]) -> None:
-    _log("[Agno Chat Coach Agent] Classification input:")
-    _log(
-        json.dumps(
-            _build_classification_input(question, context),
-            indent=2,
-            ensure_ascii=False,
-        )
-    )
-
-
-def _log_classification_decision(question_intent: dict[str, Any]) -> None:
-    intent = _clean_text(question_intent.get("intent")) or "unknown"
-    topic = _clean_text(question_intent.get("topic")) or "unknown"
-    difficulty = _clean_text(question_intent.get("difficulty_expected")) or "unknown"
-    reasoning = _clean_text(question_intent.get("reasoning")) or "No reasoning provided."
-    classification_mode = _clean_text(question_intent.get("classification_mode")) or "unknown"
-
-    _log(
-        "[Agno Chat Coach Agent] Classification decision: "
-        f"intent={intent} topic={topic} difficulty={difficulty} mode={classification_mode}"
-    )
-    _log(f"[Agno Chat Coach Agent] Classification reason: {reasoning}")
-
-
 def _format_validation_context_for_answer(context: dict[str, Any]) -> str:
     platform_layer = {
         "tenant_id": context.get("tenant_id"),
@@ -271,7 +244,6 @@ def _format_validation_context_for_answer(context: dict[str, Any]) -> str:
     }
 
     session_security_layer = {
-        "user_bank_id": context.get("user_bank_id"),
         "conversation_turns": context.get("conversation_turns"),
         "rate_limit": context.get("rate_limit"),
         "updated_at": context.get("updated_at"),
@@ -290,10 +262,6 @@ def _format_validation_context_for_answer(context: dict[str, Any]) -> str:
 
 def _build_course_bank_id(tenant_id: str, course_id: str) -> str:
     return f"tenant:{tenant_id}:course:{course_id}"
-
-
-def _build_user_bank_id(tenant_id: str, user_id: str) -> str:
-    return f"tenant:{tenant_id}:user:{user_id}:coach"
 
 
 class ChatCoachQuestionInput(BaseModel):
@@ -599,159 +567,6 @@ def _rule_based_classification(question: str, context: dict[str, Any]) -> dict[s
     }
 
 
-def _parse_classification_response(raw_text: str) -> dict[str, Any] | None:
-    text = _clean_text(raw_text)
-    if not text:
-        return None
-
-    decoder = json.JSONDecoder()
-    candidates = [text]
-    if "{" in text:
-        candidates.append(text[text.find("{") :])
-
-    for candidate in candidates:
-        try:
-            parsed, _ = decoder.raw_decode(candidate)
-        except json.JSONDecodeError:
-            continue
-        if isinstance(parsed, dict):
-            return parsed
-    return None
-
-
-def _classify_question_with_judge(question: str, context: dict[str, Any]) -> dict[str, Any] | None:
-    judge_api_key = _resolve_judge_api_key()
-    judge_url = _resolve_judge_url()
-    if not judge_api_key or not judge_url:
-        missing_parts: list[str] = []
-        if not judge_api_key:
-            missing_parts.append("judge API key")
-        if not judge_url:
-            missing_parts.append("judge URL")
-        _log(
-            "[Agno Chat Coach Agent] LLM classification unavailable, using rules fallback. "
-            f"Missing {' and '.join(missing_parts)}."
-        )
-        return None
-
-    prompt = CLASSIFICATION_PROMPT.format(
-        course_name=_clean_text(context.get("course_title")) or context.get("course_id") or "Unknown course",
-        lesson_name=_clean_text(context.get("current_lesson_title")) or "Unknown lesson",
-        completed_lessons=", ".join(str(item) for item in _as_list(context.get("completed_lesson_titles"))) or "None",
-        weak_areas=json.dumps(_as_list(context.get("weak_areas")), ensure_ascii=False) or "None",
-        turns=int(context.get("conversation_turns") or 0),
-        question=question,
-    )
-
-    headers = {
-        "Authorization": f"Bearer {judge_api_key}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "model": _clean_text(os.getenv("COACH_MODE_JUDGE_MODEL")) or DEFAULT_CLASSIFICATION_MODEL,
-        "temperature": 0,
-        "max_tokens": 150,
-        "messages": [
-            {"role": "system", "content": "You are a precise course-question classifier."},
-            {"role": "user", "content": prompt},
-        ],
-        "response_format": {"type": "json_object"},
-    }
-
-    last_response_payload: dict[str, Any] | None = None
-    last_error: str | None = None
-
-    for attempt in range(1, 4):
-        try:
-            with httpx.Client(timeout=20.0, trust_env=False) as client:
-                response = client.post(judge_url, headers=headers, json=payload)
-                response.raise_for_status()
-            response_payload = response.json()
-            last_response_payload = response_payload if isinstance(response_payload, dict) else None
-        except (httpx.HTTPError, ValueError) as error:
-            last_error = str(error)
-            _log(
-                "[Agno Chat Coach Agent] LLM classification request failed. "
-                f"attempt={attempt} error={error}"
-            )
-            if attempt < 3:
-                continue
-            _log(
-                "[Agno Chat Coach Agent] LLM classification failed, using rules fallback. "
-                f"error={error}"
-            )
-            return None
-
-        _log("[Agno Chat Coach Agent] Raw LLM classification response:")
-        _log(json.dumps(response_payload, indent=2, ensure_ascii=False))
-
-        if isinstance(response_payload, dict) and response_payload.get("error"):
-            error_payload = response_payload.get("error")
-            _log(
-                "[Agno Chat Coach Agent] LLM classification provider returned an error payload. "
-                f"attempt={attempt} error={json.dumps(error_payload, ensure_ascii=False)}"
-            )
-            if attempt < 3:
-                continue
-            _log(
-                "[Agno Chat Coach Agent] LLM classification provider returned an error payload, using rules fallback. "
-                + json.dumps(error_payload, ensure_ascii=False)
-            )
-            return None
-
-        choices = response_payload.get("choices") if isinstance(response_payload, dict) else None
-        if not isinstance(choices, list) or not choices:
-            _log(
-                "[Agno Chat Coach Agent] LLM classification returned no choices. "
-                f"attempt={attempt} payload_keys={list(response_payload.keys()) if isinstance(response_payload, dict) else type(response_payload).__name__}"
-            )
-            if attempt < 3:
-                continue
-            _log(
-                "[Agno Chat Coach Agent] LLM classification returned no choices, using rules fallback. "
-                f"payload_keys={list(response_payload.keys()) if isinstance(response_payload, dict) else type(response_payload).__name__}"
-            )
-            return None
-
-        break
-    else:
-        if last_error:
-            _log(
-                "[Agno Chat Coach Agent] LLM classification exhausted retries, using rules fallback. "
-                f"error={last_error}"
-            )
-        elif last_response_payload is not None:
-            _log(
-                "[Agno Chat Coach Agent] LLM classification exhausted retries, using rules fallback."
-            )
-        return None
-
-    first_choice = choices[0] if isinstance(choices[0], dict) else {}
-    message = first_choice.get("message") if isinstance(first_choice, dict) else {}
-    content = message.get("content") if isinstance(message, dict) else None
-
-    raw_text = ""
-    if isinstance(content, str):
-        raw_text = content
-    elif isinstance(content, list):
-        raw_text = "\n".join(
-            str(item.get("text") or "")
-            for item in content
-            if isinstance(item, dict)
-        )
-
-    parsed = _parse_classification_response(raw_text)
-    if not parsed:
-        _log(
-            "[Agno Chat Coach Agent] LLM classification returned no valid JSON, using rules fallback."
-        )
-        return None
-
-    parsed["classification_mode"] = "llm"
-    _log("[Agno Chat Coach Agent] LLM classification call succeeded.")
-    return parsed
-
-
 def _normalize_classification_payload(raw: dict[str, Any], question: str, context: dict[str, Any]) -> dict[str, Any]:
     allowed_intents = {"concept", "quiz", "stuck", "progress", "off_topic"}
     allowed_difficulties = {"basic", "intermediate", "advanced"}
@@ -772,6 +587,25 @@ def _normalize_classification_payload(raw: dict[str, Any], question: str, contex
 
     reasoning = _clean_text(raw.get("reasoning")) or "The classification was derived from the available course and learner context."
     classification_mode = _clean_text(raw.get("classification_mode")) or "rules_only"
+
+    normalized_question = question.lower().strip()
+    concept_override_markers = [
+        "what is this course about",
+        "what this course is about",
+        "what does this course add",
+        "what new thing does this course add",
+        "what new thing does the course add",
+        "how is this different from scrum",
+        "how is this course different from scrum",
+        "i already know scrum",
+    ]
+    if any(marker in normalized_question for marker in concept_override_markers):
+        if intent != "concept":
+            reasoning = (
+                f"{reasoning} Intent was corrected to concept because the learner is asking for course meaning, "
+                "comparison, or added value rather than progress guidance."
+            )
+        intent = "concept"
 
     return {
         "intent": intent,
@@ -817,8 +651,23 @@ def _format_structured_answer(payload: dict[str, Any]) -> str:
 
 
 def _parse_json_object_response(raw_text: str) -> dict[str, Any] | None:
-    parsed = _parse_classification_response(raw_text)
-    return parsed if isinstance(parsed, dict) else None
+    text = _clean_text(raw_text)
+    if not text:
+        return None
+
+    decoder = json.JSONDecoder()
+    candidates = [text]
+    if "{" in text:
+        candidates.append(text[text.find("{") :])
+
+    for candidate in candidates:
+        try:
+            parsed, _ = decoder.raw_decode(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return None
 
 
 def _call_structured_llm(
@@ -1025,10 +874,6 @@ def _build_reflect_query(intent: str, topic: str, context: dict[str, Any]) -> st
     return None
 
 
-def _build_recall_query(context: dict[str, Any]) -> str:
-    return f"What topics has this learner struggled with in course {context['course_id']}?"
-
-
 def _sanitize_answer_text(answer: str, context: dict[str, Any]) -> str:
     sanitized = answer
     current_lesson_id = _clean_text(context.get("current_lesson_id"))
@@ -1170,10 +1015,6 @@ async def _run_hindsight_pipeline(
         _clean_text(context.get("tenant_id")),
         _clean_text(context.get("course_id")),
     )
-    user_bank = _clean_text(context.get("user_bank_id")) or _build_user_bank_id(
-        _clean_text(context.get("tenant_id")),
-        _clean_text(context.get("user_id")),
-    )
     intent = _clean_text(question_intent.get("intent")) or "concept"
     course_id = _clean_text(context.get("course_id"))
     current_lesson_id = _clean_text(context.get("current_lesson_id"))
@@ -1191,98 +1032,23 @@ async def _run_hindsight_pipeline(
         "tags_match": reflect_tags_match if len(reflect_tags) > 1 else "all_strict",
         "include": {"facts": {}},
     }
-    recall_payload = {
-        "query": _build_recall_query(context),
-        "budget": "mid",
-        "max_tokens": 260,
-    }
-
     reflect_timeout = httpx.Timeout(
         connect=10.0,
         read=HINDSIGHT_REFLECT_READ_TIMEOUT_SECONDS,
         write=30.0,
         pool=30.0,
     )
-    recall_timeout = httpx.Timeout(
-        connect=10.0,
-        read=HINDSIGHT_RECALL_READ_TIMEOUT_SECONDS,
-        write=20.0,
-        pool=20.0,
-    )
 
     async with httpx.AsyncClient(trust_env=False) as client:
-        reflect_task = asyncio.create_task(
-            client.post(
-                f"{hindsight_url.rstrip('/')}/v1/default/banks/{course_bank}/reflect",
-                headers=headers,
-                json=reflect_payload,
-                timeout=reflect_timeout,
-            )
+        reflect_response = await client.post(
+            f"{hindsight_url.rstrip('/')}/v1/default/banks/{course_bank}/reflect",
+            headers=headers,
+            json=reflect_payload,
+            timeout=reflect_timeout,
         )
-        recall_task = asyncio.create_task(
-            client.post(
-                f"{hindsight_url.rstrip('/')}/v1/default/banks/{user_bank}/memories/recall",
-                headers=headers,
-                json=recall_payload,
-                timeout=recall_timeout,
-            )
-        )
-        reflect_response, recall_response = await asyncio.gather(reflect_task, recall_task)
 
     reflect_response.raise_for_status()
-    recall_response.raise_for_status()
-    return reflect_response.json(), recall_response.json()
-
-
-async def _retain_coaching_note(
-    *,
-    context: dict[str, Any],
-    question_intent: dict[str, Any],
-    hindsight_url: str,
-    hindsight_api_key: str,
-) -> dict[str, Any]:
-    headers = {"Content-Type": "application/json"}
-    if hindsight_api_key:
-        headers["Authorization"] = f"Bearer {hindsight_api_key}"
-
-    user_bank = _clean_text(context.get("user_bank_id")) or _build_user_bank_id(
-        _clean_text(context.get("tenant_id")),
-        _clean_text(context.get("user_id")),
-    )
-    course_id = _clean_text(context.get("course_id"))
-    intent = _clean_text(question_intent.get("intent"))
-    topic = _clean_text(question_intent.get("topic"))
-    is_repeat_topic = _is_repeat_topic(topic, context)
-
-    content = (
-        f"Learner asked about '{topic}'. Intent: {intent}. "
-        f"Is repeat: {is_repeat_topic}. "
-        f"{'Marked as struggle area.' if intent == 'stuck' else ''}"
-    ).strip()
-
-    payload = {
-        "items": [
-            {
-                "content": content,
-                "context": f"course:{course_id} intent:{intent}",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "tags": [
-                    f"course:{course_id}",
-                    f"intent:{intent}",
-                ],
-            }
-        ],
-        "async": True,
-    }
-
-    async with httpx.AsyncClient(timeout=30.0, trust_env=False) as client:
-        response = await client.post(
-            f"{hindsight_url.rstrip('/')}/v1/default/banks/{user_bank}/memories",
-            headers=headers,
-            json=payload,
-        )
-    response.raise_for_status()
-    return response.json()
+    return reflect_response.json(), {}
 
 
 def _build_final_answer_payload(
@@ -1407,6 +1173,10 @@ def _ensure_validated_content(step_input: StepInput) -> dict[str, Any]:
 
 
 def _ensure_classified_content(step_input: StepInput) -> dict[str, Any]:
+    classified_step_content = step_input.get_step_content("classify-question-intent")
+    if isinstance(classified_step_content, dict):
+        return classified_step_content
+
     previous_content = _ensure_validated_content(step_input)
     if previous_content.get("success") is False:
         return previous_content
@@ -1416,12 +1186,113 @@ def _ensure_classified_content(step_input: StepInput) -> dict[str, Any]:
     _log(
         "[Agno Chat Coach Agent] Previous question intent was missing from the workflow chain. Re-running classification step."
     )
-    question_intent = _build_question_intent_from_content(previous_content)
+    validated_context = _as_dict(previous_content.get("validatedContext"))
+    question = _clean_text(previous_content.get("question"))
+    raw_classification = _rule_based_classification(question, validated_context)
+    question_intent = _normalize_classification_payload(raw_classification, question, validated_context)
     return {
         **previous_content,
         "action": "classify_question_intent",
         "questionIntent": question_intent,
     }
+
+
+def _ensure_answer_context_content(step_input: StepInput) -> dict[str, Any]:
+    answer_context_step_content = step_input.get_step_content("build-answer-context")
+    if isinstance(answer_context_step_content, dict):
+        return answer_context_step_content
+
+    return _ensure_classified_content(step_input)
+
+
+def _store_stuck_difficulty_signal(
+    *,
+    validated_context: dict[str, Any],
+    question_intent: dict[str, Any],
+    hindsight_api_url: str,
+    hindsight_api_key: str,
+) -> dict[str, Any]:
+    intent = _clean_text(question_intent.get("intent")) or "concept"
+    if intent != "stuck":
+        return {
+            "success": True,
+            "action": "skip_difficulty_signal_memory",
+            "reason": "intent_not_stuck",
+        }
+
+    tenant_id = _clean_text(validated_context.get("tenant_id"))
+    user_id = _clean_text(validated_context.get("user_id"))
+    course_id = _clean_text(validated_context.get("course_id"))
+    course_title = _clean_text(validated_context.get("course_title")) or None
+    current_lesson_id = _clean_text(validated_context.get("current_lesson_id"))
+    session_id = _clean_text(validated_context.get("session_id"))
+    lesson_id = current_lesson_id or (f"discussion-session:{session_id}" if session_id else f"course:{course_id}")
+    lesson_title = _clean_text(validated_context.get("current_lesson_title")) or None
+    topic = _clean_text(question_intent.get("topic")) or None
+
+    if not tenant_id or not user_id or not course_id or not lesson_id:
+        return {
+            "success": False,
+            "action": "store_difficulty_signal_memory",
+            "error": "Missing tenant, user, course, or lesson/session identifier for learner difficulty retention.",
+        }
+
+    payload = {
+        "tenantId": tenant_id,
+        "userId": user_id,
+        "courseId": course_id,
+        "courseTitle": course_title,
+        "lessonId": lesson_id,
+        "lessonTitle": lesson_title,
+        "eventType": "difficulty_signal_detected",
+        "difficultySignal": "stuck",
+        "difficultyTopic": topic,
+        "lessonReferenceIds": [],
+        "supportReferences": [],
+        "hindsightApiUrl": hindsight_api_url,
+        "hindsightApiKey": hindsight_api_key,
+    }
+
+    _log(
+        "[Agno Chat Coach Agent] Launching learner-memory agent for stuck intent. "
+        f"userId={user_id} courseId={course_id} topic={topic or 'unknown'} difficulty=stuck"
+    )
+    learner_memory_module = _learner_memory_workflow()
+    content = _as_dict(learner_memory_module.retain_learner_memory_payload(payload))
+    if bool(content.get("success")):
+        _log("[Agno Chat Coach Agent] Learner difficulty signal stored successfully via learner-memory agent.")
+        if _clean_text(content.get("memoryContent")):
+            _log("[Agno Chat Coach Agent] Learner-memory retained difficulty signal content:")
+            _log(_clean_text(content.get("memoryContent")))
+    else:
+        _log(
+            "[Agno Chat Coach Agent] Learner difficulty signal storage failed: "
+            f"{_clean_text(content.get('error')) or 'unknown error'}"
+        )
+    return content
+
+
+def store_stuck_difficulty_memory(step_input: StepInput) -> StepOutput:
+    previous_content = _ensure_classified_content(step_input)
+    if previous_content.get("success") is False:
+        return StepOutput(content=previous_content, success=False)
+
+    validated_context = _as_dict(previous_content.get("validatedContext"))
+    question_intent = _as_dict(previous_content.get("questionIntent"))
+    difficulty_memory = _store_stuck_difficulty_signal(
+        validated_context=validated_context,
+        question_intent=question_intent,
+        hindsight_api_url=_clean_text(previous_content.get("hindsightApiUrl")) or DEFAULT_HINDSIGHT_URL,
+        hindsight_api_key=_clean_text(previous_content.get("hindsightApiKey")) or DEFAULT_HINDSIGHT_API_KEY,
+    )
+
+    return StepOutput(
+        content={
+            **previous_content,
+            "learnerDifficultyMemory": difficulty_memory,
+        },
+        success=True,
+    )
 
 
 def _apply_rate_limit(user_id: str) -> tuple[bool, int]:
@@ -1476,6 +1347,7 @@ def _collect_lessons_completed(
     progress_rows: list[Any],
     lesson_ids_by_assessment: dict[UUID, UUID],
     latest_attempt_by_assessment: dict[UUID, dict[str, Any]],
+    latest_ai_rows: list[dict[str, Any]],
 ) -> list[str]:
     completed_lessons = {
         str(progress.lesson_id)
@@ -1490,7 +1362,62 @@ def _collect_lessons_completed(
         if lesson_id:
             completed_lessons.add(str(lesson_id))
 
+    for row in latest_ai_rows:
+        if not row.get("passed"):
+            continue
+        lesson_id = row.get("lesson_id")
+        if lesson_id:
+            completed_lessons.add(str(lesson_id))
+
     return sorted(completed_lessons)
+
+
+def _derive_latest_quiz_attempt(
+    latest_traditional_rows: list[dict[str, Any]],
+    latest_ai_rows: list[dict[str, Any]],
+    lesson_ids_by_assessment: dict[UUID, UUID],
+) -> dict[str, Any] | None:
+    latest_candidates: list[tuple[Any, dict[str, Any]]] = []
+
+    for row in latest_traditional_rows:
+        completed_at = row.get("completed_at")
+        assessment_id = row.get("assessment_id")
+        lesson_id = lesson_ids_by_assessment.get(assessment_id) if assessment_id is not None else None
+        if not completed_at:
+            continue
+        latest_candidates.append(
+            (
+                completed_at,
+                {
+                    "lessonId": str(lesson_id) if lesson_id else None,
+                    "score": float(row.get("score") or 0),
+                    "passed": bool(row.get("passed")),
+                    "completedAt": completed_at.isoformat() if hasattr(completed_at, "isoformat") else None,
+                    "source": "traditional",
+                },
+            )
+        )
+
+    for row in latest_ai_rows:
+        completed_at = row.get("completed_at")
+        lesson_id = row.get("lesson_id")
+        if not completed_at:
+            continue
+        latest_candidates.append(
+            (
+                completed_at,
+                {
+                    "lessonId": str(lesson_id) if lesson_id else None,
+                    "score": float(row.get("score") or 0),
+                    "passed": bool(row.get("passed")),
+                    "completedAt": completed_at.isoformat() if hasattr(completed_at, "isoformat") else None,
+                    "source": "ai_generated",
+                },
+            )
+        )
+
+    latest_candidates.sort(key=lambda item: item[0], reverse=True)
+    return latest_candidates[0][1] if latest_candidates else None
 
 
 def _derive_weak_topics(attempt_rows: list[dict[str, Any]]) -> list[str]:
@@ -1524,46 +1451,10 @@ def _derive_weak_topics(attempt_rows: list[dict[str, Any]]) -> list[str]:
     return fallback[:5]
 
 
-def classify_question_intent(step_input: StepInput) -> StepOutput:
-    previous_content = _ensure_validated_content(step_input)
-    if previous_content.get("success") is False:
-        return StepOutput(content=previous_content, success=False)
-
-    question_intent = _build_question_intent_from_content(previous_content)
-
-    return StepOutput(
-        content={
-            **previous_content,
-            "action": "classify_question_intent",
-            "questionIntent": question_intent,
-        },
-        success=True,
-    )
-
-
-def _build_question_intent_from_content(previous_content: dict[str, Any]) -> dict[str, Any]:
-    validated_context = _as_dict(previous_content.get("validatedContext"))
-    question = _clean_text(previous_content.get("question"))
-    _log_classification_input(question, validated_context)
-
-    judge_classification = _classify_question_with_judge(question, validated_context)
-    raw_classification = judge_classification or _rule_based_classification(question, validated_context)
-    question_intent = _normalize_classification_payload(raw_classification, question, validated_context)
-
-    _log("[Agno Chat Coach Agent] Question intent classification completed.")
-    _log(
-        "[Agno Chat Coach Agent] Chosen question intent: "
-        + json.dumps(question_intent, ensure_ascii=False)
-    )
-    _log_classification_decision(question_intent)
-    return question_intent
-
-
 def validate_and_collect_context(step_input: StepInput) -> StepOutput:
     payload = ChatCoachQuestionInput.model_validate(step_input.input)
     _log_session_context(payload)
     bank_id = _build_course_bank_id(payload.tenantId, payload.courseId)
-    user_bank_id = _build_user_bank_id(payload.tenantId, payload.userId or "anonymous")
     hindsight_url = (payload.hindsightApiUrl or DEFAULT_HINDSIGHT_URL).rstrip("/")
     hindsight_api_key = payload.hindsightApiKey or DEFAULT_HINDSIGHT_API_KEY
 
@@ -1854,7 +1745,10 @@ def validate_and_collect_context(step_input: StepInput) -> StepOutput:
             progress_rows,
             lesson_ids_by_assessment,
             latest_attempt_by_assessment,
+            [dict(row) for row in latest_ai_rows],
         )
+        if not lessons_completed and enrollment and str(enrollment.status or "").strip() == "completed":
+            lessons_completed = [str(row.id) for row in lesson_rows]
         completed_lesson_titles = [
             lesson_title_by_id[lesson_id]
             for lesson_id in lessons_completed
@@ -1863,6 +1757,11 @@ def validate_and_collect_context(step_input: StepInput) -> StepOutput:
         failed_attempt_dicts = [dict(row) for row in failed_attempt_rows]
         weak_areas = _derive_weak_areas(failed_attempt_dicts)
         weak_topics = _derive_weak_topics(failed_attempt_dicts)
+        latest_quiz_attempt = _derive_latest_quiz_attempt(
+            [dict(row) for row in latest_traditional_rows],
+            [dict(row) for row in latest_ai_rows],
+            lesson_ids_by_assessment,
+        )
 
         validated_context = {
             "tenant_id": payload.tenantId,
@@ -1873,7 +1772,6 @@ def validate_and_collect_context(step_input: StepInput) -> StepOutput:
             "current_lesson_title": current_lesson_title,
             "course_is_published": True,
             "bank_id": bank_id,
-            "user_bank_id": user_bank_id,
             "ordered_lessons": ordered_lessons,
             "lessons_completed": lessons_completed,
             "completed_lesson_titles": completed_lesson_titles,
@@ -1888,8 +1786,8 @@ def validate_and_collect_context(step_input: StepInput) -> StepOutput:
             "tenant_status": str(tenant.status or "").strip(),
             "hindsight_bank_populated": bank_populated,
             "hindsight_bank_document_count": bank_item_count,
-            "failed_quiz_count": int(learner_context.get("failedQuizCount") or 0),
-            "latest_quiz_attempt": learner_context.get("latestQuizAttempt"),
+            "failed_quiz_count": len(failed_attempt_dicts),
+            "latest_quiz_attempt": latest_quiz_attempt or learner_context.get("latestQuizAttempt"),
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "rate_limit": {
                 "window_seconds": CHAT_COACH_RATE_LIMIT_WINDOW_SECONDS,
@@ -1929,7 +1827,8 @@ def validate_and_collect_context(step_input: StepInput) -> StepOutput:
 
 
 def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
-    previous_content = _ensure_classified_content(step_input)
+    _log("ai coaching agnet finished the parallel section")
+    previous_content = _ensure_answer_context_content(step_input)
     if previous_content and previous_content.get("success") is False:
         return StepOutput(content=previous_content, success=False)
 
@@ -1941,6 +1840,7 @@ def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
         hindsight_api_key = _clean_text(previous_content.get("hindsightApiKey")) or DEFAULT_HINDSIGHT_API_KEY
         validation_ok = bool(previous_content.get("validationContextIsValid"))
         intent = _clean_text(question_intent.get("intent")) or "concept"
+        answer_context = _as_dict(previous_content.get("answerContext"))
 
         if not validation_ok:
             answer = "I cannot continue because the course or learner validation context is invalid."
@@ -1959,6 +1859,7 @@ def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
                     "validatedContext": validated_context,
                     "validationContextIsValid": False,
                     "questionIntent": question_intent,
+                    "answerContext": answer_context,
                     "basedOn": {},
                     "supportingMemories": [],
                     "trace": None,
@@ -1989,6 +1890,7 @@ def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
                     "validatedContext": validated_context,
                     "validationContextIsValid": True,
                     "questionIntent": question_intent,
+                    "answerContext": answer_context,
                     "basedOn": {},
                     "supportingMemories": [],
                     "trace": None,
@@ -2000,24 +1902,8 @@ def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
         if intent == "progress":
             progress_payload = _build_progress_answer(validated_context, question_intent)
             answer = _sanitize_answer_text(_format_structured_answer(progress_payload), validated_context)
-            retain_result = None
-            try:
-                retain_result = _run_coro_sync(
-                    _retain_coaching_note(
-                        context=validated_context,
-                        question_intent=question_intent,
-                        hindsight_url=hindsight_url,
-                        hindsight_api_key=hindsight_api_key,
-                    )
-                )
-            except Exception as error:
-                _log(f"[Agno Chat Coach Agent] Progress retain failed: {error}")
-
             _log("[Agno Chat Coach Agent] Progress answer built from learner context:")
             _log(json.dumps(progress_payload, indent=2, ensure_ascii=False))
-            if retain_result is not None:
-                _log("[Agno Chat Coach Agent] Coaching note retain result:")
-                _log(json.dumps(retain_result, indent=2, ensure_ascii=False))
             return StepOutput(
                 content={
                     "success": True,
@@ -2032,6 +1918,7 @@ def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
                     "validatedContext": validated_context,
                     "validationContextIsValid": True,
                 "questionIntent": question_intent,
+                "answerContext": answer_context,
                 "basedOn": {},
                 "supportingMemories": [],
                 "sessionId": validated_context.get("session_id"),
@@ -2107,24 +1994,8 @@ def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
         )
         supporting_memories = _extract_supporting_memories_from_based_on(reflect_result.get("based_on"))
 
-        retain_result = None
-        try:
-            retain_result = _run_coro_sync(
-                _retain_coaching_note(
-                    context=validated_context,
-                    question_intent=question_intent,
-                    hindsight_url=hindsight_url,
-                    hindsight_api_key=hindsight_api_key,
-                )
-            )
-        except Exception as error:
-            _log(f"[Agno Chat Coach Agent] Coaching note retain failed: {error}")
-
         _log("[Agno Chat Coach Agent] Final coaching answer payload:")
         _log(json.dumps(structured_answer, indent=2, ensure_ascii=False))
-        if retain_result is not None:
-            _log("[Agno Chat Coach Agent] Coaching note retain result:")
-            _log(json.dumps(retain_result, indent=2, ensure_ascii=False))
 
         return StepOutput(
             content={
@@ -2140,6 +2011,7 @@ def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
                 "validatedContext": validated_context,
                 "validationContextIsValid": True,
                 "questionIntent": question_intent,
+                "answerContext": answer_context,
                 "basedOn": _as_dict(reflect_result.get("based_on")),
                 "supportingMemories": supporting_memories,
                 "sessionId": validated_context.get("session_id"),
@@ -2148,7 +2020,7 @@ def ask_hindsight_course_question(step_input: StepInput) -> StepOutput:
                 "usage": _as_dict(reflect_result.get("usage")),
                 "structuredAnswer": structured_answer,
                 "recallResult": recall_result,
-                "retainResult": retain_result,
+                "retainResult": None,
             },
             success=True,
         )
@@ -2190,13 +2062,53 @@ chat_coach_workflow = Workflow(
             name="validate-and-collect-context",
             executor=validate_and_collect_context,
         ),
-        Step(
-            name="classify-question-intent",
-            executor=classify_question_intent,
+        Parallel(
+                Step(
+                    name="classify-question-intent",
+                    executor=partial(
+                        classify_question_intent_parallel,
+                        ensure_validated_content=_ensure_validated_content,
+                        rule_based_classification=_rule_based_classification,
+                        normalize_classification_payload=_normalize_classification_payload,
+                        log=_log,
+                    ),
+                ),
+            Step(
+                name="collect-user-information-parallel-placeholder",
+                executor=partial(
+                    collect_user_information_parallel,
+                    ensure_validated_content=_ensure_validated_content,
+                    log=_log,
+                ),
+            ),
+            name="classification-and-user-information-parallel",
         ),
         Step(
-            name="ask-hindsight-course-question",
-            executor=ask_hindsight_course_question,
+            name="store-stuck-difficulty-memory",
+            executor=store_stuck_difficulty_memory,
+        ),
+        Step(
+            name="build-answer-context",
+            executor=partial(
+                build_answer_context_step,
+                ensure_classified_content=_ensure_classified_content,
+                log=_log,
+            ),
+        ),
+        Step(
+            name="answer-from-merged-context",
+            executor=partial(
+                answer_from_merged_context_step,
+                ensure_answer_context_content=_ensure_answer_context_content,
+                log=_log,
+            ),
+        ),
+        Step(
+            name="quality-gate-answer",
+            executor=partial(
+                quality_gate_answer_step,
+                log=_log,
+            ),
         ),
     ],
 )

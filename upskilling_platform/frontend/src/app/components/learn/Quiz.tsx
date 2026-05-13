@@ -22,9 +22,16 @@ interface QuizProps {
   courseId: string;
   assessmentId?: string;
   onComplete?: () => void | Promise<void>;
+  onAttemptEvaluated?: (result: AssessmentAttemptResult) => void | Promise<void>;
 }
 
-export function Quiz({ lessonId, courseId, assessmentId, onComplete }: QuizProps) {
+export function Quiz({
+  lessonId,
+  courseId,
+  assessmentId,
+  onComplete,
+  onAttemptEvaluated,
+}: QuizProps) {
   const [questions, setQuestions] = useState<AssessmentQuestionResponse[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -89,6 +96,9 @@ export function Quiz({ lessonId, courseId, assessmentId, onComplete }: QuizProps
         { answers }
       );
       setResult(submitResult);
+      if (onAttemptEvaluated) {
+        await onAttemptEvaluated(submitResult);
+      }
     } catch (err) {
       console.error("Failed to submit quiz:", err);
       setError("Failed to submit quiz. Please try again.");

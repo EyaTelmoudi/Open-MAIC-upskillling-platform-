@@ -68,6 +68,10 @@ async function getSetupStatus(): Promise<boolean | null> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
   const isSetupAllowedPath = SETUP_ALLOWED_PATHS.some(path => matchesPath(pathname, path));
   if (!isSetupAllowedPath) {
     const setupCompleted = await getSetupStatus();

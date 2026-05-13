@@ -8,6 +8,7 @@ import uvicorn
 
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 REPO_ROOT = WORKSPACE_ROOT.parent.parent
+UPSKILLING_PLATFORM_ROOT = REPO_ROOT / "upskilling_platform"
 
 
 def _load_env_file(env_path: Path) -> None:
@@ -31,18 +32,22 @@ def _load_env_file(env_path: Path) -> None:
 
 
 _load_env_file(REPO_ROOT / ".env")
+_load_env_file(UPSKILLING_PLATFORM_ROOT / ".env")
 _load_env_file(WORKSPACE_ROOT / ".env")
 
 if str(WORKSPACE_ROOT) not in sys.path:
     sys.path.insert(0, str(WORKSPACE_ROOT))
+if str(UPSKILLING_PLATFORM_ROOT) not in sys.path:
+    sys.path.insert(0, str(UPSKILLING_PLATFORM_ROOT))
 
 from app.agent_os_service import app
+
 
 if __name__ == "__main__":
     uvicorn.run(
         app,
         host="127.0.0.1",
-        port=int(os.getenv("LEARNER_MEMORY_AGENTOS_PORT", "8013")),
+        port=8014,
         reload=False,
         log_level="warning",
     )

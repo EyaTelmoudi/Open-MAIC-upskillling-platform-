@@ -14,7 +14,11 @@ import {
   parseAiGeneratedLesson,
 } from "@/app/components/learn/AiGeneratedLessonPlayer";
 import { AiPlatformQuiz } from "@/app/components/learn/AiPlatformQuiz";
-import { api, type GamificationProfileResponse } from "@/app/lib/api";
+import {
+  api,
+  type AssessmentAttemptResult,
+  type GamificationProfileResponse,
+} from "@/app/lib/api";
 import {
   createCoachSession,
   getCoachSessionDetail,
@@ -309,6 +313,7 @@ export default function LearnPage() {
   const levelCelebrationResolverRef = useRef<(() => void) | null>(null);
   const badgeCelebrationResolverRef = useRef<(() => void) | null>(null);
   const nextLessonTimerRef = useRef<number | null>(null);
+  const learnerMemoryCaptureKeysRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (user) {
@@ -440,6 +445,66 @@ export default function LearnPage() {
     [currentLesson?.content]
   );
 
+  const captureLearnerMemoryEvent = useCallback(
+    async (
+      eventType: "lesson_completed" | "course_enrollment_completed" | "quiz_completed",
+      extras?: {
+        quizId?: string | null;
+        quizPassed?: boolean | null;
+        quizScore?: number | null;
+        wrongAnswers?: Array<Record<string, unknown>>;
+        captureSuffix?: string;
+      },
+    ) => {
+      if (!user?.id || !user.tenant_id || !course || !currentLesson) {
+        return;
+      }
+
+      const currentModule = course.modules.find((module) =>
+        module.lessons.some((lesson) => lesson.id === currentLesson.id)
+      );
+      const captureKey = [
+        user.id,
+        course.id,
+        currentLesson.id,
+        eventType,
+        extras?.captureSuffix || extras?.quizId || "",
+      ].join(":");
+      if (learnerMemoryCaptureKeysRef.current.has(captureKey)) {
+        return;
+      }
+      learnerMemoryCaptureKeysRef.current.add(captureKey);
+
+      try {
+        await api.post("/api/learner-memory-agent/lesson-engagement", {
+          tenantId: user.tenant_id,
+          userId: user.id,
+          courseId: course.id,
+          courseTitle: course.title,
+          lessonId: currentLesson.id,
+          lessonTitle: currentLesson.title,
+          moduleId: currentModule?.id || null,
+          moduleTitle: currentModule?.title || null,
+          lessonContentType: currentLesson.content_type,
+          lessonDurationMinutes: currentLesson.duration,
+          lessonOrder: currentLesson.order,
+          assessmentId: currentLesson.assessment_id || null,
+          eventType,
+          quizId: extras?.quizId || null,
+          quizPassed: extras?.quizPassed ?? null,
+          quizScore: extras?.quizScore ?? null,
+          wrongAnswers: extras?.wrongAnswers || [],
+          lessonReferenceIds: [],
+          supportReferences: [],
+        });
+      } catch (error) {
+        learnerMemoryCaptureKeysRef.current.delete(captureKey);
+        console.error(`Failed to capture learner ${eventType} memory:`, error);
+      }
+    },
+    [course, currentLesson, user?.id, user?.tenant_id]
+  );
+
   const aiGeneratedLesson = useMemo(
     () =>
       currentLesson
@@ -451,6 +516,54 @@ export default function LearnPage() {
           })
         : null,
     [currentLesson]
+  );
+
+  const handleTraditionalQuizAttemptEvaluated = useCallback(
+    async (result: AssessmentAttemptResult) => {
+      await captureLearnerMemoryEvent("quiz_completed", {
+        quizId: result.assessment_id,
+        quizPassed: result.passed,
+        quizScore: result.score,
+        wrongAnswers: result.questions
+          .filter((question) => !question.is_correct)
+          .map((question) => ({
+            question: question.text,
+            user_answer: question.user_answer,
+            correct_answer: question.correct_answer,
+          })),
+        captureSuffix: result.id,
+      });
+    },
+    [captureLearnerMemoryEvent],
+  );
+
+  const handleAiQuizAttemptEvaluated = useCallback(
+    async (result: {
+      attemptId: string;
+      passed: boolean;
+      score: number;
+      questions: Array<{
+        text: string;
+        userAnswers: string[];
+        correctAnswers: string[];
+        isCorrect: boolean;
+      }>;
+    }) => {
+      await captureLearnerMemoryEvent("quiz_completed", {
+        quizId: currentLesson?.assessment_id || currentLesson?.id || lessonId,
+        quizPassed: result.passed,
+        quizScore: result.score,
+        wrongAnswers: result.questions
+          .filter((question) => !question.isCorrect)
+          .map((question) => ({
+            question: question.text,
+            user_answer: question.userAnswers.join(", "),
+            correct_answer: question.correctAnswers.join(", "),
+          })),
+        captureSuffix: result.attemptId,
+      });
+    },
+    [captureLearnerMemoryEvent, currentLesson?.assessment_id, currentLesson?.id, lessonId],
   );
 
   const wait = useCallback((ms: number) => {
@@ -807,6 +920,42 @@ export default function LearnPage() {
     }
   }, [courseId, user]);
 
+  useEffect(() => {
+    if (!user || !course) {
+      return;
+    }
+
+    const allLessons = course.modules.flatMap((module) => module.lessons);
+    if (allLessons.length === 0) {
+      return;
+    }
+
+    const allCompleted = allLessons.every((lesson) => progress[lesson.id]);
+    if (!allCompleted) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const ensureCourseCompletionMemoryCaptured = async () => {
+      try {
+        const backendCourseCompleted = await isCourseCompletedInBackend();
+        if (cancelled || !backendCourseCompleted) {
+          return;
+        }
+        await captureLearnerMemoryEvent("course_enrollment_completed");
+      } catch (error) {
+        console.error("Failed to verify backend course completion for learner memory:", error);
+      }
+    };
+
+    void ensureCourseCompletionMemoryCaptured();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [captureLearnerMemoryEvent, course, isCourseCompletedInBackend, progress, user]);
+
   const getCurrentModule = (): Module | null => {
     if (!course?.modules) return null;
     for (const mod of course.modules) {
@@ -839,35 +988,36 @@ export default function LearnPage() {
     return null;
   };
 
-  const handleMarkComplete = async () => {
-    if (!user) return;
-    try {
-      markPendingCompletedLesson(courseId, lessonId);
-      await api.post(`/api/v1/learning/progress/${lessonId}/complete`, {
+    const handleMarkComplete = async () => {
+      if (!user) return;
+      try {
+        markPendingCompletedLesson(courseId, lessonId);
+        await api.post(`/api/v1/learning/progress/${lessonId}/complete`, {
         user_id: user.id,
         course_id: courseId,
         status: "completed",
       });
       const persistedProgress = await loadProgress();
-      const nextProgress = {
-        ...persistedProgress,
-        [lessonId]: true,
-      };
-      rememberCompletedLesson(courseId, lessonId);
-      setProgress(nextProgress);
-
-      const backendCourseCompleted = await isCourseCompletedInBackend();
-      if (backendCourseCompleted) {
-        await runCourseCompletionSequence();
-        return;
-      }
+        const nextProgress = {
+          ...persistedProgress,
+          [lessonId]: true,
+        };
+        rememberCompletedLesson(courseId, lessonId);
+        setProgress(nextProgress);
+        await captureLearnerMemoryEvent("lesson_completed");
+        const backendCourseCompleted = await isCourseCompletedInBackend();
+        if (backendCourseCompleted) {
+          await captureLearnerMemoryEvent("course_enrollment_completed");
+          await runCourseCompletionSequence();
+          return;
+        }
 
       await handleLessonCompletionFlow(nextProgress);
     } catch (err) {
       clearPendingCompletedLesson(courseId, lessonId);
       console.error("Failed to mark complete:", err);
     }
-  };
+    };
 
   const handleVideoEnded = useCallback(async () => {
     if (!currentLesson || currentLesson.content_type !== "video" || progress[lessonId]) {
@@ -1189,6 +1339,7 @@ export default function LearnPage() {
                   <AiPlatformQuiz
                     lessonId={lessonId}
                     onComplete={handleMarkComplete}
+                    onAttemptEvaluated={handleAiQuizAttemptEvaluated}
                   />
                 </div>
               </div>
@@ -1264,6 +1415,7 @@ export default function LearnPage() {
                     courseId={courseId}
                     assessmentId={currentLesson?.assessment_id}
                     onComplete={handleMarkComplete}
+                    onAttemptEvaluated={handleTraditionalQuizAttemptEvaluated}
                   />
                 </div>
               </div>

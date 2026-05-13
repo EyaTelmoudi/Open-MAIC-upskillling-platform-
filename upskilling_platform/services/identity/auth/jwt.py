@@ -105,4 +105,7 @@ def refresh_access_token(
         email=user_data["email"],
         role=user_data["role"],
         auth_provider=user_data["auth_provider"],
+        status=user_data.get("status", "active"),
+        onboarded=bool(user_data.get("onboarded", True)),
+        tenant_id=user_data.get("tenant_id"),
     )

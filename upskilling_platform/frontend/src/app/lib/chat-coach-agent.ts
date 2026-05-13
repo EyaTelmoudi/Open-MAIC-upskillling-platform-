@@ -106,8 +106,87 @@ async function isServiceHealthy() {
   }
 }
 
+function killProcessOnPort(port: number) {
+  if (process.platform !== "win32") {
+    return;
+  }
+
+  const lookup = spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-Command",
+      `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess`,
+    ],
+    {
+      encoding: "utf8",
+      windowsHide: true,
+    },
+  );
+
+  if (lookup.status !== 0 || !lookup.stdout) {
+    return;
+  }
+
+  const processIds = Array.from(
+    new Set(
+      lookup.stdout
+        .split(/\r?\n/)
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  );
+
+  for (const processId of processIds) {
+    spawnSync("taskkill", ["/PID", processId, "/F"], {
+      stdio: "ignore",
+      windowsHide: true,
+    });
+  }
+}
+
+async function stopExistingChatCoachService() {
+  const state = getServiceState();
+  const activeProcess = state.process;
+  if (!activeProcess || activeProcess.killed || activeProcess.exitCode !== null) {
+    state.process = null;
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (!settled) {
+        settled = true;
+        resolve();
+      }
+    };
+
+    activeProcess.once("exit", () => {
+      state.process = null;
+      finish();
+    });
+
+    try {
+      activeProcess.kill();
+    } catch {
+      finish();
+      return;
+    }
+
+    setTimeout(() => {
+      state.process = null;
+      finish();
+    }, 1500);
+  });
+}
+
 export async function ensureChatCoachAgentService() {
-  if (await isServiceHealthy()) {
+  const shouldAlwaysRestart = process.env.NODE_ENV !== "production";
+  if (shouldAlwaysRestart) {
+    await stopExistingChatCoachService();
+    killProcessOnPort(8012);
+  } else if (await isServiceHealthy()) {
     return true;
   }
 

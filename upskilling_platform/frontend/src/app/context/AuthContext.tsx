@@ -78,6 +78,32 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const SOLO_CHALLENGE_SESSION_PREFIX = "sf_solo_challenge_welcome_seen:";
+const LOGIN_SESSION_STORAGE_KEY = "sf_login_session_id";
+const SOLO_CHALLENGE_PENDING_LOGIN_KEY = "sf_solo_challenge_pending_login_session";
+
+function clearSoloChallengeSessionFlags() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+    const key = window.sessionStorage.key(index);
+    if (key?.startsWith(SOLO_CHALLENGE_SESSION_PREFIX)) {
+      window.sessionStorage.removeItem(key);
+    }
+  }
+}
+
+function markNewLoginSession() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  window.sessionStorage.setItem(LOGIN_SESSION_STORAGE_KEY, sessionId);
+  window.sessionStorage.setItem(SOLO_CHALLENGE_PENDING_LOGIN_KEY, sessionId);
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -109,6 +135,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (token) {
+      if (typeof window !== "undefined" && !window.sessionStorage.getItem(LOGIN_SESSION_STORAGE_KEY)) {
+        markNewLoginSession();
+      }
       fetchCurrentUser();
     } else {
       setIsLoading(false);
@@ -141,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     persistTokens(tokens);
+    markNewLoginSession();
     await fetchCurrentUser();
     const decoded = decodeJwt(tokens.access_token);
     router.push(
@@ -168,6 +198,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    clearSoloChallengeSessionFlags();
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(LOGIN_SESSION_STORAGE_KEY);
+      window.sessionStorage.removeItem(SOLO_CHALLENGE_PENDING_LOGIN_KEY);
+    }
     setUser(null);
     setTenantId(null);
     router.push(routes.login);

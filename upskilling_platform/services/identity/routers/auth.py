@@ -6,8 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from common.database import get_db
+from common.models import User
 from common.schemas import AzureLoginRequest, LoginRequest, TokenResponse
 from services.identity.schemas.auth import SetPasswordRequest
+from services.identity.schemas.user import RefreshTokenRequest
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -211,22 +213,14 @@ def superadmin_login(
 
 @router.post("/refresh", response_model=TokenResponse)
 def refresh_token(
-    refresh_token: str,
-    user_id: str = "",
-    email: str = "",
-    role: str = "",
-    auth_provider: str = "",
+    request: RefreshTokenRequest,
     tenant_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     """Refresh an access token using a refresh token.
 
     Args:
-        refresh_token: The refresh token.
-        user_id: User ID for the new token.
-        email: User email for the new token.
-        role: User role for the new token.
-        auth_provider: Auth provider for the new token.
+        request: The refresh token payload.
         tenant_id: Optional tenant ID for multi-tenancy.
         db: Database session.
 
@@ -236,16 +230,36 @@ def refresh_token(
     Raises:
         HTTPException 401 if refresh token is invalid.
     """
-    from services.identity.auth.jwt import refresh_access_token
+    from services.identity.auth.jwt import refresh_access_token, validate_refresh_token
+
+    validated_user_id = validate_refresh_token(request.refresh_token)
+    if validated_user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+    user = db.query(User).filter(User.id == validated_user_id).first()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found for refresh token",
+        )
+
+    resolved_tenant_id = None
+    if user.role != "SuperAdmin":
+        resolved_tenant_id = tenant_id or (str(user.tenant_id) if user.tenant_id else None)
 
     user_data = {
-        "id": user_id,
-        "email": email,
-        "role": role,
-        "auth_provider": auth_provider,
-        "tenant_id": tenant_id,
+        "id": str(user.id),
+        "email": user.email,
+        "role": user.role,
+        "auth_provider": user.auth_provider,
+        "tenant_id": resolved_tenant_id,
+        "status": user.status,
+        "onboarded": bool(user.onboarded),
     }
-    token_response = refresh_access_token(refresh_token, user_data)
+    token_response = refresh_access_token(request.refresh_token, user_data)
     if token_response is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

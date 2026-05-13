@@ -99,6 +99,74 @@ function getAuthToken(): string | null {
   return null;
 }
 
+function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("refresh_token");
+}
+
+function persistTokens(tokens: { access_token: string; refresh_token: string; expires_in?: number }) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("access_token", tokens.access_token);
+  localStorage.setItem("refresh_token", tokens.refresh_token);
+  const maxAge = Number(tokens.expires_in || 900);
+  document.cookie = `access_token=${tokens.access_token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+}
+
+function clearStoredAuth() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+}
+
+let refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefreshAccessToken(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    clearStoredAuth();
+    return false;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${IDENTITY_URL}/api/v1/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+
+      if (!response.ok) {
+        clearStoredAuth();
+        return false;
+      }
+
+      const tokens = await response.json();
+      if (!tokens?.access_token || !tokens?.refresh_token) {
+        clearStoredAuth();
+        return false;
+      }
+
+      persistTokens(tokens);
+      return true;
+    } catch {
+      clearStoredAuth();
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -126,9 +194,42 @@ class ApiClient {
     return headers;
   }
 
+  private async fetchWithAuthRetry(
+    path: string,
+    init: RequestInit,
+    allowRefresh: boolean = true,
+  ): Promise<Response> {
+    const response = await fetch(this.buildUrl(path), init);
+    if (
+      response.status === 401 &&
+      allowRefresh &&
+      isBrowser() &&
+      path !== "/api/v1/auth/refresh"
+    ) {
+      const refreshed = await tryRefreshAccessToken();
+      if (refreshed) {
+        const retryHeaders =
+          init.headers instanceof Headers
+            ? Object.fromEntries(init.headers.entries())
+            : Array.isArray(init.headers)
+              ? Object.fromEntries(init.headers)
+              : { ...(init.headers || {}) };
+        const token = getAuthToken();
+        if (token) {
+          retryHeaders["Authorization"] = `Bearer ${token}`;
+        }
+        return fetch(this.buildUrl(path), {
+          ...init,
+          headers: retryHeaders,
+        });
+      }
+    }
+    return response;
+  }
+
   async get<T>(path: string): Promise<T> {
     const headers = this.getHeaders();
-    const res = await fetch(this.buildUrl(path), {
+    const res = await this.fetchWithAuthRetry(path, {
       headers,
       redirect: "follow",
       cache: "no-store",
@@ -151,7 +252,7 @@ class ApiClient {
 
   async getBlob(path: string): Promise<Blob> {
     const headers = this.getHeaders();
-    const res = await fetch(this.buildUrl(path), {
+    const res = await this.fetchWithAuthRetry(path, {
       headers,
       redirect: "follow",
       cache: "no-store",
@@ -164,7 +265,7 @@ class ApiClient {
 
   async post<T>(path: string, body?: unknown): Promise<T> {
     const headers = this.getHeaders();
-    const res = await fetch(this.buildUrl(path), {
+    const res = await this.fetchWithAuthRetry(path, {
       method: "POST",
       headers,
       redirect: "follow",
@@ -186,7 +287,7 @@ class ApiClient {
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
-    const res = await fetch(this.buildUrl(path), {
+    const res = await this.fetchWithAuthRetry(path, {
       method: "POST",
       headers,
       redirect: "follow",
@@ -200,7 +301,7 @@ class ApiClient {
   }
 
   async put<T>(path: string, body?: unknown): Promise<T> {
-    const res = await fetch(this.buildUrl(path), {
+    const res = await this.fetchWithAuthRetry(path, {
       method: "PUT",
       headers: this.getHeaders(),
       redirect: "follow",
@@ -214,7 +315,7 @@ class ApiClient {
   }
 
   async patch<T>(path: string, body?: unknown): Promise<T> {
-    const res = await fetch(this.buildUrl(path), {
+    const res = await this.fetchWithAuthRetry(path, {
       method: "PATCH",
       headers: this.getHeaders(),
       redirect: "follow",
@@ -228,7 +329,7 @@ class ApiClient {
   }
 
   async delete<T>(path: string): Promise<T> {
-    const res = await fetch(this.buildUrl(path), {
+    const res = await this.fetchWithAuthRetry(path, {
       method: "DELETE",
       headers: this.getHeaders(),
       redirect: "follow",
@@ -251,7 +352,7 @@ class ApiClient {
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
-    const res = await fetch(this.buildUrl(path), {
+    const res = await this.fetchWithAuthRetry(path, {
       method: "POST",
       headers,
       body: formData,
@@ -823,8 +924,25 @@ export interface GamificationProfileResponse {
   rank: UserRankResponse | null;
 }
 
+export interface AwardXpResponse {
+  amount: number;
+  reason: string;
+  level_up?: {
+    new_level?: number;
+    total_xp?: number;
+  } | null;
+}
+
 export async function getUserXp(): Promise<{ total_xp: number }> {
   return api.get<{ total_xp: number }>("/api/v1/learning/gamification/xp");
+}
+
+export async function awardGamificationXp(payload: {
+  action: string;
+  reason?: string | null;
+  multiplier?: number;
+}): Promise<AwardXpResponse> {
+  return api.post<AwardXpResponse>("/api/v1/learning/gamification/xp", payload);
 }
 
 export async function getXpHistory(

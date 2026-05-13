@@ -79,7 +79,7 @@ function formatCourseDuration(totalMinutes: number) {
 
 export default function CoursesPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -109,6 +109,20 @@ export default function CoursesPage() {
   };
 
   useEffect(() => {
+    if (isAuthLoading) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setCourses([]);
+      setBookmarkedCourses(new Set());
+      setCompletedCourses(new Set());
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     async function loadData() {
       try {
         const [coursesData, bookmarksData, enrollmentsData] = await Promise.all([
@@ -116,6 +130,9 @@ export default function CoursesPage() {
           getCourseBookmarks().catch(() => []),
           user ? getEnrollments(user.id).catch(() => []) : Promise.resolve([]),
         ]);
+        if (cancelled) {
+          return;
+        }
         setCourses(coursesData.items);
         const bookmarkedIds = new Set(
           bookmarksData
@@ -130,13 +147,28 @@ export default function CoursesPage() {
         );
         setCompletedCourses(completedIds);
       } catch (err) {
+        if (cancelled) {
+          return;
+        }
+
+        if (err instanceof Error && err.message === "Not authenticated") {
+          return;
+        }
+
         console.error("Failed to load courses:", err);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     }
+
+    setIsLoading(true);
     loadData();
-  }, [user]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, isAuthLoading, user]);
 
   const filteredCourses = courses.filter((c) => {
     const matchesSearch =

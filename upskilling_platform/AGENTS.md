@@ -14,7 +14,7 @@
 **Core Features:**
 - Enterprise learning platform (B2B - no self-registration)
 - AI-powered coaching with Hindsight memory + AGNO agent runtime
-- 6 AI Agents: Chat Coach, Recommendation, Gamification, Course Maker, Content Librarian, Skill Gap Analyzer
+- 7 AI Agents: Chat Coach, Solo Challenge, Recommendation, Gamification, Course Maker, Content Librarian, Skill Gap Analyzer
 - Personalized recommendation engine
 - Gamification (XP, levels, badges, streaks, leaderboards)
 - Course management with modules, lessons, assessments
@@ -44,7 +44,7 @@
 |---------|------|-----------------|----------------------|
 | Identity & Access | 8001 | BC-1 | **Two-Tier Identity:** Super Admin manages Tenant Admins only; Tenant Admin manages own company users; JWT validation, Azure Entra ID (per-tenant), local admin auth, RBAC |
 | Learning Platform | 8002 | BC-2 | Courses, enrollment, progress, gamification, teams, goals, analytics |
-| AI Agents | 8003 | BC-3 | 6 AI agents (Chat Coach, Recommendation, Gamification, Course Maker, Content Librarian, Skill Gap Analyzer), AGNO orchestration, Hindsight memory |
+| AI Agents | 8003 | BC-3 | 7 AI agents (Chat Coach, Solo Challenge, Recommendation, Gamification, Course Maker, Content Librarian, Skill Gap Analyzer), AGNO orchestration, Hindsight memory |
 | Notification | 8004 | BC-4 | Real-time WebSocket, email, push notifications |
 
 ### Architecture Diagram
@@ -90,10 +90,11 @@
                          ▼
           ┌─────────────────────────────┐
           │    AGNO (Agent Runtime)     │
-          │  6 Agents: Chat Coach,     │
-          │  Recommendation, Gamifi,   │
-          │  Course Maker, Content Lib, │
-          │  Skill Gap Analyzer         │
+          │  7 Agents: Chat Coach,     │
+          │  Solo Challenge, Recommend, │
+          │  Gamifi, Course Maker,      │
+          │  Content Lib, Skill Gap     │
+          │  Analyzer                    │
           └─────────────────────────────┘
 ```
 
@@ -310,7 +311,56 @@ docker-compose up identity
 - `GET /coach/conversations/{conv_id}` — Get conversation messages
 - `DELETE /coach/conversations/{conv_id}` — Delete conversation
 
-### Agent 2: Recommendation AI
+### Agent 2: Solo Challenge AI
+
+**Role:** Adaptive personal trainer for one learner at a time
+
+**Capabilities:**
+- Launch a personalized challenge flow when the learner signs in or opens the challenge widget
+- Read quiz history, weak topics, learner progress, XP tier, and streak state
+- Generate timed free-text challenges grounded in the actual course memory bank
+- Score answers on accuracy, depth, and application with specific lesson citations
+- Increase or decrease per-topic difficulty based on performance
+- Award XP, update daily mission progress, maintain streaks, and trigger mastery badges
+- Hand low-depth weak areas to Chat Coach AI for follow-up coaching
+
+**Planned runtime:**
+- workspace: `agents/solo-challenge/`
+- port: `8013`
+
+**Workflow design:**
+- validate tenant, course, enrollment, progress, quiz history, and Hindsight bank presence
+- run parallel weak-spot analysis:
+  - quiz-score scan for failures and low scores
+  - Hindsight learner-memory recall for confusion flags and known difficulties
+- merge both signals into ranked weak topics
+- choose challenge type and difficulty `1..5`
+- retrieve relevant course passages from Hindsight
+- generate a timed challenge with no hallucinated content
+- score the learner response and produce a structured debrief
+- update XP, streak, daily mission progress, and optional coach handoff
+
+**Challenge formats:**
+- Explain in your own words
+- Spot the mistake
+- Apply to scenario
+- Rank / order concepts
+- Teach it back
+- True / false + justify
+
+**Hindsight Usage:**
+- `recall()` course memory passages for the selected weak topic
+- `recall()` learner memory flags such as confusion or repeated struggles
+- `retain()` challenge attempts, scores, and per-topic mastery progression
+- `reflect()` to detect persistent weak spots and suggest coaching escalation
+
+**Planned endpoints:**
+- `GET /solo-challenges/today` — Get current daily mission state and next challenge
+- `POST /solo-challenges/generate` — Generate a challenge for a learner/course/topic
+- `POST /solo-challenges/submit` — Submit free-text answer and receive grounded scoring
+- `GET /solo-challenges/history` — Get recent attempts, streaks, and topic levels
+
+### Agent 3: Recommendation AI
 
 **Role:** Personalized learning path and course recommendation
 
@@ -330,7 +380,7 @@ docker-compose up identity
 - `GET /recommendations/learning-path` — Get suggested learning path
 - `POST /recommendations/feedback` — Submit recommendation feedback
 
-### Agent 3: Gamification AI
+### Agent 4: Gamification AI
 
 **Role:** Manage XP, badges, streaks, daily challenges, leaderboards
 
@@ -351,7 +401,7 @@ docker-compose up identity
 - Badge system: completion, streak, mastery, social, milestone, challenge with bronze/silver/gold/platinum tiers + hidden badges
 - Leaderboards: global, team, individual — daily/weekly/monthly/all-time
 
-### Agent 4: Course Maker AI
+### Agent 5: Course Maker AI
 
 **Role:** Automate course creation and adapt content delivery
 
@@ -367,7 +417,7 @@ docker-compose up identity
 - `recall()` existing content to avoid duplication before generating
 - `reflect()` on learner performance per generated content to improve quality
 
-### Agent 5: Content Librarian AI
+### Agent 6: Content Librarian AI
 
 **Role:** Content organization, semantic search, curation, quality control
 
@@ -382,7 +432,7 @@ docker-compose up identity
 - `recall()` to power semantic search across the content library
 - `reflect()` to detect content gaps and quality issues at scale
 
-### Agent 6: Skill Gap Analyzer AI
+### Agent 7: Skill Gap Analyzer AI
 
 **Role:** Analyze learner performance and detect skill gaps
 
@@ -429,6 +479,7 @@ insights = h.reflect(user_id="user-123")
 | Agent | Scope | retain() | recall() | reflect() |
 |-------|-------|----------|----------|-----------|
 | Chat Coach | per-user | Conversation summaries, struggles | Learner history + course content | Coaching insights after sessions |
+| Solo Challenge | per-user + per-topic | Challenge attempts, topic difficulty, streak outcomes | Course memory + learner weak spots | Persistent weak-topic escalation |
 | Recommendation | per-user | Recommendation decisions + outcomes | Skill profile + past recommendations | Evaluate what worked vs failed |
 | Gamification | per-user | XP events, badge awards, challenge completions | Engagement history | Disengagement pattern detection |
 | Course Maker | global | Generated content, instructor feedback | Existing content (avoid duplication) | Content quality based on learner performance |
@@ -743,7 +794,7 @@ insights = h.reflect(user_id="user-123")
 - **REPLACED:** Supabase → MinIO (S3-compatible object storage for binary assets)
 - **REPLACED:** OpenAgent/PicoClaw + Prefect → AGNO (agent orchestration, workflows, scheduling, monitoring)
 - **REPLACED:** RAG pipeline (pgvector chunking/embedding) → Hindsight (vectorize-io/hindsight) for agent memory
-- **NEW:** 6 AI Agents fully specified: Chat Coach, Recommendation, Gamification, Course Maker, Content Librarian, Skill Gap Analyzer
+- **NEW:** 7 AI Agents fully specified: Chat Coach, Solo Challenge, Recommendation, Gamification, Course Maker, Content Librarian, Skill Gap Analyzer
 - **UPDATED:** AGENTS.md — Architecture diagram, tech stack, agents section, external dependencies
 - **UPDATED:** All specs and sprints to reflect new tool stack
 - **RESULT:** Consistent stack — PostgreSQL + pg0, MinIO, RabbitMQ, AGNO, Hindsight, GROQ

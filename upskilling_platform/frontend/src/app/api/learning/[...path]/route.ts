@@ -10,7 +10,6 @@ import {
   assemblePublishedCourseForMemory,
 } from "@/app/lib/course-memory-agent";
 import { deleteManagedCourse } from "@/app/lib/course-deletion";
-import { sendLearnerMemoryEvent } from "@/app/lib/learner-memory-agent";
 
 const DEFAULT_HINDSIGHT_URL = process.env.HINDSIGHT_URL || "http://127.0.0.1:8888";
 const DEFAULT_HINDSIGHT_API_KEY = process.env.HINDSIGHT_API_KEY || "";
@@ -1201,34 +1200,7 @@ async function syncLearnerMemoryAfterMutation(
     const lessonId = cleanText(pathSegments[1]);
     const courseId = cleanText(requestBody?.course_id);
     if (!lessonId || !courseId) {
-      console.log("[Agno Learner Memory Agent] Skipping lesson completion trigger because course_id or lesson_id is missing.");
       return;
-    }
-
-    console.log(
-      `[Agno Learner Memory Agent] Real platform trigger detected: lesson_completion course=${courseId} lesson=${lessonId} user=${userId}`,
-    );
-    try {
-      const result = await sendLearnerMemoryEvent(
-        {
-          tenantId,
-          userId,
-          courseId,
-          eventType: "lesson_completion",
-          lessonId,
-          source: "learning-progress-complete",
-        },
-        "/v1/learner-memory/lesson-completion",
-      );
-
-      console.log("[Agno Learner Memory Agent] Learner memory event processed from platform:");
-      console.log(JSON.stringify(result, null, 2));
-    } catch (error) {
-      console.error(
-        `[Agno Learner Memory Agent] Lesson completion trigger failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      );
     }
     return;
   }
@@ -1257,37 +1229,6 @@ async function syncLearnerMemoryAfterMutation(
       .filter(Boolean)
       .slice(0, 5);
 
-    console.log(
-      `[Agno Learner Memory Agent] Real platform trigger detected: quiz_result course=${courseId} quiz=${quizId} user=${userId}`,
-    );
-    try {
-      const result = await sendLearnerMemoryEvent(
-        {
-          tenantId,
-          userId,
-          courseId,
-          eventType: "quiz_result",
-          quizId,
-          scorePercent:
-            typeof responseBody.score === "number" && Number.isFinite(responseBody.score)
-              ? responseBody.score
-              : undefined,
-          passed: typeof responseBody.passed === "boolean" ? responseBody.passed : undefined,
-          missedTopics,
-          source: "learning-quiz-submit",
-        },
-        "/v1/learner-memory/quiz-result",
-      );
-
-      console.log("[Agno Learner Memory Agent] Learner memory event processed from platform:");
-      console.log(JSON.stringify(result, null, 2));
-    } catch (error) {
-      console.error(
-        `[Agno Learner Memory Agent] Quiz result trigger failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      );
-    }
   }
 }
 

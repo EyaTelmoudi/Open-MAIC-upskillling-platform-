@@ -49,19 +49,33 @@ def _lesson_has_passed_assessment(
     user_id: UUID,
     lesson: Lesson,
 ) -> bool:
-    if not lesson.assessment_id:
-        return False
-
-    attempt = (
-        db.query(AssessmentAttempt)
-        .filter(
-            AssessmentAttempt.user_id == user_id,
-            AssessmentAttempt.assessment_id == lesson.assessment_id,
-            AssessmentAttempt.passed == True,
+    if lesson.assessment_id:
+        attempt = (
+            db.query(AssessmentAttempt)
+            .filter(
+                AssessmentAttempt.user_id == user_id,
+                AssessmentAttempt.assessment_id == lesson.assessment_id,
+                AssessmentAttempt.passed == True,
+            )
+            .first()
         )
-        .first()
-    )
-    return attempt is not None
+        if attempt is not None:
+            return True
+
+    ai_attempt = db.execute(
+        text(
+            """
+            SELECT 1
+            FROM ai_platform_lesson_quiz_attempts
+            WHERE user_id = CAST(:user_id AS uuid)
+              AND lesson_id = CAST(:lesson_id AS uuid)
+              AND passed = TRUE
+            LIMIT 1
+            """
+        ),
+        {"user_id": str(user_id), "lesson_id": str(lesson.id)},
+    ).first()
+    return ai_attempt is not None
 
 
 def _derive_lesson_progress_state(

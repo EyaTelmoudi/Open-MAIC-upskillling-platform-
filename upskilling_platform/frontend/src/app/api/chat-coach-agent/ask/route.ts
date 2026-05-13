@@ -4,7 +4,6 @@ import {
   getOrCreateActiveCoachSession,
   type CoachSessionSource,
 } from "@/app/lib/coach-session-db";
-import { sendLearnerMemoryEvent } from "@/app/lib/learner-memory-agent";
 
 const DEFAULT_COURSE_ID = "30e2a552-f281-496e-99b8-cbab2fbff07b";
 
@@ -161,7 +160,6 @@ function logValidatedContextForTerminal(validatedContext: Record<string, unknown
   };
 
   const layer3 = {
-    user_bank_id: validatedContext.user_bank_id ?? null,
     conversation_turns: validatedContext.conversation_turns ?? null,
     rate_limit: validatedContext.rate_limit ?? null,
     updated_at: validatedContext.updated_at ?? null,
@@ -408,53 +406,6 @@ export async function POST(request: Request) {
     );
 
     logSessionTurnsForTerminal(activeSession.session.id, sessionTurns);
-
-    console.log(
-      `[Agno Learner Memory Agent] Real platform trigger detected: coaching_turn course=${courseId}${resolvedLessonId ? ` lesson=${resolvedLessonId}` : ""} user=${userId}`,
-    );
-    try {
-      const learnerMemoryResult = await sendLearnerMemoryEvent(
-        {
-          tenantId,
-          userId,
-          courseId,
-          eventType: "question",
-          lessonId: resolvedLessonId || undefined,
-          topic: topic || undefined,
-          intent: intent || undefined,
-          questionText: question,
-          sessionId: activeSession.session.id,
-          sessionTurns:
-            sessionTurns.length > 0
-              ? sessionTurns
-              : [
-                  {
-                    turn_id: crypto.randomUUID(),
-                    session_id: activeSession.session.id,
-                    user_message: question,
-                    agent_answer: normalizedResult.answer || "I could not generate an answer.",
-                    intent: intent || null,
-                    topic: topic || null,
-                    is_repeat: isRepeat,
-                    classification_mode: cleanText(result.questionIntent?.classification_mode) || null,
-                    created_at: new Date().toISOString(),
-                    supporting_memories: supportingMemories,
-                  },
-                ],
-          source: resolvedSessionSource,
-        },
-        "/v1/learner-memory/coaching-turn",
-      );
-
-      console.log("[Agno Learner Memory Agent] Learner memory event processed from platform:");
-      console.log(JSON.stringify(learnerMemoryResult, null, 2));
-    } catch (error) {
-      console.error(
-        `[Agno Learner Memory Agent] Coaching turn trigger failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      );
-    }
 
     return Response.json(
       {
