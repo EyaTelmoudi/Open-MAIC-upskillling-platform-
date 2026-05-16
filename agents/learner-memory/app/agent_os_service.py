@@ -9,9 +9,23 @@ from fastapi.responses import JSONResponse
 
 from agno.os import AgentOS
 
-from .workflow import LearnerLessonMemoryInput, learner_memory_workflow
+from .workflow import (
+    LearnerLessonMemoryInput,
+    extract_discussion_facts_payload,
+    learner_memory_workflow,
+)
 
 base_app = FastAPI(title="Learner Memory AgentOS Service")
+if hasattr(os.sys.stderr, "reconfigure"):
+    try:
+        os.sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+LOG_PREFIX = "🧠LM [Agno Learner Memory Agent]"
+
+
+LOG_PREFIX = "\U0001F9E0LM [Agno Learner Memory Agent]"
 
 
 @base_app.get("/health")
@@ -23,12 +37,12 @@ async def health() -> JSONResponse:
 async def retain_lesson_event(payload: LearnerLessonMemoryInput) -> JSONResponse:
     try:
         print(
-            "[Agno Learner Memory Agent] AgentOS received lesson memory request. "
+            f"{LOG_PREFIX} AgentOS received lesson memory request. "
             f"tenantId={payload.tenantId} userId={payload.userId} courseId={payload.courseId} lessonId={payload.lessonId} event={payload.eventType}",
             file=os.sys.stderr,
         )
         print(
-            "[Agno Learner Memory Agent] AgentOS payload summary: "
+            f"{LOG_PREFIX} AgentOS payload summary: "
             f"courseTitle={payload.courseTitle or 'none'} lessonTitle={payload.lessonTitle or 'none'} "
             f"moduleTitle={payload.moduleTitle or 'none'} lessonReferences={payload.lessonReferenceIds} "
             f"difficultySignal={payload.difficultySignal or 'none'} "
@@ -45,24 +59,29 @@ async def retain_lesson_event(payload: LearnerLessonMemoryInput) -> JSONResponse
         )
         content = result.content if isinstance(result.content, dict) else {"success": False}
         if isinstance(content, dict) and content.get("memoryContent"):
-            if payload.eventType == "quiz_completed":
+            if payload.eventType == "coaching_discussion_message":
                 print(
-                    "[Agno Learner Memory Agent] AgentOS retained quiz-result memory content:",
+                    f"{LOG_PREFIX} AgentOS retained coaching-discussion memory content:",
+                    file=os.sys.stderr,
+                )
+            elif payload.eventType == "quiz_completed":
+                print(
+                    f"{LOG_PREFIX} AgentOS retained quiz-result memory content:",
                     file=os.sys.stderr,
                 )
             elif payload.eventType == "difficulty_signal_detected":
                 print(
-                    "[Agno Learner Memory Agent] AgentOS retained difficulty-signal memory content:",
+                    f"{LOG_PREFIX} AgentOS retained difficulty-signal memory content:",
                     file=os.sys.stderr,
                 )
             elif payload.eventType == "course_enrollment_completed":
                 print(
-                    "[Agno Learner Memory Agent] AgentOS retained course-completion memory content:",
+                    f"{LOG_PREFIX} AgentOS retained course-completion memory content:",
                     file=os.sys.stderr,
                 )
             else:
                 print(
-                    "[Agno Learner Memory Agent] AgentOS retained lesson-completion memory content:",
+                    f"{LOG_PREFIX} AgentOS retained lesson-completion memory content:",
                     file=os.sys.stderr,
                 )
             print(str(content.get("memoryContent")), file=os.sys.stderr)
@@ -74,6 +93,36 @@ async def retain_lesson_event(payload: LearnerLessonMemoryInput) -> JSONResponse
                 "success": False,
                 "workflowName": "learner-memory-agent",
                 "action": "agent_os_service_exception",
+                "tenantId": payload.tenantId,
+                "userId": payload.userId,
+                "courseId": payload.courseId,
+                "lessonId": payload.lessonId,
+                "error": f"{type(error).__name__}: {error}",
+            },
+            status_code=500,
+        )
+
+
+@base_app.post("/v1/learner-memory/extract-discussion-facts")
+async def extract_discussion_facts(payload: LearnerLessonMemoryInput) -> JSONResponse:
+    try:
+        print(
+            f"{LOG_PREFIX} AgentOS received discussion fact extraction request. "
+            f"tenantId={payload.tenantId} userId={payload.userId} courseId={payload.courseId} lessonId={payload.lessonId} event={payload.eventType}",
+            file=os.sys.stderr,
+        )
+        result = await asyncio.to_thread(
+            extract_discussion_facts_payload,
+            payload.model_dump(),
+        )
+        return JSONResponse(result, status_code=200 if bool(result.get("success")) else 500)
+    except Exception as error:
+        traceback.print_exc()
+        return JSONResponse(
+            {
+                "success": False,
+                "workflowName": "learner-memory-agent",
+                "action": "agent_os_extract_discussion_facts_exception",
                 "tenantId": payload.tenantId,
                 "userId": payload.userId,
                 "courseId": payload.courseId,

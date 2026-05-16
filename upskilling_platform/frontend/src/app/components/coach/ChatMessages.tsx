@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { cn } from "@/app/lib/utils";
-import { Bot, User, FileText, Sparkles } from "lucide-react";
+import { Bot, User, Sparkles } from "lucide-react";
 
 export interface Message {
   id: string;
@@ -116,35 +116,6 @@ export function ChatMessages({ messages, isTyping }: ChatMessagesProps) {
                   );
                 })}
               </div>
-
-              {message.sources && message.sources.length > 0 && (
-                <div className="mt-4 border-t border-border pt-3">
-                  <p className="mb-2 text-xs font-medium text-text-secondary">
-                    Sources:
-                  </p>
-                  <div className="space-y-1">
-                    {message.sources.map((source, i) => (
-                      <div
-                        key={i}
-                        className="rounded-lg bg-background/70 p-2 text-xs text-text-secondary"
-                      >
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-3 w-3" />
-                          <span className="font-medium">{source.title}</span>
-                          <span className="text-text-secondary/60">
-                            - {source.lesson}
-                          </span>
-                        </div>
-                        {source.snippet && (
-                          <p className="mt-1 line-clamp-3 text-text-secondary/80">
-                            {source.snippet}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               <p
                 className={cn(

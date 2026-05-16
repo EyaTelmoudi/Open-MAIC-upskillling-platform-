@@ -7,9 +7,7 @@ import os
 import re
 import sys
 import time
-from collections import Counter, defaultdict
 from datetime import datetime, timezone
-from functools import partial
 from pathlib import Path
 from queue import Queue
 from threading import Thread
@@ -21,11 +19,15 @@ from pydantic import BaseModel
 
 from agno.workflow import Parallel, Step, StepInput, StepOutput, Workflow
 
-from .answer_from_context import answer_from_merged_context_step
-from .build_answer_context import build_answer_context_step
-from .parallel_question_classification import classify_question_intent_parallel
-from .parallel_user_information import collect_user_information_parallel
-from .quality_gate_answer import quality_gate_answer_step
+from .enrichment_steps import (
+    compose_coaching_response_step,
+    detect_affect_signal_step,
+    finalize_intent_step,
+    load_prepared_context_step,
+    merge_parallel_enrichment_step,
+    parse_synthesis_step,
+)
+
 
 
 DEFAULT_HINDSIGHT_URL = os.getenv("HINDSIGHT_API_URL", "http://127.0.0.1:8888")
@@ -35,11 +37,15 @@ DEFAULT_QUESTION = (
     "and what does the course say about the src attribute?"
 )
 DEFAULT_CLASSIFICATION_MODEL = os.getenv("COACH_MODE_JUDGE_MODEL", "openai/gpt-oss-120b:free")
-CHAT_COACH_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("CHAT_COACH_RATE_LIMIT_WINDOW_SECONDS", "60"))
-CHAT_COACH_RATE_LIMIT_REQUESTS = int(os.getenv("CHAT_COACH_RATE_LIMIT_REQUESTS", "12"))
 HINDSIGHT_REFLECT_READ_TIMEOUT_SECONDS = float(os.getenv("CHAT_COACH_HINDSIGHT_REFLECT_READ_TIMEOUT_SECONDS", "150"))
+CHAT_COACH_LOG_PREFIX = "\U0001F3AFCC [Agno Chat Coach Agent]"
 
-_RATE_LIMIT_BUCKETS: dict[str, list[float]] = defaultdict(list)
+if hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 _WEAK_TOPIC_STOP_WORDS = {
     "a",
     "an",
@@ -136,59 +142,40 @@ def _learner_memory_workflow() -> Any:
     return module
 
 def _log(message: str) -> None:
+    if message.startswith("[Agno Chat Coach Agent]"):
+        message = message.replace("[Agno Chat Coach Agent]", CHAT_COACH_LOG_PREFIX, 1)
     try:
-        print(message, flush=True)
+        print(message, file=sys.stderr, flush=True)
     except UnicodeEncodeError:
         safe_message = message.encode(
-            sys.stdout.encoding or "utf-8",
+            sys.stderr.encoding or "utf-8",
             errors="backslashreplace",
-        ).decode(sys.stdout.encoding or "utf-8", errors="strict")
-        print(safe_message, flush=True)
+        ).decode(sys.stderr.encoding or "utf-8", errors="strict")
+        print(safe_message, file=sys.stderr, flush=True)
 
 
 def _log_validation_context_layers(context: dict[str, Any]) -> None:
-    platform_layer = {
+    coach_context = {
         "tenant_id": context.get("tenant_id"),
         "course_id": context.get("course_id"),
-        "course_is_published": context.get("course_is_published"),
-        "bank_id": context.get("bank_id"),
-        "hindsight_bank_populated": context.get("hindsight_bank_populated"),
-        "hindsight_bank_document_count": context.get("hindsight_bank_document_count"),
-        "tenant_status": context.get("tenant_status"),
-    }
-
-    learner_layer = {
+        "course_title": context.get("course_title"),
         "user_id": context.get("user_id"),
-        "learner_enrolled": context.get("learner_enrolled"),
-        "learner_enrollment_status": context.get("learner_enrollment_status"),
-        "lessons_completed": context.get("lessons_completed"),
-        "quiz_scores": context.get("quiz_scores"),
-        "weak_areas": context.get("weak_areas"),
-        "weak_topics": context.get("weak_topics"),
-        "failed_quiz_count": context.get("failed_quiz_count"),
-        "latest_quiz_attempt": context.get("latest_quiz_attempt"),
-    }
-
-    session_security_layer = {
+        "bank_id": context.get("bank_id"),
+        "prepared_context_id": context.get("prepared_context_id"),
+        "current_lesson_id": context.get("current_lesson_id"),
+        "current_lesson_title": context.get("current_lesson_title"),
+        "ordered_lessons_count": len(_as_list(context.get("ordered_lessons"))),
+        "learner_discussion_general_facts": context.get("learner_discussion_general_facts"),
+        "learner_discussion_course_facts": context.get("learner_discussion_course_facts"),
+        "learner_discussion_reasoning": context.get("learner_discussion_reasoning"),
         "session_id": context.get("session_id"),
         "session_turns": context.get("session_turns"),
         "conversation_turns": context.get("conversation_turns"),
-        "rate_limit": context.get("rate_limit"),
         "updated_at": context.get("updated_at"),
     }
 
-    _log("[Agno Chat Coach Agent] Collected validation context:")
-    _log(
-        json.dumps(
-            {
-                "layer_1_platform_validation": platform_layer,
-                "layer_2_learner_validation": learner_layer,
-                "layer_3_session_and_security": session_security_layer,
-            },
-            indent=2,
-            ensure_ascii=False,
-        )
-    )
+    _log("[Agno Chat Coach Agent] Collected coaching context:")
+    _log(json.dumps(coach_context, indent=2, ensure_ascii=False))
 
 
 def _is_validation_context_valid(context: dict[str, Any]) -> bool:
@@ -196,10 +183,6 @@ def _is_validation_context_valid(context: dict[str, Any]) -> bool:
         context.get("tenant_id")
         and context.get("course_id")
         and context.get("user_id")
-        and context.get("course_is_published") is True
-        and context.get("hindsight_bank_populated") is True
-        and context.get("tenant_status") == "active"
-        and context.get("learner_enrolled") is True
     )
 
 
@@ -208,9 +191,9 @@ def _build_classification_input(question: str, context: dict[str, Any]) -> dict[
         "question": question,
         "course_name": _clean_text(context.get("course_title")) or context.get("course_id"),
         "current_lesson": _clean_text(context.get("current_lesson_title")) or None,
-        "completed_lessons": _as_list(context.get("completed_lesson_titles")),
-        "weak_areas": _as_list(context.get("weak_areas")),
-        "weak_topics": _as_list(context.get("weak_topics")),
+        "learner_discussion_general_facts": _as_list(context.get("learner_discussion_general_facts")),
+        "learner_discussion_course_facts": _as_list(context.get("learner_discussion_course_facts")),
+        "learner_discussion_reasoning": _clean_text(context.get("learner_discussion_reasoning")) or None,
         "conversation_history": {
             "conversation_turns": int(context.get("conversation_turns") or 0),
             "history_available": False,
@@ -221,43 +204,25 @@ def _build_classification_input(question: str, context: dict[str, Any]) -> dict[
 
 
 def _format_validation_context_for_answer(context: dict[str, Any]) -> str:
-    platform_layer = {
+    coach_context = {
         "tenant_id": context.get("tenant_id"),
         "course_id": context.get("course_id"),
-        "course_is_published": context.get("course_is_published"),
+        "course_title": context.get("course_title"),
         "bank_id": context.get("bank_id"),
-        "hindsight_bank_populated": context.get("hindsight_bank_populated"),
-        "hindsight_bank_document_count": context.get("hindsight_bank_document_count"),
-        "tenant_status": context.get("tenant_status"),
-    }
-
-    learner_layer = {
+        "prepared_context_id": context.get("prepared_context_id"),
         "user_id": context.get("user_id"),
-        "learner_enrolled": context.get("learner_enrolled"),
-        "learner_enrollment_status": context.get("learner_enrollment_status"),
-        "lessons_completed": context.get("lessons_completed"),
-        "quiz_scores": context.get("quiz_scores"),
-        "weak_areas": context.get("weak_areas"),
-        "weak_topics": context.get("weak_topics"),
-        "failed_quiz_count": context.get("failed_quiz_count"),
-        "latest_quiz_attempt": context.get("latest_quiz_attempt"),
-    }
-
-    session_security_layer = {
+        "current_lesson_id": context.get("current_lesson_id"),
+        "current_lesson_title": context.get("current_lesson_title"),
+        "ordered_lessons_count": len(_as_list(context.get("ordered_lessons"))),
+        "learner_discussion_general_facts": context.get("learner_discussion_general_facts"),
+        "learner_discussion_course_facts": context.get("learner_discussion_course_facts"),
+        "learner_discussion_reasoning": context.get("learner_discussion_reasoning"),
+        "session_id": context.get("session_id"),
         "conversation_turns": context.get("conversation_turns"),
-        "rate_limit": context.get("rate_limit"),
         "updated_at": context.get("updated_at"),
     }
 
-    return json.dumps(
-        {
-            "layer_1_platform_validation": platform_layer,
-            "layer_2_learner_validation": learner_layer,
-            "layer_3_session_and_security": session_security_layer,
-        },
-        indent=2,
-        ensure_ascii=False,
-    )
+    return json.dumps(coach_context, indent=2, ensure_ascii=False)
 
 
 def _build_course_bank_id(tenant_id: str, course_id: str) -> str:
@@ -279,6 +244,29 @@ class ChatCoachQuestionInput(BaseModel):
     source: str | None = None
     lessonId: str | None = None
     pagePath: str | None = None
+    learnerDiscussionGeneralFacts: list[str] = []
+    learnerDiscussionCourseFacts: list[str] = []
+    learnerDiscussionReasoning: str | None = None
+    preparedContextId: str | None = None
+
+
+class PreparedCoachingContextKickoffInput(BaseModel):
+    tenantId: str
+    courseId: str
+    userId: str
+    question: str
+    sessionId: str | None = None
+    preparedContextId: str
+    learnerDiscussionGeneralFacts: list[str] = []
+    learnerDiscussionCourseFacts: list[str] = []
+    learnerDiscussionReasoning: str | None = None
+
+
+class PreparedCoachingContextFactsInput(BaseModel):
+    preparedContextId: str
+    learnerDiscussionGeneralFacts: list[str] = []
+    learnerDiscussionCourseFacts: list[str] = []
+    learnerDiscussionReasoning: str | None = None
 
 
 def _log_session_context(payload: ChatCoachQuestionInput) -> None:
@@ -295,22 +283,14 @@ def _log_session_context(payload: ChatCoachQuestionInput) -> None:
 def _load_platform_dependencies():
     from common.auth import decode_token
     from common.database import SessionLocal
-    from common.models import Course, Enrollment, Lesson, Module, Tenant, User, UserProgress
-    from services.learning.services.learner_context import build_learner_context_response
-    from sqlalchemy import text
+    from common.models import Course, Lesson, Module
 
     return {
         "Course": Course,
-        "Enrollment": Enrollment,
         "Lesson": Lesson,
         "Module": Module,
         "SessionLocal": SessionLocal,
-        "Tenant": Tenant,
-        "User": User,
-        "UserProgress": UserProgress,
-        "build_learner_context_response": build_learner_context_response,
         "decode_token": decode_token,
-        "sql_text": text,
     }
 
 
@@ -408,55 +388,6 @@ def _guess_topic_from_question(question: str, weak_topics: list[str], lesson_nam
         return question_tokens[0]
 
     return "course topic"
-
-
-def _derive_weak_areas(attempt_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    weak_areas: list[dict[str, Any]] = []
-
-    for row in attempt_rows:
-        lesson_id = _clean_text(row.get("lesson_id"))
-        lesson_title = _clean_text(row.get("lesson_title"))
-        score_value = row.get("score")
-        completed_at = row.get("completed_at")
-        wrong_answers_raw = row.get("wrong_answers")
-        wrong_answers = wrong_answers_raw if isinstance(wrong_answers_raw, list) else []
-
-        normalized_wrong_answers: list[dict[str, Any]] = []
-        derived_topics: list[str] = []
-        for wrong_answer in wrong_answers:
-            if not isinstance(wrong_answer, dict):
-                continue
-
-            question_text = _clean_text(wrong_answer.get("question"))
-            user_answer = wrong_answer.get("userAnswer")
-            user_answers = wrong_answer.get("userAnswers")
-            correct_answer = wrong_answer.get("correctAnswer")
-            correct_answers = wrong_answer.get("correctAnswers")
-
-            normalized_wrong_answers.append(
-                {
-                    "question": question_text or None,
-                    "user_answer": user_answer if user_answer is not None else user_answers,
-                    "correct_answer": correct_answer if correct_answer is not None else correct_answers,
-                }
-            )
-
-            if question_text:
-                derived_topics.append(question_text)
-
-        weak_areas.append(
-            {
-                "lesson_id": lesson_id or None,
-                "lesson_title": lesson_title or None,
-                "score": round(float(score_value or 0) / 100, 4),
-                "wrong_answer_count": len(normalized_wrong_answers),
-                "latest_failed_at": completed_at.isoformat() if hasattr(completed_at, "isoformat") else None,
-                "sample_wrong_answers": normalized_wrong_answers[:3],
-                "derived_topics": derived_topics[:3],
-            }
-        )
-
-    return weak_areas[:5]
 
 
 def _rule_based_classification(question: str, context: dict[str, Any]) -> dict[str, Any]:
@@ -1295,160 +1226,10 @@ def store_stuck_difficulty_memory(step_input: StepInput) -> StepOutput:
     )
 
 
-def _apply_rate_limit(user_id: str) -> tuple[bool, int]:
-    now = time.time()
-    window_start = now - CHAT_COACH_RATE_LIMIT_WINDOW_SECONDS
-    history = [timestamp for timestamp in _RATE_LIMIT_BUCKETS[user_id] if timestamp >= window_start]
-    if len(history) >= CHAT_COACH_RATE_LIMIT_REQUESTS:
-        _RATE_LIMIT_BUCKETS[user_id] = history
-        return False, len(history)
-
-    history.append(now)
-    _RATE_LIMIT_BUCKETS[user_id] = history
-    return True, len(history)
-
-
-def _load_bank_population_state(
-    bank_id: str,
-    *,
-    hindsight_url: str,
-    hindsight_api_key: str,
-) -> tuple[bool, int]:
-    headers = {"Content-Type": "application/json"}
-    if hindsight_api_key:
-        headers["Authorization"] = f"Bearer {hindsight_api_key}"
-
-    try:
-        with httpx.Client(timeout=20.0) as client:
-            response = client.get(
-                f"{hindsight_url.rstrip('/')}/v1/default/banks/{bank_id}/documents",
-                headers=headers,
-                params={"limit": 1, "offset": 0},
-            )
-        if response.status_code >= 400:
-            return False, 0
-
-        payload = response.json()
-        items = payload.get("items") if isinstance(payload, dict) else []
-        if not isinstance(items, list):
-            return False, 0
-        return len(items) > 0, len(items)
-    except (httpx.HTTPError, ValueError):
-        return False, 0
-
-
 def _normalize_uuid(value: str | None) -> UUID:
     if not value:
         raise ValueError("Missing required UUID value")
     return UUID(str(value).strip())
-
-
-def _collect_lessons_completed(
-    progress_rows: list[Any],
-    lesson_ids_by_assessment: dict[UUID, UUID],
-    latest_attempt_by_assessment: dict[UUID, dict[str, Any]],
-    latest_ai_rows: list[dict[str, Any]],
-) -> list[str]:
-    completed_lessons = {
-        str(progress.lesson_id)
-        for progress in progress_rows
-        if str(progress.status or "").strip() == "completed"
-    }
-
-    for assessment_id, attempt in latest_attempt_by_assessment.items():
-        if not attempt.get("passed"):
-            continue
-        lesson_id = lesson_ids_by_assessment.get(assessment_id)
-        if lesson_id:
-            completed_lessons.add(str(lesson_id))
-
-    for row in latest_ai_rows:
-        if not row.get("passed"):
-            continue
-        lesson_id = row.get("lesson_id")
-        if lesson_id:
-            completed_lessons.add(str(lesson_id))
-
-    return sorted(completed_lessons)
-
-
-def _derive_latest_quiz_attempt(
-    latest_traditional_rows: list[dict[str, Any]],
-    latest_ai_rows: list[dict[str, Any]],
-    lesson_ids_by_assessment: dict[UUID, UUID],
-) -> dict[str, Any] | None:
-    latest_candidates: list[tuple[Any, dict[str, Any]]] = []
-
-    for row in latest_traditional_rows:
-        completed_at = row.get("completed_at")
-        assessment_id = row.get("assessment_id")
-        lesson_id = lesson_ids_by_assessment.get(assessment_id) if assessment_id is not None else None
-        if not completed_at:
-            continue
-        latest_candidates.append(
-            (
-                completed_at,
-                {
-                    "lessonId": str(lesson_id) if lesson_id else None,
-                    "score": float(row.get("score") or 0),
-                    "passed": bool(row.get("passed")),
-                    "completedAt": completed_at.isoformat() if hasattr(completed_at, "isoformat") else None,
-                    "source": "traditional",
-                },
-            )
-        )
-
-    for row in latest_ai_rows:
-        completed_at = row.get("completed_at")
-        lesson_id = row.get("lesson_id")
-        if not completed_at:
-            continue
-        latest_candidates.append(
-            (
-                completed_at,
-                {
-                    "lessonId": str(lesson_id) if lesson_id else None,
-                    "score": float(row.get("score") or 0),
-                    "passed": bool(row.get("passed")),
-                    "completedAt": completed_at.isoformat() if hasattr(completed_at, "isoformat") else None,
-                    "source": "ai_generated",
-                },
-            )
-        )
-
-    latest_candidates.sort(key=lambda item: item[0], reverse=True)
-    return latest_candidates[0][1] if latest_candidates else None
-
-
-def _derive_weak_topics(attempt_rows: list[dict[str, Any]]) -> list[str]:
-    token_counter: Counter[str] = Counter()
-    lesson_counter: Counter[str] = Counter()
-
-    for row in attempt_rows:
-        lesson_title = str(row.get("lesson_title") or "").strip()
-        if lesson_title:
-            lesson_counter.update(_weak_topic_tokens(lesson_title))
-
-        wrong_answers = row.get("wrong_answers")
-        if not isinstance(wrong_answers, list):
-            continue
-
-        for wrong_answer in wrong_answers:
-            if not isinstance(wrong_answer, dict):
-                continue
-            token_counter.update(_weak_topic_tokens(str(wrong_answer.get("question") or "")))
-            token_counter.update(_weak_topic_tokens(str(wrong_answer.get("correctAnswer") or "")))
-            correct_answers = wrong_answer.get("correctAnswers")
-            if isinstance(correct_answers, list):
-                for correct_answer in correct_answers:
-                    token_counter.update(_weak_topic_tokens(str(correct_answer or "")))
-
-    ranked = [token for token, count in token_counter.most_common() if count >= 2]
-    if ranked:
-        return ranked[:5]
-
-    fallback = [token for token, count in lesson_counter.most_common() if count >= 2]
-    return fallback[:5]
 
 
 def validate_and_collect_context(step_input: StepInput) -> StepOutput:
@@ -1478,15 +1259,9 @@ def validate_and_collect_context(step_input: StepInput) -> StepOutput:
         dependencies = _load_platform_dependencies()
         decode_token = dependencies["decode_token"]
         SessionLocal = dependencies["SessionLocal"]
-        Tenant = dependencies["Tenant"]
         Course = dependencies["Course"]
-        User = dependencies["User"]
-        Enrollment = dependencies["Enrollment"]
         Lesson = dependencies["Lesson"]
         Module = dependencies["Module"]
-        UserProgress = dependencies["UserProgress"]
-        build_learner_context_response = dependencies["build_learner_context_response"]
-        sql_text = dependencies["sql_text"]
     except Exception as error:
         return _failed_step(
             payload,
@@ -1522,19 +1297,10 @@ def validate_and_collect_context(step_input: StepInput) -> StepOutput:
             bank_id=bank_id,
         )
 
-    allowed, request_count = _apply_rate_limit(payload.userId)
-    if not allowed:
-        return _failed_step(
-            payload,
-            "validate_and_collect_context",
-            f"Rate limit exceeded for user {payload.userId}.",
-            bank_id=bank_id,
-        )
-
     try:
-        tenant_uuid = _normalize_uuid(payload.tenantId)
         course_uuid = _normalize_uuid(payload.courseId)
-        user_uuid = _normalize_uuid(payload.userId)
+        _normalize_uuid(payload.tenantId)
+        _normalize_uuid(payload.userId)
     except ValueError as error:
         return _failed_step(
             payload,
@@ -1545,74 +1311,7 @@ def validate_and_collect_context(step_input: StepInput) -> StepOutput:
 
     db = SessionLocal()
     try:
-        tenant = db.query(Tenant).filter(Tenant.id == tenant_uuid).first()
-        if not tenant:
-            return _failed_step(
-                payload,
-                "validate_and_collect_context",
-                f"Tenant {payload.tenantId} does not exist.",
-                bank_id=bank_id,
-            )
-
-        if str(tenant.status or "").strip().lower() != "active":
-            return _failed_step(
-                payload,
-                "validate_and_collect_context",
-                f"Tenant {payload.tenantId} is not active.",
-                bank_id=bank_id,
-            )
-
         course = db.query(Course).filter(Course.id == course_uuid).first()
-        if not course or course.tenant_id != tenant_uuid:
-            return _failed_step(
-                payload,
-                "validate_and_collect_context",
-                f"Course {payload.courseId} does not exist under tenant {payload.tenantId}.",
-                bank_id=bank_id,
-            )
-
-        if not bool(course.is_published):
-            return _failed_step(
-                payload,
-                "validate_and_collect_context",
-                f"Course {payload.courseId} is unpublished; AI coach access is refused.",
-                bank_id=bank_id,
-            )
-
-        user = db.query(User).filter(User.id == user_uuid).first()
-        if not user or user.tenant_id != tenant_uuid:
-            return _failed_step(
-                payload,
-                "validate_and_collect_context",
-                f"User {payload.userId} does not belong to tenant {payload.tenantId}.",
-                bank_id=bank_id,
-            )
-
-        bank_populated, bank_item_count = _load_bank_population_state(
-            bank_id,
-            hindsight_url=hindsight_url,
-            hindsight_api_key=hindsight_api_key,
-        )
-        if not bank_populated:
-            return _failed_step(
-                payload,
-                "validate_and_collect_context",
-                f"Hindsight bank {bank_id} is missing or not populated by the Course Memory Agent.",
-                bank_id=bank_id,
-            )
-
-        learner_context = build_learner_context_response(
-            db,
-            user_id=user_uuid,
-            course_id=course_uuid,
-        )
-
-        enrollment = (
-            db.query(Enrollment)
-            .filter(Enrollment.user_id == user_uuid, Enrollment.course_id == course_uuid)
-            .first()
-        )
-
         lesson_rows = (
             db.query(
                 Lesson.id,
@@ -1651,157 +1350,39 @@ def validate_and_collect_context(step_input: StepInput) -> StepOutput:
             for row in lesson_rows
         ]
         current_lesson_title = lesson_title_by_id.get(_clean_text(payload.lessonId)) if payload.lessonId else None
-        progress_rows = (
-            db.query(UserProgress)
-            .filter(
-                UserProgress.user_id == user_uuid,
-                UserProgress.lesson_id.in_(lesson_ids or [UUID(int=0)]),
-            )
-            .all()
-        )
-
-        latest_traditional_rows = db.execute(
-            sql_text(
-                """
-                SELECT DISTINCT ON (qa.assessment_id)
-                    qa.assessment_id,
-                    qa.score,
-                    qa.passed,
-                    qa.completed_at,
-                    qa.wrong_answers
-                FROM quiz_attempts qa
-                JOIN assessments a ON a.id = qa.assessment_id
-                JOIN lessons l ON l.assessment_id = a.id
-                JOIN modules m ON m.id = l.module_id
-                WHERE qa.user_id = :user_id
-                  AND m.course_id = :course_id
-                ORDER BY qa.assessment_id, qa.completed_at DESC NULLS LAST, qa.started_at DESC
-                """
-            ),
-            {
-                "user_id": str(user_uuid),
-                "course_id": str(course_uuid),
-            },
-        ).mappings().all()
-
-        latest_ai_rows = db.execute(
-            sql_text(
-                """
-                SELECT DISTINCT ON (a.lesson_id)
-                    a.lesson_id,
-                    a.score,
-                    a.passed,
-                    a.completed_at,
-                    a.wrong_answers
-                FROM ai_platform_lesson_quiz_attempts a
-                WHERE a.user_id = CAST(:user_id AS uuid)
-                  AND a.course_id = CAST(:course_id AS uuid)
-                ORDER BY a.lesson_id, a.completed_at DESC
-                """
-            ),
-            {"user_id": str(user_uuid), "course_id": str(course_uuid)},
-        ).mappings().all()
-
-        latest_attempt_by_assessment = {
-            row["assessment_id"]: dict(row) for row in latest_traditional_rows if row.get("assessment_id") is not None
-        }
-        quiz_scores = {
-            f"quiz_{str(row['assessment_id'])}": round(float(row["score"] or 0) / 100, 4)
-            for row in latest_traditional_rows
-            if row.get("assessment_id") is not None
-        }
-        quiz_scores.update(
-            {
-                f"quiz_{str(row['lesson_id'])}": round(float(row["score"] or 0) / 100, 4)
-                for row in latest_ai_rows
-                if row.get("lesson_id") is not None
-            }
-        )
-
-        failed_attempt_rows = db.execute(
-            sql_text(
-                """
-                SELECT l.id AS lesson_id, l.title AS lesson_title, qa.score, qa.completed_at, qa.wrong_answers
-                FROM quiz_attempts qa
-                JOIN assessments a ON a.id = qa.assessment_id
-                JOIN lessons l ON l.assessment_id = a.id
-                JOIN modules m ON m.id = l.module_id
-                WHERE qa.user_id = :user_id
-                  AND m.course_id = :course_id
-                  AND COALESCE(qa.passed, FALSE) = FALSE
-                UNION ALL
-                SELECT l.id AS lesson_id, l.title AS lesson_title, ai.score, ai.completed_at, ai.wrong_answers
-                FROM ai_platform_lesson_quiz_attempts ai
-                JOIN lessons l ON l.id = ai.lesson_id
-                WHERE ai.user_id = CAST(:user_id AS uuid)
-                  AND ai.course_id = CAST(:course_id AS uuid)
-                  AND ai.passed = FALSE
-                """
-            ),
-            {"user_id": str(user_uuid), "course_id": str(course_uuid)},
-        ).mappings().all()
-
-        lessons_completed = _collect_lessons_completed(
-            progress_rows,
-            lesson_ids_by_assessment,
-            latest_attempt_by_assessment,
-            [dict(row) for row in latest_ai_rows],
-        )
-        if not lessons_completed and enrollment and str(enrollment.status or "").strip() == "completed":
-            lessons_completed = [str(row.id) for row in lesson_rows]
-        completed_lesson_titles = [
-            lesson_title_by_id[lesson_id]
-            for lesson_id in lessons_completed
-            if lesson_id in lesson_title_by_id and lesson_title_by_id[lesson_id]
-        ]
-        failed_attempt_dicts = [dict(row) for row in failed_attempt_rows]
-        weak_areas = _derive_weak_areas(failed_attempt_dicts)
-        weak_topics = _derive_weak_topics(failed_attempt_dicts)
-        latest_quiz_attempt = _derive_latest_quiz_attempt(
-            [dict(row) for row in latest_traditional_rows],
-            [dict(row) for row in latest_ai_rows],
-            lesson_ids_by_assessment,
-        )
 
         validated_context = {
             "tenant_id": payload.tenantId,
             "course_id": payload.courseId,
             "user_id": payload.userId,
-            "course_title": str(getattr(course, "title", "") or "").strip(),
+            "course_title": str(getattr(course, "title", "") or "").strip() or payload.courseId,
             "current_lesson_id": _clean_text(payload.lessonId) or None,
             "current_lesson_title": current_lesson_title,
-            "course_is_published": True,
             "bank_id": bank_id,
             "ordered_lessons": ordered_lessons,
-            "lessons_completed": lessons_completed,
-            "completed_lesson_titles": completed_lesson_titles,
-            "quiz_scores": quiz_scores,
-            "weak_areas": weak_areas,
-            "weak_topics": weak_topics,
             "session_id": _clean_text(payload.sessionId) or None,
             "session_turns": payload.sessionTurns if isinstance(payload.sessionTurns, list) else [],
             "conversation_turns": max(0, int(payload.conversationTurns or 0)),
-            "learner_enrolled": enrollment is not None,
-            "learner_enrollment_status": enrollment.status if enrollment else "not_enrolled",
-            "tenant_status": str(tenant.status or "").strip(),
-            "hindsight_bank_populated": bank_populated,
-            "hindsight_bank_document_count": bank_item_count,
-            "failed_quiz_count": len(failed_attempt_dicts),
-            "latest_quiz_attempt": latest_quiz_attempt or learner_context.get("latestQuizAttempt"),
+            "prepared_context_id": _clean_text(payload.preparedContextId) or None,
+            "learner_discussion_general_facts": payload.learnerDiscussionGeneralFacts if isinstance(payload.learnerDiscussionGeneralFacts, list) else [],
+            "learner_discussion_course_facts": payload.learnerDiscussionCourseFacts if isinstance(payload.learnerDiscussionCourseFacts, list) else [],
+            "learner_discussion_reasoning": _clean_text(payload.learnerDiscussionReasoning) or None,
             "updated_at": datetime.now(timezone.utc).isoformat(),
-            "rate_limit": {
-                "window_seconds": CHAT_COACH_RATE_LIMIT_WINDOW_SECONDS,
-                "max_requests": CHAT_COACH_RATE_LIMIT_REQUESTS,
-                "current_request_count": request_count,
-            },
         }
     finally:
         db.close()
 
-    _log("[Agno Chat Coach Agent] Validation context collection completed.")
+    _log("[Agno Chat Coach Agent] Coaching context collection completed.")
+    if validated_context.get("learner_discussion_general_facts") or validated_context.get("learner_discussion_course_facts"):
+        _log(
+            "[Agno Chat Coach Agent] Learner-memory extracted facts received before coaching execution: "
+            f"general={validated_context.get('learner_discussion_general_facts')} "
+            f"course={validated_context.get('learner_discussion_course_facts')}"
+        )
+    prepared_context_id = _clean_text(payload.preparedContextId)
     _log_validation_context_layers(validated_context)
     _log(
-        f"[Agno Chat Coach Agent] Validation context status: {'VALID' if _is_validation_context_valid(validated_context) else 'INVALID'}"
+        f"[Agno Chat Coach Agent] Coaching context status: {'READY' if _is_validation_context_valid(validated_context) else 'MISSING_IDENTIFIERS'}"
     )
 
     return StepOutput(
@@ -1819,6 +1400,7 @@ def validate_and_collect_context(step_input: StepInput) -> StepOutput:
             "conversationTurns": validated_context["conversation_turns"],
             "sessionId": validated_context["session_id"],
             "sessionTurns": validated_context["session_turns"],
+            "preparedContextId": prepared_context_id or None,
             "hindsightApiUrl": payload.hindsightApiUrl,
             "hindsightApiKey": payload.hindsightApiKey,
         },
@@ -2062,53 +1644,32 @@ chat_coach_workflow = Workflow(
             name="validate-and-collect-context",
             executor=validate_and_collect_context,
         ),
+        Step(
+            name="load-prepared-context",
+            executor=lambda step_input: load_prepared_context_step(step_input, log=_log),
+        ),
         Parallel(
-                Step(
-                    name="classify-question-intent",
-                    executor=partial(
-                        classify_question_intent_parallel,
-                        ensure_validated_content=_ensure_validated_content,
-                        rule_based_classification=_rule_based_classification,
-                        normalize_classification_payload=_normalize_classification_payload,
-                        log=_log,
-                    ),
-                ),
             Step(
-                name="collect-user-information-parallel-placeholder",
-                executor=partial(
-                    collect_user_information_parallel,
-                    ensure_validated_content=_ensure_validated_content,
-                    log=_log,
-                ),
+                name="parse-synthesis",
+                executor=lambda step_input: parse_synthesis_step(step_input, log=_log),
             ),
-            name="classification-and-user-information-parallel",
+            Step(
+                name="detect-affect-signal",
+                executor=lambda step_input: detect_affect_signal_step(step_input, log=_log),
+            ),
+            Step(
+                name="finalize-intent",
+                executor=lambda step_input: finalize_intent_step(step_input, log=_log),
+            ),
+            name="parallel-enrichment-wave",
         ),
         Step(
-            name="store-stuck-difficulty-memory",
-            executor=store_stuck_difficulty_memory,
+            name="merge-parallel-enrichment",
+            executor=lambda step_input: merge_parallel_enrichment_step(step_input, log=_log),
         ),
         Step(
-            name="build-answer-context",
-            executor=partial(
-                build_answer_context_step,
-                ensure_classified_content=_ensure_classified_content,
-                log=_log,
-            ),
-        ),
-        Step(
-            name="answer-from-merged-context",
-            executor=partial(
-                answer_from_merged_context_step,
-                ensure_answer_context_content=_ensure_answer_context_content,
-                log=_log,
-            ),
-        ),
-        Step(
-            name="quality-gate-answer",
-            executor=partial(
-                quality_gate_answer_step,
-                log=_log,
-            ),
+            name="compose-coaching-response",
+            executor=lambda step_input: compose_coaching_response_step(step_input, log=_log),
         ),
     ],
 )

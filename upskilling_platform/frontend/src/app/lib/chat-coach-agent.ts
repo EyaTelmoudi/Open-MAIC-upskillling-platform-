@@ -4,6 +4,11 @@ import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:chil
 
 const DEFAULT_SERVICE_URL = process.env.CHAT_COACH_AGENT_URL || "http://127.0.0.1:8012";
 const SERVICE_STATE_KEY = "__chatCoachAgentServiceState";
+const CHAT_COACH_PREFIX = "\u{1F3AF}CC [Agno Chat Coach Agent]";
+
+function ccMessage(message: string) {
+  return message.replace("[Agno Chat Coach Agent]", CHAT_COACH_PREFIX);
+}
 
 type ChatCoachPayload = {
   tenantId: string;
@@ -15,6 +20,29 @@ type ChatCoachPayload = {
   pagePath?: string;
   authToken?: string;
   conversationTurns?: number;
+  learnerDiscussionGeneralFacts?: string[];
+  learnerDiscussionCourseFacts?: string[];
+  learnerDiscussionReasoning?: string;
+  preparedContextId?: string;
+};
+
+type PreparedContextKickoffPayload = {
+  tenantId: string;
+  courseId: string;
+  userId: string;
+  question: string;
+  sessionId?: string;
+  preparedContextId: string;
+  learnerDiscussionGeneralFacts?: string[];
+  learnerDiscussionCourseFacts?: string[];
+  learnerDiscussionReasoning?: string;
+};
+
+type PreparedContextFactsPayload = {
+  preparedContextId: string;
+  learnerDiscussionGeneralFacts?: string[];
+  learnerDiscussionCourseFacts?: string[];
+  learnerDiscussionReasoning?: string;
 };
 
 type ChatCoachResult = {
@@ -53,7 +81,19 @@ function getServiceState() {
 }
 
 function resolveRepoRoot() {
-  return path.resolve(process.cwd(), "..", "..");
+  let current = process.cwd();
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (existsSync(path.join(current, "agents")) && existsSync(path.join(current, "upskilling_platform"))) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+
+  return process.cwd();
 }
 
 function resolveAgentWorkspace(repoRoot: string) {
@@ -197,7 +237,7 @@ export async function ensureChatCoachAgentService() {
     const workspace = resolveAgentWorkspace(repoRoot);
     const scriptPath = path.join(workspace, "app", "run_agent_os_service.py");
 
-    console.log(`[Agno Chat Coach Agent] Booting AgentOS service with ${pythonExecutable}.`);
+    console.log(ccMessage(`[Agno Chat Coach Agent] Booting AgentOS service with ${pythonExecutable}.`));
 
     state.process = spawn(pythonExecutable, [scriptPath], {
       cwd: workspace,
@@ -217,7 +257,9 @@ export async function ensureChatCoachAgentService() {
 
     state.process.on("exit", (code, signal) => {
       console.error(
-        `[Agno Chat Coach Agent] AgentOS service exited before becoming healthy. code=${code ?? "null"} signal=${signal ?? "null"}`,
+        ccMessage(
+          `[Agno Chat Coach Agent] AgentOS service exited before becoming healthy. code=${code ?? "null"} signal=${signal ?? "null"}`,
+        ),
       );
       state.process = null;
     });
@@ -230,7 +272,7 @@ export async function ensureChatCoachAgentService() {
     await sleep(250);
   }
 
-  console.error("[Agno Chat Coach Agent] AgentOS health check timed out.");
+  console.error(ccMessage("[Agno Chat Coach Agent] AgentOS health check timed out."));
   return false;
 }
 
@@ -261,4 +303,50 @@ export async function askChatCoachQuestion(payload: ChatCoachPayload): Promise<C
   }
 
   return result;
+}
+
+export async function startPreparedCoachingContextCollection(
+  payload: PreparedContextKickoffPayload,
+): Promise<void> {
+  if (!(await ensureChatCoachAgentService())) {
+    throw new Error("The Chat Coach AgentOS service is not available.");
+  }
+
+  const response = await fetch(`${DEFAULT_SERVICE_URL}/v1/chat-coach/prepared-context/start`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.success) {
+    throw new Error(
+      (data && typeof data.error === "string" && data.error) ||
+        "The Chat Coach Agent prepared-context kickoff failed.",
+    );
+  }
+}
+
+export async function upsertPreparedCoachingContextFacts(
+  payload: PreparedContextFactsPayload,
+): Promise<void> {
+  if (!(await ensureChatCoachAgentService())) {
+    throw new Error("The Chat Coach AgentOS service is not available.");
+  }
+
+  const response = await fetch(`${DEFAULT_SERVICE_URL}/v1/chat-coach/prepared-context/upsert-facts`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.success) {
+    throw new Error(
+      (data && typeof data.error === "string" && data.error) ||
+        "The Chat Coach Agent prepared-context facts upsert failed.",
+    );
+  }
 }

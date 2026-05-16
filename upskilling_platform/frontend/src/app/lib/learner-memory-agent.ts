@@ -8,6 +8,11 @@ const DEFAULT_SERVICE_URL =
 const DEFAULT_HINDSIGHT_URL = process.env.HINDSIGHT_URL || "http://127.0.0.1:8888";
 const DEFAULT_HINDSIGHT_API_KEY = process.env.HINDSIGHT_API_KEY || "";
 const SERVICE_STATE_KEY = "__learnerMemoryAgentServiceState";
+const LM_PREFIX = "🧠LM [Agno Learner Memory Agent]";
+
+function lmMessage(message: string) {
+  return message.replace("[Agno Learner Memory Agent]", "\u{1F9E0}LM [Agno Learner Memory Agent]");
+}
 
 function oneLinePreview(value: unknown, limit = 320) {
   const text = String(value ?? "").replace(/\r/g, " ").replace(/\n/g, " ").trim();
@@ -40,6 +45,13 @@ export type LearnerLessonMemoryPayload = {
     title?: string | null;
     url?: string | null;
   }>;
+  discussionMessage?: string | null;
+  sessionId?: string | null;
+  source?: string | null;
+  preparedContextId?: string | null;
+  preExtractedGeneralFacts?: string[];
+  preExtractedCourseFacts?: string[];
+  preExtractionReasoning?: string | null;
 };
 
 type LearnerLessonMemoryResult = {
@@ -54,6 +66,24 @@ type LearnerLessonMemoryResult = {
   bankCreated?: boolean;
   capturedAt?: string;
   memoryContent?: string;
+  generalFactsStored?: string[];
+  courseFactsStored?: string[];
+  duplicateGeneralFactsSkipped?: string[];
+  duplicateCourseFactsSkipped?: string[];
+  error?: string;
+};
+
+export type LearnerDiscussionFactExtractionResult = {
+  success: boolean;
+  workflowName: string;
+  action: string;
+  tenantId: string;
+  userId: string;
+  courseId: string;
+  lessonId: string;
+  generalFacts: string[];
+  courseFacts: string[];
+  reasoning: string;
   error?: string;
 };
 
@@ -74,7 +104,19 @@ function getServiceState() {
 }
 
 function resolveRepoRoot() {
-  return path.resolve(process.cwd(), "..", "..");
+  let current = process.cwd();
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (existsSync(path.join(current, "agents")) && existsSync(path.join(current, "upskilling_platform"))) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+
+  return process.cwd();
 }
 
 function resolveAgentWorkspace(repoRoot: string) {
@@ -97,9 +139,9 @@ function pythonHasLearnerMemoryRuntime(pythonExecutable: string) {
 function resolveAgentPython(repoRoot: string) {
   const candidates = [
     path.join(repoRoot, "agents", "learner-memory", ".venv", "Scripts", "python.exe"),
-    path.join(repoRoot, "agents", "course-memory", ".venv", "Scripts", "python.exe"),
-    path.join(repoRoot, "agents", "chat-coach", ".venv", "Scripts", "python.exe"),
     path.join(repoRoot, "agents", "course-maker", ".venv", "Scripts", "python.exe"),
+    path.join(repoRoot, "agents", "chat-coach", ".venv", "Scripts", "python.exe"),
+    path.join(repoRoot, "agents", "course-memory", ".venv", "Scripts", "python.exe"),
     "python",
   ];
 
@@ -204,7 +246,11 @@ async function stopExistingLearnerMemoryService() {
 }
 
 export async function ensureLearnerMemoryAgentService() {
-  if (await isServiceHealthy()) {
+  const shouldAlwaysRestart = process.env.NODE_ENV !== "production";
+  if (shouldAlwaysRestart) {
+    await stopExistingLearnerMemoryService();
+    killProcessOnPort(8014);
+  } else if (await isServiceHealthy()) {
     return true;
   }
 
@@ -227,7 +273,7 @@ export async function ensureLearnerMemoryAgentService() {
     const workspace = resolveAgentWorkspace(repoRoot);
     const scriptPath = path.join(workspace, "app", "run_agent_os_service.py");
 
-    console.log(`[Agno Learner Memory Agent] Booting AgentOS service with ${pythonExecutable}.`);
+    console.log(lmMessage(`[Agno Learner Memory Agent] Booting AgentOS service with ${pythonExecutable}.`));
 
     const child = spawn(pythonExecutable, [scriptPath], {
       cwd: workspace,
@@ -248,7 +294,9 @@ export async function ensureLearnerMemoryAgentService() {
 
     child.on("exit", (code, signal) => {
       console.error(
-        `[Agno Learner Memory Agent] AgentOS service exited before becoming healthy. code=${code ?? "null"} signal=${signal ?? "null"}`,
+        lmMessage(
+          `[Agno Learner Memory Agent] AgentOS service exited before becoming healthy. code=${code ?? "null"} signal=${signal ?? "null"}`,
+        ),
       );
       state.process = null;
     });
@@ -261,7 +309,7 @@ export async function ensureLearnerMemoryAgentService() {
     await sleep(250);
   }
 
-  console.error("[Agno Learner Memory Agent] AgentOS health check timed out.");
+  console.error(lmMessage("[Agno Learner Memory Agent] AgentOS health check timed out."));
   return false;
 }
 
@@ -272,27 +320,44 @@ export async function retainLearnerLessonMemory(
     throw new Error("The Learner Memory AgentOS service is not available.");
   }
 
+  if ((payload.eventType || "") === "coaching_discussion_message") {
+    console.log(
+      lmMessage(
+        "[Agno Learner Memory Agent] Sending coaching discussion fact extraction request. "
+          + `tenantId=${payload.tenantId} userId=${payload.userId} courseId=${payload.courseId} sessionId=${payload.sessionId || "none"}`,
+      ),
+    );
+  } else {
+    console.log(
+      lmMessage(
+        "[Agno Learner Memory Agent] Sending learner lesson memory capture request. "
+          + `tenantId=${payload.tenantId} userId=${payload.userId} courseId=${payload.courseId} lessonId=${payload.lessonId} event=${payload.eventType || "lesson_opened"}`,
+      ),
+    );
+  }
   console.log(
-    "[Agno Learner Memory Agent] Sending learner lesson memory capture request. "
-      + `tenantId=${payload.tenantId} userId=${payload.userId} courseId=${payload.courseId} lessonId=${payload.lessonId} event=${payload.eventType || "lesson_opened"}`,
+    lmMessage(
+      "[Agno Learner Memory Agent] Lesson references prepared: "
+        + `${oneLinePreview(JSON.stringify(payload.lessonReferenceIds || []))}`,
+    ),
   );
   console.log(
-    "[Agno Learner Memory Agent] Lesson references prepared: "
-      + `${oneLinePreview(JSON.stringify(payload.lessonReferenceIds || []))}`,
-  );
-  console.log(
-    "[Agno Learner Memory Agent] Support references prepared: "
-      + `${oneLinePreview(JSON.stringify(payload.supportReferences || []))}`,
+    lmMessage(
+      "[Agno Learner Memory Agent] Support references prepared: "
+        + `${oneLinePreview(JSON.stringify(payload.supportReferences || []))}`,
+    ),
   );
   if ((payload.eventType || "") === "quiz_completed") {
     console.log(
-      "[Agno Learner Memory Agent] Quiz result prepared: "
-        + `${oneLinePreview(JSON.stringify({
-          quizId: payload.quizId || payload.assessmentId || null,
-          quizPassed: payload.quizPassed ?? null,
-          quizScore: payload.quizScore ?? null,
-          wrongAnswersCount: Array.isArray(payload.wrongAnswers) ? payload.wrongAnswers.length : 0,
-        }))}`,
+      lmMessage(
+        "[Agno Learner Memory Agent] Quiz result prepared: "
+          + `${oneLinePreview(JSON.stringify({
+            quizId: payload.quizId || payload.assessmentId || null,
+            quizPassed: payload.quizPassed ?? null,
+            quizScore: payload.quizScore ?? null,
+            wrongAnswersCount: Array.isArray(payload.wrongAnswers) ? payload.wrongAnswers.length : 0,
+          }))}`,
+      ),
     );
   }
 
@@ -323,19 +388,86 @@ export async function retainLearnerLessonMemory(
   }
 
   console.log(
-    "[Agno Learner Memory Agent] Learner lesson memory capture finished successfully. "
-      + `bankId=${result.bankId || "unknown"} bankCreated=${String(result.bankCreated ?? false)}`,
+    lmMessage(
+      "[Agno Learner Memory Agent] Learner lesson memory capture finished successfully. "
+        + `bankId=${result.bankId || "unknown"} bankCreated=${String(result.bankCreated ?? false)}`,
+    ),
   );
+  if ((payload.eventType || "") === "coaching_discussion_message") {
+    console.log(
+      lmMessage(`[Agno Learner Memory Agent] Final extracted general facts: ${JSON.stringify(result.generalFactsStored || [])}`),
+    );
+    console.log(
+      lmMessage(`[Agno Learner Memory Agent] Final extracted course facts: ${JSON.stringify(result.courseFactsStored || [])}`),
+    );
+    console.log(
+      lmMessage(`[Agno Learner Memory Agent] Duplicate general facts skipped: ${JSON.stringify(result.duplicateGeneralFactsSkipped || [])}`),
+    );
+    console.log(
+      lmMessage(`[Agno Learner Memory Agent] Duplicate course facts skipped: ${JSON.stringify(result.duplicateCourseFactsSkipped || [])}`),
+    );
+  }
   if (result.memoryContent) {
-    if ((payload.eventType || "") === "course_enrollment_completed") {
-      console.log("[Agno Learner Memory Agent] Retained course-completion memory content:");
+    if ((payload.eventType || "") === "coaching_discussion_message") {
+      console.log(lmMessage("[Agno Learner Memory Agent] Coaching discussion fact extraction summary:"));
+    } else if ((payload.eventType || "") === "course_enrollment_completed") {
+      console.log(lmMessage("[Agno Learner Memory Agent] Retained course-completion memory content:"));
     } else if ((payload.eventType || "") === "quiz_completed") {
-      console.log("[Agno Learner Memory Agent] Retained quiz-result memory content:");
+      console.log(lmMessage("[Agno Learner Memory Agent] Retained quiz-result memory content:"));
     } else {
-      console.log("[Agno Learner Memory Agent] Retained lesson-completion memory content:");
+      console.log(lmMessage("[Agno Learner Memory Agent] Retained lesson-completion memory content:"));
     }
     console.log(result.memoryContent);
   }
+
+  return result;
+}
+
+export async function extractLearnerDiscussionFacts(
+  payload: LearnerLessonMemoryPayload,
+): Promise<LearnerDiscussionFactExtractionResult> {
+  if (!(await ensureLearnerMemoryAgentService())) {
+    throw new Error("The Learner Memory AgentOS service is not available.");
+  }
+
+  console.log(
+    lmMessage(
+      "[Agno Learner Memory Agent] Sending discussion fact extraction-only request. "
+        + `tenantId=${payload.tenantId} userId=${payload.userId} courseId=${payload.courseId} sessionId=${payload.sessionId || "none"}`,
+    ),
+  );
+
+  const response = await fetch(`${DEFAULT_SERVICE_URL}/v1/learner-memory/extract-discussion-facts`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...payload,
+      eventType: payload.eventType || "coaching_discussion_message",
+      hindsightApiUrl: DEFAULT_HINDSIGHT_URL,
+      hindsightApiKey: DEFAULT_HINDSIGHT_API_KEY,
+    }),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!data) {
+    throw new Error("The Learner Memory Agent extract service did not return a valid JSON response.");
+  }
+
+  const result = data as LearnerDiscussionFactExtractionResult;
+  if (!response.ok) {
+    throw new Error(result.error || "The Learner Memory Agent extract service returned an error.");
+  }
+
+  if (!result.success) {
+    throw new Error(result.error || "The Learner Memory Agent extract workflow failed.");
+  }
+
+  console.log(
+    lmMessage(
+      `[Agno Learner Memory Agent] Extraction-only result ready. generalFacts=${JSON.stringify(result.generalFacts || [])} courseFacts=${JSON.stringify(result.courseFacts || [])}`,
+    ),
+  );
 
   return result;
 }

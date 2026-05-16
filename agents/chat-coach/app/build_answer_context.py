@@ -42,6 +42,9 @@ class AnswerContext(BaseModel):
     known_difficulties: str
     learning_style_hint: str
     course_passages: str
+    discussion_general_facts: list[str]
+    discussion_course_facts: list[str]
+    discussion_fact_reasoning: str
     course_id: str
     module_context: str
     original_question: str
@@ -253,6 +256,9 @@ def _build_session_state_summary(
         "course_id": _clean_text(validated_context.get("course_id")),
         "course_title": _clean_text(validated_context.get("course_title")),
         "current_lesson_title": _clean_text(validated_context.get("current_lesson_title")) or None,
+        "discussion_general_facts": [str(item) for item in _as_list(validated_context.get("learner_discussion_general_facts"))],
+        "discussion_course_facts": [str(item) for item in _as_list(validated_context.get("learner_discussion_course_facts"))],
+        "discussion_fact_reasoning": _clean_text(validated_context.get("learner_discussion_reasoning")) or None,
         "module_context": _build_module_context(validated_context),
         "recent_chat_history": _format_recent_chat_history(session_turns),
     }
@@ -280,6 +286,9 @@ def build_answer_context_step(
     hindsight_api_key = _clean_text(previous_content.get("hindsightApiKey")) or DEFAULT_HINDSIGHT_API_KEY
     topic = _clean_text(question_intent.get("topic"))
     session_turns = _as_list(validated_context.get("session_turns"))
+    discussion_general_facts = [str(item) for item in _as_list(validated_context.get("learner_discussion_general_facts"))]
+    discussion_course_facts = [str(item) for item in _as_list(validated_context.get("learner_discussion_course_facts"))]
+    discussion_fact_reasoning = _clean_text(validated_context.get("learner_discussion_reasoning"))
 
     log(
         "[Agno Chat Coach Agent] build_answer_context inputs: "
@@ -293,6 +302,19 @@ def build_answer_context_step(
     )
     log("[Agno Chat Coach Agent] build_answer_context session_state paragraph:")
     log(json.dumps(session_state_summary, indent=2, ensure_ascii=False))
+    if discussion_general_facts or discussion_course_facts:
+        log("[Agno Chat Coach Agent] build_answer_context received learner discussion facts:")
+        log(
+            json.dumps(
+                {
+                    "discussion_general_facts": discussion_general_facts,
+                    "discussion_course_facts": discussion_course_facts,
+                    "discussion_fact_reasoning": discussion_fact_reasoning or None,
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
 
     try:
         hindsight_data = _fetch_hindsight_context_sync(
@@ -343,6 +365,9 @@ def build_answer_context_step(
         known_difficulties=_clean_text(hindsight_data.get("known_difficulties")) or "No recorded difficulties on this topic.",
         learning_style_hint=_extract_style_hint(_clean_text(hindsight_data.get("learner_synthesis"))),
         course_passages=_clean_text(hindsight_data.get("course_passages")) or "No relevant course content found.",
+        discussion_general_facts=discussion_general_facts,
+        discussion_course_facts=discussion_course_facts,
+        discussion_fact_reasoning=discussion_fact_reasoning,
         course_id=course_id,
         module_context=_build_module_context(validated_context),
         original_question=question,
