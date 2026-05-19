@@ -1,0 +1,1040 @@
+{
+  "stage": {
+    "id": "m22Ov_nWB7",
+    "name": "Course Introduction",
+    "style": "interactive",
+    "agentIds": [
+      "default-1",
+      "default-2",
+      "default-3",
+      "default-4",
+      "default-5",
+      "default-6"
+    ],
+    "createdAt": 1777902812454,
+    "updatedAt": 1777902812454,
+    "languageDirective": "Deliver the entire course in English. Use clear, beginner-friendly language and avoid technical jargon unless it is introduced with simple explanations. When technical terms (e.g., selector, box model) appear, provide a brief definition in English and keep any code snippets in their original syntax."
+  },
+  "status": "finalized",
+  "draftId": "jGiiaopIYvnY",
+  "createdAt": "2026-05-04T14:00:06.074Z",
+  "outputDir": "D:\\PFE\\OpenMAIC\\learing expert agent\\outputs\\2026-05-04T13-52-44-801Z_prepare-this-course_WEooNy",
+  "updatedAt": "2026-05-04T14:02:32.770Z",
+  "classroomId": "m22Ov_nWB7",
+  "sourceScenes": [
+    {
+      "id": "scene_IJJ7OTRJVh",
+      "type": "slide",
+      "order": 1,
+      "title": "Course Introduction",
+      "actions": [
+        {
+          "id": "action_Iw3uskM-",
+          "type": "spotlight",
+          "elementId": "text_9E2PGd3N"
+        },
+        {
+          "id": "action_umAHIEhj",
+          "text": "Hello everyone, and welcome to our Introduction to CSS course! I'm thrilled to have you here as we begin this journey into web styling.",
+          "type": "speech"
+        },
+        {
+          "id": "action_au8N7wau",
+          "type": "spotlight",
+          "elementId": "text_a7mLMgdl"
+        },
+        {
+          "id": "action_BJVGRP93",
+          "text": "First, let's talk about what CSS is and why it matters. CSS, or Cascading Style Sheets, is the language that lets us make web pages look beautiful and organized, turning plain HTML into engaging experiences.",
+          "type": "speech"
+        },
+        {
+          "id": "action_ra6L3-ov",
+          "type": "laser",
+          "elementId": "text_a7mLMgdl"
+        },
+        {
+          "id": "action_Hv8zUPSa",
+          "text": "Next, you'll see the key learning outcomes for this course: you'll learn how to style text, layout pages, create responsive designs, and build confidence to bring your own creative ideas to life.",
+          "type": "speech"
+        },
+        {
+          "id": "action_16hlsdVE",
+          "type": "laser",
+          "elementId": "text_a7mLMgdl"
+        },
+        {
+          "id": "action_OZjWoZK7",
+          "text": "Finally, here's how the lessons are structured. We'll start with the fundamentals, then move on to selectors, the box model, positioning, and finish with a hands‑on project that ties everything together.",
+          "type": "speech"
+        },
+        {
+          "id": "action_cjzM9Sro",
+          "type": "spotlight",
+          "elementId": "text_a7mLMgdl"
+        },
+        {
+          "id": "action_NvF0FZZk",
+          "text": "I'm excited to explore CSS with you—let's dive in and start shaping the web!",
+          "type": "speech"
+        }
+      ],
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "suOhzwGREO0JHGIf5s-b3",
+          "theme": {
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            },
+            "outline": {
+              "color": "#d14424",
+              "style": "solid",
+              "width": 2
+            },
+            "fontName": "Microsoft YaHei",
+            "fontColor": "#333333",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "backgroundColor": "#ffffff"
+          },
+          "elements": [
+            {
+              "id": "text_9E2PGd3N",
+              "top": 50,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 70,
+              "rotate": 0,
+              "content": "<p style=\"font-size:32px; text-align:center; color:#0f766e;\"><strong>Course Introduction</strong></p>",
+              "defaultColor": "#0f766e",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "shape_9ggPnvHS",
+              "top": 128,
+              "fill": "#5b9bd5",
+              "left": 70,
+              "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+              "type": "shape",
+              "width": 860,
+              "height": 3,
+              "rotate": 0,
+              "viewBox": [
+                1,
+                1
+              ],
+              "fixedRatio": false
+            },
+            {
+              "id": "text_a7mLMgdl",
+              "top": 150,
+              "left": 80,
+              "type": "text",
+              "width": 840,
+              "height": 103,
+              "rotate": 0,
+              "content": "<p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• What CSS is and why it matters</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Course learning outcomes</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Structure of upcoming lessons</p>",
+              "defaultColor": "#1f2937",
+              "defaultFontName": "Microsoft YaHei"
+            }
+          ],
+          "background": {
+            "type": "gradient",
+            "gradient": {
+              "type": "linear",
+              "colors": [
+                {
+                  "pos": 0,
+                  "color": "#f8fffd"
+                },
+                {
+                  "pos": 100,
+                  "color": "#eef6ff"
+                }
+              ],
+              "rotate": 135
+            }
+          },
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625
+        }
+      },
+      "stageId": "m22Ov_nWB7",
+      "createdAt": 1777902872487,
+      "updatedAt": 1777902872487
+    },
+    {
+      "id": "scene_X1oBLVhenu",
+      "type": "slide",
+      "order": 2,
+      "title": "What Is CSS?",
+      "actions": [
+        {
+          "id": "action_ughq4ASJ",
+          "type": "spotlight",
+          "title": "聚焦重点",
+          "elementId": "text_DuL0nESt"
+        },
+        {
+          "id": "action_OVLHPkfq",
+          "text": "Definition of Cascading Style Sheets。Separation of content (HTML) and presentation (CSS)。Simple before‑and‑after examples of an unstyled vs. styled page。",
+          "type": "speech",
+          "title": "场景讲解"
+        }
+      ],
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "jH2nsxRTTLQIHzCsdhwsq",
+          "theme": {
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            },
+            "outline": {
+              "color": "#d14424",
+              "style": "solid",
+              "width": 2
+            },
+            "fontName": "Microsoft YaHei",
+            "fontColor": "#333333",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "backgroundColor": "#ffffff"
+          },
+          "elements": [
+            {
+              "id": "text_DuL0nESt",
+              "top": 50,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 70,
+              "rotate": 0,
+              "content": "<p style=\"font-size:32px; text-align:center; color:#0f766e;\"><strong>What Is CSS?</strong></p>",
+              "defaultColor": "#0f766e",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_TbGsiL-a",
+              "top": 150,
+              "left": 80,
+              "type": "text",
+              "width": 840,
+              "height": 103,
+              "rotate": 0,
+              "content": "<p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Cascading Style Sheets (CSS) – defines visual style</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Separates content (HTML) from presentation (CSS)</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Unstyled vs. styled page example</p>",
+              "defaultColor": "#1f2937",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "shape_K5n0kVRP",
+              "top": 283,
+              "fill": "#f0f4f8",
+              "left": 60,
+              "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+              "type": "shape",
+              "width": 880,
+              "height": 120,
+              "rotate": 0,
+              "viewBox": [
+                1,
+                1
+              ],
+              "fixedRatio": false
+            },
+            {
+              "id": "text_qGiH2iXx",
+              "top": 311,
+              "left": 80,
+              "type": "text",
+              "width": 840,
+              "height": 64,
+              "rotate": 0,
+              "content": "<p style=\"font-family:monospace; font-size:14px; margin:0;\">&lt;!DOCTYPE html&gt;<br>&lt;html&gt;<br>&nbsp;&nbsp;&lt;head&gt;&lt;/head&gt;<br>&nbsp;&nbsp;&lt;body&gt;Hello World&lt;/body&gt;<br>&lt;/html&gt;</p><p style=\"font-family:monospace; font-size:14px; margin:0; color:#1565c0;\">/* CSS */<br>body { font-family: Arial; color: #333; }</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            }
+          ],
+          "background": {
+            "type": "gradient",
+            "gradient": {
+              "type": "linear",
+              "colors": [
+                {
+                  "pos": 0,
+                  "color": "#f8fffd"
+                },
+                {
+                  "pos": 100,
+                  "color": "#eef6ff"
+                }
+              ],
+              "rotate": 135
+            }
+          },
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625
+        }
+      },
+      "stageId": "m22Ov_nWB7",
+      "createdAt": 1777902985273,
+      "updatedAt": 1777902985273
+    },
+    {
+      "id": "scene_pkzmyvVtFo",
+      "type": "slide",
+      "order": 3,
+      "title": "CSS Syntax and Basic Rules",
+      "actions": [
+        {
+          "id": "action_QIFABzkX",
+          "type": "spotlight",
+          "elementId": "text_kBbhqXFr"
+        },
+        {
+          "id": "action_tKA6_59v",
+          "text": "Alright, let’s dive into the building blocks of CSS: selectors, properties, and values.",
+          "type": "speech"
+        },
+        {
+          "id": "action_Fm3u69Uu",
+          "type": "spotlight",
+          "elementId": "text_VCP2Y15x"
+        },
+        {
+          "id": "action_jM2D3zDU",
+          "text": "First, a selector tells the browser which HTML element you want to style, a property is the aspect you’re changing—like color or font size—and the value is the specific setting you assign, such as red or 16px.",
+          "type": "speech"
+        },
+        {
+          "id": "action_dQecRE1U",
+          "type": "spotlight",
+          "elementId": "shape_Q-uKVUt6"
+        },
+        {
+          "id": "action_-HjXBaqv",
+          "text": "Visually, think of a rule‑set as a tiny instruction card: the selector is the address, the braces hold the instructions, and each line inside follows a property‑value pair.",
+          "type": "speech"
+        },
+        {
+          "id": "action_0k9N5Ncz",
+          "type": "spotlight",
+          "elementId": "text_Janndh-y"
+        },
+        {
+          "id": "action_nrig_5I4",
+          "text": "Now, let’s write our first declaration together: <code>selector { color: red; }</code> – this tells the browser to make the text of the selected element appear red.",
+          "type": "speech"
+        }
+      ],
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "JH2-MtBPZPnl-F5kU1T7V",
+          "theme": {
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            },
+            "outline": {
+              "color": "#d14424",
+              "style": "solid",
+              "width": 2
+            },
+            "fontName": "Microsoft YaHei",
+            "fontColor": "#333333",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "backgroundColor": "#ffffff"
+          },
+          "elements": [
+            {
+              "id": "text_kBbhqXFr",
+              "top": 50,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 58,
+              "rotate": 0,
+              "content": "<p style=\"font-size:32px; text-align:center; color:#0f766e;\"><strong>CSS Syntax and Basic Rules</strong></p>",
+              "defaultColor": "#0f766e",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_VCP2Y15x",
+              "top": 130,
+              "left": 80,
+              "type": "text",
+              "width": 840,
+              "height": 94,
+              "rotate": 0,
+              "content": "<p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Selectors, properties, and values</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Rule‑set: selector { property: value; }</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Write your first CSS declaration</p>",
+              "defaultColor": "#1f2937",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "shape_Q-uKVUt6",
+              "top": 250,
+              "fill": "#f0f4f8",
+              "left": 60,
+              "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+              "type": "shape",
+              "width": 880,
+              "height": 120,
+              "rotate": 0,
+              "viewBox": [
+                1,
+                1
+              ],
+              "fixedRatio": false
+            },
+            {
+              "id": "text_Janndh-y",
+              "top": 260,
+              "left": 80,
+              "type": "text",
+              "width": 840,
+              "height": 64,
+              "rotate": 0,
+              "content": "<p style=\"font-size:14px; font-family:Courier New, monospace;\">selector {<br>&nbsp;&nbsp;color: red;<br>}</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            }
+          ],
+          "background": {
+            "type": "gradient",
+            "gradient": {
+              "type": "linear",
+              "colors": [
+                {
+                  "pos": 0,
+                  "color": "#f8fffd"
+                },
+                {
+                  "pos": 100,
+                  "color": "#eef6ff"
+                }
+              ],
+              "rotate": 135
+            }
+          },
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625
+        }
+      },
+      "stageId": "m22Ov_nWB7",
+      "createdAt": 1777903063396,
+      "updatedAt": 1777903063396
+    },
+    {
+      "id": "scene_P0lFCIBJ_n",
+      "type": "quiz",
+      "order": 4,
+      "title": "Quiz 1 – CSS Basics",
+      "actions": [
+        {
+          "id": "action_LTiZt6GL",
+          "text": "Good morning, everyone! Let’s dive into a quick quiz to see how well we’ve grasped the basics of CSS selectors. Read each question carefully, and remember: a selector is the part of a CSS rule that tells the browser which HTML elements to style.",
+          "type": "speech"
+        },
+        {
+          "id": "action_xzU4DZ-B",
+          "text": "For the first question, look at the rule `h1.title { color: blue; font-size: 24px; }`. The selector is the pattern before the opening brace—here it’s `h1.title`. The properties inside the braces (`color` and `font-size`) tell the browser *what* to change, but they aren’t part of the selector.",
+          "type": "speech"
+        },
+        {
+          "id": "action_MNo2y2vH",
+          "text": "The second question asks you to pick all selectors that would match `<p class=\"intro\" id=\"first\">Welcome</p>`. Think about how selectors target elements: a tag name (`p`), a class (`.intro`), and an ID (`#first`). Combining them is allowed, as long as you use the correct syntax. So `p.intro`, `#first`, and `p#first.intro` are all valid ways to select that paragraph.",
+          "type": "speech"
+        },
+        {
+          "id": "action_jbG3yEIr",
+          "type": "discussion",
+          "topic": "Why is it important to choose the most specific selector you need, and how does selector specificity affect which styles are applied?",
+          "prompt": "Share any examples where a too‑general selector caused unexpected styling, or where a specific selector helped you fix a bug.",
+          "agentId": "default-4"
+        }
+      ],
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "single",
+            "answer": [
+              "A"
+            ],
+            "points": 5,
+            "options": [
+              {
+                "label": "h1.title",
+                "value": "A"
+              },
+              {
+                "label": "color: blue;",
+                "value": "B"
+              },
+              {
+                "label": "font-size: 24px;",
+                "value": "C"
+              },
+              {
+                "label": "The curly braces {}",
+                "value": "D"
+              }
+            ],
+            "analysis": "The selector is the part before the opening curly brace that tells the browser which HTML elements to style. In this rule, 'h1.title' selects any <h1> element with class 'title'. The other parts are declarations or punctuation.",
+            "question": "Which part of the following CSS rule is the selector?\n```css\nh1.title { color: blue; font-size: 24px; }\n```",
+            "hasAnswer": true
+          },
+          {
+            "id": "q2",
+            "type": "multiple",
+            "answer": [
+              "A",
+              "B",
+              "D"
+            ],
+            "points": 8,
+            "options": [
+              {
+                "label": "p.intro",
+                "value": "A"
+              },
+              {
+                "label": "#first",
+                "value": "B"
+              },
+              {
+                "label": ".welcome",
+                "value": "C"
+              },
+              {
+                "label": "p#first.intro",
+                "value": "D"
+              }
+            ],
+            "analysis": "The element can be selected by its tag and class (p.intro), by its id (#first), or by combining tag, id, and class (p#first.intro). The selector '.welcome' looks for a class named 'welcome', which this element does not have, so it is incorrect.",
+            "question": "Select all selectors that would correctly apply a style to the following HTML element:\n```html\n<p class=\"intro\" id=\"first\">Welcome</p>\n```",
+            "hasAnswer": true
+          }
+        ]
+      },
+      "stageId": "m22Ov_nWB7",
+      "createdAt": 1777903130360,
+      "updatedAt": 1777903130360
+    },
+    {
+      "id": "scene_wPRgBBTgHI",
+      "type": "slide",
+      "order": 5,
+      "title": "Ways to Add CSS to a Page",
+      "actions": [
+        {
+          "id": "action_VerdgcVu",
+          "type": "spotlight",
+          "elementId": "text__s5QiCwj"
+        },
+        {
+          "id": "action_2oby3RdD",
+          "text": "Alright, let's explore the three ways we can add CSS to a page.",
+          "type": "speech"
+        },
+        {
+          "id": "action_kIy9PKk6",
+          "type": "spotlight",
+          "elementId": "text_Rs-ZhlzV"
+        },
+        {
+          "id": "action_rgwIKKQ8",
+          "text": "First, inline CSS—this lets you style a single element right inside its HTML tag, which is handy for quick, one‑off tweaks.",
+          "type": "speech"
+        },
+        {
+          "id": "action_uCr3eEg3",
+          "type": "laser",
+          "elementId": "text_lFaVC_lM"
+        },
+        {
+          "id": "action_cbCepmpf",
+          "text": "For example, here we have a paragraph with a style attribute that sets the text color directly.",
+          "type": "speech"
+        },
+        {
+          "id": "action_9E1udhVN",
+          "type": "spotlight",
+          "elementId": "text_Rs-ZhlzV"
+        },
+        {
+          "id": "action_2T2JmEgq",
+          "text": "Next, internal CSS—placed inside a <style> block in the head of the document, it lets you style multiple elements on the same page without touching each tag.",
+          "type": "speech"
+        },
+        {
+          "id": "action_t6FlZh1Z",
+          "type": "spotlight",
+          "elementId": "text_Rs-ZhlzV"
+        },
+        {
+          "id": "action_iEBwZZzN",
+          "text": "Finally, external CSS—stored in its own .css file and linked to the HTML, which is the most scalable approach for larger sites.",
+          "type": "speech"
+        },
+        {
+          "id": "action_zFKcCDK6",
+          "type": "spotlight",
+          "elementId": "text__s5QiCwj"
+        },
+        {
+          "id": "action_jA5zHNx3",
+          "text": "In practice, we choose the method that matches how often we need to reuse styles and how maintainable we want our code to be.",
+          "type": "speech"
+        }
+      ],
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "gcEmofhbx6NwgTml-0OX4",
+          "theme": {
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            },
+            "outline": {
+              "color": "#d14424",
+              "style": "solid",
+              "width": 2
+            },
+            "fontName": "Microsoft YaHei",
+            "fontColor": "#333333",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "backgroundColor": "#ffffff"
+          },
+          "elements": [
+            {
+              "id": "text__s5QiCwj",
+              "top": 50,
+              "left": 60,
+              "type": "text",
+              "width": 880,
+              "height": 58,
+              "rotate": 0,
+              "content": "<p style=\"font-size:32px; text-align:center; color:#0f766e;\"><strong>Ways to Add CSS to a Page</strong></p>",
+              "defaultColor": "#0f766e",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "text_Rs-ZhlzV",
+              "top": 148,
+              "left": 80,
+              "type": "text",
+              "width": 840,
+              "height": 103,
+              "rotate": 0,
+              "content": "<p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Inline CSS – quick styling on a single element</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Internal CSS – style block inside the HTML file</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• External CSS – separate .css file linked to the page</p>",
+              "defaultColor": "#1f2937",
+              "defaultFontName": "Microsoft YaHei"
+            },
+            {
+              "id": "shape_y6pjr2DD",
+              "top": 281,
+              "fill": "#f5f5f5",
+              "left": 60,
+              "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+              "type": "shape",
+              "width": 880,
+              "height": 120,
+              "rotate": 0,
+              "viewBox": [
+                1,
+                1
+              ],
+              "fixedRatio": false
+            },
+            {
+              "id": "text_lFaVC_lM",
+              "top": 306,
+              "left": 80,
+              "type": "text",
+              "width": 840,
+              "height": 70,
+              "rotate": 0,
+              "content": "<p style=\"font-size:16px; font-family:monospace;\">&lt;!-- Inline CSS --&gt;<br>&lt;p style=&quot;color:red;&quot;&gt;Hello&lt;/p&gt;<br><br>&lt;!-- Internal CSS --&gt;<br;&lt;style&gt; p { color:red; } &lt;/style&gt;<br><br>&lt;!-- External CSS --&gt;<br;&lt;link rel=&quot;stylesheet&quot; href=&quot;styles.css&quot;&gt;</p>",
+              "defaultColor": "#333333",
+              "defaultFontName": "Microsoft YaHei"
+            }
+          ],
+          "background": {
+            "type": "gradient",
+            "gradient": {
+              "type": "linear",
+              "colors": [
+                {
+                  "pos": 0,
+                  "color": "#f8fffd"
+                },
+                {
+                  "pos": 100,
+                  "color": "#eef6ff"
+                }
+              ],
+              "rotate": 135
+            }
+          },
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625
+        }
+      },
+      "stageId": "m22Ov_nWB7",
+      "createdAt": 1777903206058,
+      "updatedAt": 1777903206058
+    }
+  ],
+  "submissionId": "2026-05-04T13-52-44-801Z_prepare-this-course_WEooNy",
+  "editableScenes": [
+    {
+      "type": "slide",
+      "order": 1,
+      "title": "Course Introduction",
+      "blocks": [
+        {
+          "id": "slide_text_1",
+          "html": "<p>Course Introduction</p>",
+          "type": "slide_text",
+          "label": "Slide title/content block 1",
+          "elementId": "text_9E2PGd3N",
+          "plainText": "Course Introduction"
+        },
+        {
+          "id": "slide_text_2",
+          "html": "<p>• What CSS is and why it matters</p><p>• Course learning outcomes</p><p>• Structure of upcoming lessons</p>",
+          "type": "slide_text",
+          "label": "Slide content block 2",
+          "elementId": "text_a7mLMgdl",
+          "plainText": "• What CSS is and why it matters\n • Course learning outcomes\n • Structure of upcoming lessons"
+        },
+        {
+          "id": "script_1",
+          "text": "Hello everyone, and welcome to our Introduction to CSS course! I'm thrilled to have you here as we begin this journey into web styling.",
+          "type": "script",
+          "actionId": "action_umAHIEhj"
+        },
+        {
+          "id": "script_2",
+          "text": "First, let's talk about what CSS is and why it matters. CSS, or Cascading Style Sheets, is the language that lets us make web pages look beautiful and organized, turning plain HTML into engaging experiences.",
+          "type": "script",
+          "actionId": "action_BJVGRP93"
+        },
+        {
+          "id": "script_3",
+          "text": "Next, you'll see the key learning outcomes for this course: you'll learn how to style text, layout pages, create responsive designs, and build confidence to bring your own creative ideas to life.",
+          "type": "script",
+          "actionId": "action_Hv8zUPSa"
+        },
+        {
+          "id": "script_4",
+          "text": "Finally, here's how the lessons are structured. We'll start with the fundamentals, then move on to selectors, the box model, positioning, and finish with a hands‑on project that ties everything together.",
+          "type": "script",
+          "actionId": "action_OZjWoZK7"
+        },
+        {
+          "id": "script_5",
+          "text": "I'm excited to explore CSS with you—let's dive in and start shaping the web!",
+          "type": "script",
+          "actionId": "action_NvF0FZZk"
+        }
+      ],
+      "status": "draft",
+      "sceneId": "scene_IJJ7OTRJVh",
+      "sourceSceneId": "scene_IJJ7OTRJVh"
+    },
+    {
+      "type": "slide",
+      "order": 2,
+      "title": "What Is CSS?",
+      "blocks": [
+        {
+          "id": "slide_text_1",
+          "html": "<p>What Is CSS?</p>",
+          "type": "slide_text",
+          "label": "Slide title/content block 1",
+          "elementId": "text_DuL0nESt",
+          "plainText": "What Is CSS?"
+        },
+        {
+          "id": "slide_text_2",
+          "html": "<p>• Cascading Style Sheets (CSS) – defines visual style</p><p>• Separates content (HTML) from presentation (CSS)</p><p>• Unstyled vs. styled page example</p>",
+          "type": "slide_text",
+          "label": "Slide content block 2",
+          "elementId": "text_TbGsiL-a",
+          "plainText": "• Cascading Style Sheets (CSS) – defines visual style\n • Separates content (HTML) from presentation (CSS)\n • Unstyled vs. styled page example"
+        },
+        {
+          "id": "slide_text_3",
+          "html": "<p>&amp;lt;!DOCTYPE html&amp;gt;</p><p>&amp;lt;html&amp;gt;</p><p>&amp;nbsp;&amp;nbsp;&amp;lt;head&amp;gt;&amp;lt;/head&amp;gt;</p><p>&amp;nbsp;&amp;nbsp;&amp;lt;body&amp;gt;Hello World&amp;lt;/body&amp;gt;</p><p>&amp;lt;/html&amp;gt;</p><p>/* CSS */</p><p>body { font-family: Arial; color: #333; }</p>",
+          "type": "slide_text",
+          "label": "Slide content block 3",
+          "elementId": "text_qGiH2iXx",
+          "plainText": "&lt;!DOCTYPE html&gt;\n&lt;html&gt;\n&nbsp;&nbsp;&lt;head&gt;&lt;/head&gt;\n&nbsp;&nbsp;&lt;body&gt;Hello World&lt;/body&gt;\n&lt;/html&gt;\n /* CSS */\nbody { font-family: Arial; color: #333; }"
+        },
+        {
+          "id": "script_1",
+          "text": "Definition of Cascading Style Sheets。Separation of content (HTML) and presentation (CSS)。Simple before‑and‑after examples of an unstyled vs. styled page。",
+          "type": "script",
+          "actionId": "action_OVLHPkfq"
+        }
+      ],
+      "status": "draft",
+      "sceneId": "scene_X1oBLVhenu",
+      "sourceSceneId": "scene_X1oBLVhenu"
+    },
+    {
+      "type": "slide",
+      "order": 3,
+      "title": "CSS Syntax and Basic Rules",
+      "blocks": [
+        {
+          "id": "slide_text_1",
+          "html": "<p>CSS Syntax and Basic Rules</p>",
+          "type": "slide_text",
+          "label": "Slide title/content block 1",
+          "elementId": "text_kBbhqXFr",
+          "plainText": "CSS Syntax and Basic Rules"
+        },
+        {
+          "id": "slide_text_2",
+          "html": "<p>• Selectors, properties, and values</p><p>• Rule‑set: selector { property: value; }</p><p>• Write your first CSS declaration</p>",
+          "type": "slide_text",
+          "label": "Slide content block 2",
+          "elementId": "text_VCP2Y15x",
+          "plainText": "• Selectors, properties, and values\n • Rule‑set: selector { property: value; }\n • Write your first CSS declaration"
+        },
+        {
+          "id": "slide_text_3",
+          "html": "<p>selector {</p><p>&amp;nbsp;&amp;nbsp;color: red;</p><p>}</p>",
+          "type": "slide_text",
+          "label": "Slide content block 3",
+          "elementId": "text_Janndh-y",
+          "plainText": "selector {\n&nbsp;&nbsp;color: red;\n}"
+        },
+        {
+          "id": "script_1",
+          "text": "Alright, let’s dive into the building blocks of CSS: selectors, properties, and values.",
+          "type": "script",
+          "actionId": "action_tKA6_59v"
+        },
+        {
+          "id": "script_2",
+          "text": "First, a selector tells the browser which HTML element you want to style, a property is the aspect you’re changing—like color or font size—and the value is the specific setting you assign, such as red or 16px.",
+          "type": "script",
+          "actionId": "action_jM2D3zDU"
+        },
+        {
+          "id": "script_3",
+          "text": "Visually, think of a rule‑set as a tiny instruction card: the selector is the address, the braces hold the instructions, and each line inside follows a property‑value pair.",
+          "type": "script",
+          "actionId": "action_-HjXBaqv"
+        },
+        {
+          "id": "script_4",
+          "text": "Now, let’s write our first declaration together: <code>selector { color: red; }</code> – this tells the browser to make the text of the selected element appear red.",
+          "type": "script",
+          "actionId": "action_nrig_5I4"
+        }
+      ],
+      "status": "draft",
+      "sceneId": "scene_pkzmyvVtFo",
+      "sourceSceneId": "scene_pkzmyvVtFo"
+    },
+    {
+      "type": "quiz",
+      "order": 4,
+      "title": "Quiz 1 – CSS Basics",
+      "blocks": [
+        {
+          "id": "quiz_question_1",
+          "type": "quiz_question",
+          "options": [
+            {
+              "label": "h1.title",
+              "value": "A"
+            },
+            {
+              "label": "color: blue;",
+              "value": "B"
+            },
+            {
+              "label": "font-size: 24px;",
+              "value": "C"
+            },
+            {
+              "label": "The curly braces {}",
+              "value": "D"
+            }
+          ],
+          "question": "Which part of the following CSS rule is the selector?\n```css\nh1.title { color: blue; font-size: 24px; }\n```",
+          "questionId": "q1",
+          "explanation": "The selector is the part before the opening curly brace that tells the browser which HTML elements to style. In this rule, 'h1.title' selects any <h1> element with class 'title'. The other parts are declarations or punctuation.",
+          "correctAnswer": [
+            "A"
+          ]
+        },
+        {
+          "id": "quiz_question_2",
+          "type": "quiz_question",
+          "options": [
+            {
+              "label": "p.intro",
+              "value": "A"
+            },
+            {
+              "label": "#first",
+              "value": "B"
+            },
+            {
+              "label": ".welcome",
+              "value": "C"
+            },
+            {
+              "label": "p#first.intro",
+              "value": "D"
+            }
+          ],
+          "question": "Select all selectors that would correctly apply a style to the following HTML element:\n```html\n<p class=\"intro\" id=\"first\">Welcome</p>\n```",
+          "questionId": "q2",
+          "explanation": "The element can be selected by its tag and class (p.intro), by its id (#first), or by combining tag, id, and class (p#first.intro). The selector '.welcome' looks for a class named 'welcome', which this element does not have, so it is incorrect.",
+          "correctAnswer": [
+            "A",
+            "B",
+            "D"
+          ]
+        },
+        {
+          "id": "script_1",
+          "text": "Good morning, everyone! Let’s dive into a quick quiz to see how well we’ve grasped the basics of CSS selectors. Read each question carefully, and remember: a selector is the part of a CSS rule that tells the browser which HTML elements to style.",
+          "type": "script",
+          "actionId": "action_LTiZt6GL"
+        },
+        {
+          "id": "script_2",
+          "text": "For the first question, look at the rule `h1.title { color: blue; font-size: 24px; }`. The selector is the pattern before the opening brace—here it’s `h1.title`. The properties inside the braces (`color` and `font-size`) tell the browser *what* to change, but they aren’t part of the selector.",
+          "type": "script",
+          "actionId": "action_xzU4DZ-B"
+        },
+        {
+          "id": "script_3",
+          "text": "The second question asks you to pick all selectors that would match `<p class=\"intro\" id=\"first\">Welcome</p>`. Think about how selectors target elements: a tag name (`p`), a class (`.intro`), and an ID (`#first`). Combining them is allowed, as long as you use the correct syntax. So `p.intro`, `#first`, and `p#first.intro` are all valid ways to select that paragraph.",
+          "type": "script",
+          "actionId": "action_MNo2y2vH"
+        }
+      ],
+      "status": "draft",
+      "sceneId": "scene_P0lFCIBJ_n",
+      "sourceSceneId": "scene_P0lFCIBJ_n"
+    },
+    {
+      "type": "slide",
+      "order": 5,
+      "title": "Ways to Add CSS to a Page",
+      "blocks": [
+        {
+          "id": "slide_text_1",
+          "html": "<p>Ways to Add CSS to a Page</p>",
+          "type": "slide_text",
+          "label": "Slide title/content block 1",
+          "elementId": "text__s5QiCwj",
+          "plainText": "Ways to Add CSS to a Page"
+        },
+        {
+          "id": "slide_text_2",
+          "html": "<p>• Inline CSS – quick styling on a single element</p><p>• Internal CSS – style block inside the HTML file</p><p>• External CSS – separate .css file linked to the page</p>",
+          "type": "slide_text",
+          "label": "Slide content block 2",
+          "elementId": "text_Rs-ZhlzV",
+          "plainText": "• Inline CSS – quick styling on a single element\n • Internal CSS – style block inside the HTML file\n • External CSS – separate .css file linked to the page"
+        },
+        {
+          "id": "slide_text_3",
+          "html": "<p>&amp;lt;!-- Inline CSS --&amp;gt;</p><p>&amp;lt;p style=&amp;quot;color:red;&amp;quot;&amp;gt;Hello&amp;lt;/p&amp;gt;</p><p>&amp;lt;!-- Internal CSS --&amp;gt;&lt;br;&amp;lt;style&amp;gt; p { color:red; } &amp;lt;/style&amp;gt;</p><p>&amp;lt;!-- External CSS --&amp;gt;&lt;br;&amp;lt;link rel=&amp;quot;stylesheet&amp;quot; href=&amp;quot;styles.css&amp;quot;&amp;gt;</p>",
+          "type": "slide_text",
+          "label": "Slide content block 3",
+          "elementId": "text_lFaVC_lM",
+          "plainText": "&lt;!-- Inline CSS --&gt;\n&lt;p style=&quot;color:red;&quot;&gt;Hello&lt;/p&gt;\n\n&lt;!-- Internal CSS --&gt;<br;&lt;style&gt; p { color:red; } &lt;/style&gt;\n\n&lt;!-- External CSS --&gt;<br;&lt;link rel=&quot;stylesheet&quot; href=&quot;styles.css&quot;&gt;"
+        },
+        {
+          "id": "script_1",
+          "text": "Alright, let's explore the three ways we can add CSS to a page.",
+          "type": "script",
+          "actionId": "action_2oby3RdD"
+        },
+        {
+          "id": "script_2",
+          "text": "First, inline CSS—this lets you style a single element right inside its HTML tag, which is handy for quick, one‑off tweaks.",
+          "type": "script",
+          "actionId": "action_rgwIKKQ8"
+        },
+        {
+          "id": "script_3",
+          "text": "For example, here we have a paragraph with a style attribute that sets the text color directly.",
+          "type": "script",
+          "actionId": "action_cbCepmpf"
+        },
+        {
+          "id": "script_4",
+          "text": "Next, internal CSS—placed inside a <style> block in the head of the document, it lets you style multiple elements on the same page without touching each tag.",
+          "type": "script",
+          "actionId": "action_2T2JmEgq"
+        },
+        {
+          "id": "script_5",
+          "text": "Finally, external CSS—stored in its own .css file and linked to the HTML, which is the most scalable approach for larger sites.",
+          "type": "script",
+          "actionId": "action_iEBwZZzN"
+        },
+        {
+          "id": "script_6",
+          "text": "In practice, we choose the method that matches how often we need to reuse styles and how maintainable we want our code to be.",
+          "type": "script",
+          "actionId": "action_jA5zHNx3"
+        }
+      ],
+      "status": "draft",
+      "sceneId": "scene_wPRgBBTgHI",
+      "sourceSceneId": "scene_wPRgBBTgHI"
+    }
+  ],
+  "outputDirRelative": "learing expert agent\\outputs\\2026-05-04T13-52-44-801Z_prepare-this-course_WEooNy"
+}

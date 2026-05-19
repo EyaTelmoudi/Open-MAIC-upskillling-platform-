@@ -1,0 +1,51 @@
+\babel@toc {french}{}\relax 
+\contentsline {chapter}{\numberline {1}Contexte général et étude de l’existant}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Introduction}{2}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Présentation de la société}{2}{section.1.2}%
+\contentsline {subsection}{\numberline {1.2.1}Présentation générale}{2}{subsection.1.2.1}%
+\contentsline {subsection}{\numberline {1.2.2}Positionnement au sein du Groupe 3S}{2}{subsection.1.2.2}%
+\contentsline {subsection}{\numberline {1.2.3}Domaines d'activité de 3S}{3}{subsection.1.2.3}%
+\contentsline {section}{\numberline {1.3}Contexte du projet}{3}{section.1.3}%
+\contentsline {subsection}{\numberline {1.3.1}Problématique}{3}{subsection.1.3.1}%
+\contentsline {subsection}{\numberline {1.3.2}Objectif}{4}{subsection.1.3.2}%
+\contentsline {subsection}{\numberline {1.3.3}Solution proposée}{4}{subsection.1.3.3}%
+\contentsline {section}{\numberline {1.4}Étude et analyse de l'existant}{5}{section.1.4}%
+\contentsline {subsection}{\numberline {1.4.1}Solutions commercialisées}{5}{subsection.1.4.1}%
+\contentsline {subsubsection}{\numberline {1.4.1.1}Google Skills}{5}{subsubsection.1.4.1.1}%
+\contentsline {subsubsection}{\numberline {1.4.1.2}Duolingo}{5}{subsubsection.1.4.1.2}%
+\contentsline {subsubsection}{\numberline {1.4.1.3}360Learning}{6}{subsubsection.1.4.1.3}%
+\contentsline {subsubsection}{\numberline {1.4.1.4}CYPHER Learning}{6}{subsubsection.1.4.1.4}%
+\contentsline {subsection}{\numberline {1.4.2}Solutions non commercialisées}{6}{subsection.1.4.2}%
+\contentsline {subsubsection}{\numberline {1.4.2.1}OpenMAIC}{7}{subsubsection.1.4.2.1}%
+\contentsline {subsubsection}{\numberline {1.4.2.2}Moodle}{7}{subsubsection.1.4.2.2}%
+\contentsline {subsection}{\numberline {1.4.3}Synthèse comparative}{7}{subsection.1.4.3}%
+\contentsline {subsection}{\numberline {1.4.4}Améliorations et innovations}{8}{subsection.1.4.4}%
+\contentsline {section}{\numberline {1.5}Spécification des exigences}{9}{section.1.5}%
+\contentsline {subsection}{\numberline {1.5.1}Exigences fonctionnelles}{10}{subsection.1.5.1}%
+\contentsline {subsection}{\numberline {1.5.2}Exigences non fonctionnelles}{11}{subsection.1.5.2}%
+\contentsline {section}{\numberline {1.6}Conclusion}{12}{section.1.6}%
+\contentsline {chapter}{\numberline {2}Méthodologie de Travail et Cadre de Développement}{14}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Introduction}{15}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Limites des Méthodologies Traditionnelles face à l'IA Générative}{15}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Le modèle Agile et ses dérivés}{15}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Inadéquation structurelle avec le développement assisté par l'IA}{15}{subsection.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Le vibe coding : une réponse insuffisante}{16}{subsection.2.2.3}%
+\contentsline {section}{\numberline {2.3}Vers un Nouveau Paradigme : l'AI-Driven Development Lifecycle (AI-DLC)}{16}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Définition}{16}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Principes fondamentaux}{16}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Phases de l'AI-DLC}{17}{subsection.2.3.3}%
+\contentsline {section}{\numberline {2.4}Frameworks d'Implémentation de l'AI-DLC}{18}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}GitHub Spec Kit}{18}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}BMAD Method}{18}{subsection.2.4.2}%
+\contentsline {subsection}{\numberline {2.4.3}GSD Framework}{18}{subsection.2.4.3}%
+\contentsline {subsection}{\numberline {2.4.4}AWS Kiro}{19}{subsection.2.4.4}%
+\contentsline {section}{\numberline {2.5}Étude Comparative des Frameworks}{19}{section.2.5}%
+\contentsline {section}{\numberline {2.6}Framework Retenu : GSD enrichi de Skills Personnalisées}{20}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}Justification du choix}{20}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Démarche adoptée : approche hybride progressive}{21}{subsection.2.6.2}%
+\contentsline {subsubsection}{\numberline {2.6.2.1}Phase 1 : Découverte et planification avec GSD}{21}{subsubsection.2.6.2.1}%
+\contentsline {subsubsection}{\numberline {2.6.2.2}Phase 2 : Sélection de l'outil de construction par benchmark empirique}{21}{subsubsection.2.6.2.2}%
+\contentsline {subsubsection}{\numberline {2.6.2.3}Phase 3 : Construction avec Codex CLI et skills personnalisées}{22}{subsubsection.2.6.2.3}%
+\contentsline {section}{\numberline {2.7}Synthèse}{22}{section.2.7}%
+\contentsline {chapter}{Bibliographie}{23}{chapter*.7}%
+\contentsline {chapter}{Webographie}{24}{chapter*.8}%

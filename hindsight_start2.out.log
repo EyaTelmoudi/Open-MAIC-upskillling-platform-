@@ -1,0 +1,48 @@
+
+  [38;2;9;127;184m▄[0m[48;2;8;130;178m[38;2;5;133;186m▄[0m       [48;2;10;143;160m[38;2;10;143;165m▄[0m[38;2;7;140;156m▄[0m
+ [38;2;8;125;192m▄[0m [38;2;3;132;191m▀[0m[38;2;2;133;192m▄[0m [38;2;3;132;180m▄[0m[38;2;1;137;184m▄[0m[38;2;3;133;174m▄[0m [38;2;3;142;176m▄[0m[38;2;4;142;169m▀[0m [38;2;10;144;164m▄[0m
+[38;2;6;121;195m▀[0m[38;2;5;128;203m▀[0m[48;2;5;124;195m[38;2;3;125;200m▄[0m[38;2;2;126;196m▄[0m[48;2;3;128;188m[38;2;1;131;196m▄[0m[48;2;0;152;219m[38;2;2;131;191m▄[0m[38;2;1;141;196m▀[0m[38;2;1;135;183m▀[0m[38;2;1;148;198m▀[0m[48;2;1;156;202m[38;2;2;135;180m▄[0m[48;2;4;134;169m[38;2;1;137;177m▄[0m[38;2;3;138;173m▄[0m[48;2;6;137;165m[38;2;2;140;170m▄[0m[38;2;7;144;169m▀[0m[38;2;7;139;158m▀[0m
+   [48;2;2;128;202m[38;2;2;124;201m▄[0m[48;2;1;130;201m[38;2;0;135;212m▄[0m[38;2;2;128;196m▄[0m [48;2;2;142;204m[38;2;7;138;199m▄[0m [38;2;1;135;186m▄[0m[48;2;1;142;186m[38;2;2;144;194m▄[0m[48;2;3;138;176m[38;2;2;134;176m▄[0m
+ [48;2;8;118;200m[38;2;8;121;209m▄[0m[38;2;3;121;203m▀[0m [38;2;3;122;192m▀[0m[38;2;1;138;216m▀[0m[48;2;0;138;210m[38;2;3;128;198m▄[0m[48;2;0;126;188m[38;2;2;131;198m▄[0m[48;2;0;142;205m[38;2;3;132;193m▄[0m[38;2;1;140;196m▀[0m  [38;2;4;134;175m▀[0m[48;2;13;135;167m[38;2;8;136;174m▄[0m 
+
+  [38;2;0;116;217mH[38;2;0;116;215mi[38;2;0;117;214mn[38;2;0;117;213md[38;2;0;118;211ms[38;2;0;118;210mi[38;2;0;119;209mg[38;2;0;120;207mh[38;2;0;120;206mt[38;2;0;121;205m: [38;2;0;122;202mA[38;2;0;123;201mg[38;2;0;123;199me[38;2;0;124;198mn[38;2;0;124;197mt [38;2;0;126;194mM[38;2;0;126;193me[38;2;0;127;192mm[38;2;0;127;190mo[38;2;0;128;189mr[38;2;0;128;188my [38;2;0;130;185mT[38;2;0;130;184mh[38;2;0;131;182ma[38;2;0;131;181mt [38;2;0;133;178mW[38;2;0;133;177mo[38;2;0;134;176mr[38;2;0;134;174mk[38;2;0;135;173ms [38;2;0;136;171mL[38;2;0;137;169mi[38;2;0;137;168mk[38;2;0;138;167me [38;2;0;139;164mH[38;2;0;140;163mu[38;2;0;140;161mm[38;2;0;141;160ma[38;2;0;141;159mn [38;2;0;143;156mM[38;2;0;143;155me[38;2;0;144;153mm[38;2;0;144;152mo[38;2;0;145;151mr[38;2;0;146;150my[0m
+
+2026-05-08 00:10:25,832 - INFO - hindsight_api.config - Database: pg0://hindsight-memory:5544 (schema: public)
+2026-05-08 00:10:25,832 - INFO - hindsight_api.config - LLM: provider=openrouter, model=openai/gpt-oss-120b:free
+2026-05-08 00:10:25,832 - INFO - hindsight_api.config - Embeddings: provider=tei
+2026-05-08 00:10:25,833 - INFO - hindsight_api.config - Reranker: provider=rrf
+2026-05-08 00:10:25,833 - INFO - hindsight_api.config - Graph retriever: link_expansion
+2026-05-08 00:10:26,747 - INFO - hindsight_api.engine.providers.openai_compatible_llm - OpenAI-compatible client initialized: provider=openrouter, model=openai/gpt-oss-120b:free, base_url=https://openrouter.ai/api/v1
+2026-05-08 00:10:27,716 - INFO - hindsight_api.engine.providers.openai_compatible_llm - OpenAI-compatible client initialized: provider=openrouter, model=openai/gpt-oss-120b:free, base_url=https://openrouter.ai/api/v1
+2026-05-08 00:10:28,628 - INFO - hindsight_api.engine.providers.openai_compatible_llm - OpenAI-compatible client initialized: provider=openrouter, model=openai/gpt-oss-120b:free, base_url=https://openrouter.ai/api/v1
+2026-05-08 00:10:29,521 - INFO - hindsight_api.engine.providers.openai_compatible_llm - OpenAI-compatible client initialized: provider=openrouter, model=openai/gpt-oss-120b:free, base_url=https://openrouter.ai/api/v1
+2026-05-08 00:10:29,714 - INFO - hindsight_api.api.mcp - MCP servers created (stateless_http=False)
+2026-05-08 00:10:29,804 - INFO - hindsight_api.api - HTTP REST API enabled
+2026-05-08 00:10:29,804 - INFO - hindsight_api.api - MCP server enabled at /mcp/
+winloop installed as asyncio event loop policy (Windows uvloop port)
+[38;2;0;116;217mStarting Hindsight API...[0m
+  [38;2;128;128;128mVersion:[0m [38;2;0;119;210mv0.5.6[0m
+  [38;2;128;128;128mURL:[0m [38;2;0;122;203mhttp://127.0.0.1:8888[0m
+  [38;2;128;128;128mDatabase:[0m [38;2;0;128;190mpg0://hindsight-memory:5544[0m
+  [38;2;128;128;128mLLM:[0m [38;2;0;134;176mopenrouter / openai/gpt-oss-120b:free[0m
+  [38;2;128;128;128mEmbeddings:[0m [38;2;0;140;163mtei[0m
+  [38;2;128;128;128mReranker:[0m [38;2;0;146;150mrrf[0m
+  [38;2;128;128;128mExtensions:[0m [38;2;0;128;190mpgvector (vector) / native (text)[0m
+  [38;2;128;128;128mMCP:[0m [38;2;0;146;150menabled at /mcp[0m
+
+2026-05-08 00:10:29,847 - INFO - mcp.server.streamable_http_manager - StreamableHTTP session manager started
+2026-05-08 00:10:29,847 - INFO - mcp.server.streamable_http_manager - StreamableHTTP session manager started
+2026-05-08 00:10:29,847 - INFO - hindsight_api.api - MCP lifespans started (multi-bank and single-bank)
+2026-05-08 00:10:29,858 - INFO - root - Metrics initialized - available at /metrics endpoint
+2026-05-08 00:10:29,858 - INFO - hindsight_api.engine.embeddings - Embeddings: initializing TEI provider at http://127.0.0.1:8081
+2026-05-08 00:10:30,818 - INFO - hindsight_api.engine.embeddings - Embeddings: TEI provider initialized (model: BAAI/bge-small-en-v1.5, dim: 384)
+2026-05-08 00:10:30,819 - INFO - hindsight_api.engine.cross_encoder - Reranker: RRF passthrough provider initialized (neural reranking disabled)
+2026-05-08 00:10:30,819 - INFO - hindsight_api.engine.providers.openai_compatible_llm - Verifying connection: openrouter/openai/gpt-oss-120b:free
+2026-05-08 00:10:31,641 - INFO - hindsight_api.pg0 - Starting embedded PostgreSQL (name=hindsight-memory, port=5544)...
+2026-05-08 00:10:33,647 - WARNING - hindsight_api.engine.providers.openai_compatible_llm - APIConnectionError (HTTP None), attempt 1: Connection error.
+2026-05-08 00:10:36,172 - WARNING - hindsight_api.engine.providers.openai_compatible_llm - APIConnectionError (HTTP None), attempt 2: Connection error.
+2026-05-08 00:10:39,215 - WARNING - hindsight_api.engine.providers.openai_compatible_llm - APIConnectionError (HTTP None), attempt 3: Connection error.
+2026-05-08 00:10:39,224 - ERROR - hindsight_api.engine.providers.openai_compatible_llm - Connection error after 3 attempts: Connection error.
+2026-05-08 00:10:39,224 - WARNING - hindsight_api.engine.memory_engine - LLM connection verification failed for 'default' config: Connection verification failed for openrouter/openai/gpt-oss-120b:free: Connection error.. Server will start but LLM-dependent operations may fail until the provider is available.
+2026-05-08 00:11:32,180 - INFO - mcp.server.streamable_http_manager - StreamableHTTP session manager shutting down
+2026-05-08 00:11:32,181 - INFO - mcp.server.streamable_http_manager - StreamableHTTP session manager shutting down

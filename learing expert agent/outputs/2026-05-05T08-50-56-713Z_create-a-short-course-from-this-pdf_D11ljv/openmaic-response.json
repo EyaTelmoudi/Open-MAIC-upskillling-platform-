@@ -1,0 +1,890 @@
+{
+  "id": "clpAVHGV-x",
+  "url": "http://localhost:3000/classroom/clpAVHGV-x",
+  "stage": {
+    "id": "clpAVHGV-x",
+    "name": "Course Overview",
+    "languageDirective": "Deliver the entire course in English. Use clear and concise language suitable for developers with basic familiarity with software testing. Technical terms (e.g., OpenMAIC, storage, smoke test) should be kept in English; provide brief explanations where needed. Keep the tone professional and interactive.",
+    "style": "interactive",
+    "createdAt": 1777971091243,
+    "updatedAt": 1777971091243,
+    "agentIds": [
+      "default-1",
+      "default-2",
+      "default-3",
+      "default-4",
+      "default-5",
+      "default-6"
+    ]
+  },
+  "scenes": [
+    {
+      "id": "scene_VtKHloLggC",
+      "stageId": "clpAVHGV-x",
+      "type": "slide",
+      "title": "Course Overview",
+      "order": 1,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "Be1-mZeG6Za3RPWbVa502",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_bx2Zh1An",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 70,
+              "content": "<p style=\"font-size:32px; text-align:center; color:#0f766e;\"><strong>Course Overview</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#0f766e",
+              "rotate": 0
+            },
+            {
+              "id": "shape_n--q9D9T",
+              "type": "shape",
+              "left": 70,
+              "top": 138,
+              "width": 860,
+              "height": 3,
+              "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+              "viewBox": [
+                1,
+                1
+              ],
+              "fill": "#5b9bd5",
+              "fixedRatio": false,
+              "rotate": 0
+            },
+            {
+              "id": "text_EGTSgf0C",
+              "type": "text",
+              "left": 80,
+              "top": 160,
+              "width": 840,
+              "height": 118,
+              "content": "<p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• What is OpenMAIC?</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Why storage smoke tests matter</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Course agenda and learning goals</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#1f2937",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "gradient",
+            "gradient": {
+              "type": "linear",
+              "colors": [
+                {
+                  "color": "#f8fffd",
+                  "pos": 0
+                },
+                {
+                  "color": "#eef6ff",
+                  "pos": 100
+                }
+              ],
+              "rotate": 135
+            }
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_CKahSql4",
+          "type": "spotlight",
+          "elementId": "text_bx2Zh1An"
+        },
+        {
+          "id": "action_mHr1jFYQ",
+          "type": "speech",
+          "text": "Let’s take a quick look at where we’re headed in this short course on OpenMAIC storage smoke testing."
+        },
+        {
+          "id": "action_PwsE5nin",
+          "type": "spotlight",
+          "elementId": "text_EGTSgf0C"
+        },
+        {
+          "id": "action_GKlV6lUF",
+          "type": "speech",
+          "text": "First, we’ll answer the question ‘What is OpenMAIC?’ – it’s the framework that lets us run lightweight storage smoke tests quickly and reliably."
+        },
+        {
+          "id": "action_GwT5zP2i",
+          "type": "laser",
+          "elementId": "text_EGTSgf0C"
+        },
+        {
+          "id": "action_bmyQzya3",
+          "type": "speech",
+          "text": "Next, we’ll discuss why those smoke tests matter: they catch obvious storage‑related failures early, saving time and preventing downstream bugs."
+        },
+        {
+          "id": "action_c7joYcYT",
+          "type": "laser",
+          "elementId": "text_EGTSgf0C"
+        },
+        {
+          "id": "action_yomwZLID",
+          "type": "speech",
+          "text": "Finally, I’ll walk you through the course agenda and our learning goals, so you know exactly what you’ll be able to do by the end."
+        },
+        {
+          "id": "action_4Zgwb0yt",
+          "type": "speech",
+          "text": "By the end of today’s overview, you’ll see how each piece fits together and feel confident about the path forward."
+        }
+      ],
+      "createdAt": 1777971128437,
+      "updatedAt": 1777971128437
+    },
+    {
+      "id": "scene_PusDDOiNDu",
+      "stageId": "clpAVHGV-x",
+      "type": "slide",
+      "title": "OpenMAIC Storage Architecture",
+      "order": 2,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "9bXDM2YnJUyKra0LBa_e2",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_O_OK2enY",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 70,
+              "content": "<p style=\"font-size:32px; text-align:center; color:#0f766e;\"><strong>OpenMAIC Storage Architecture</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#0f766e",
+              "rotate": 0
+            },
+            {
+              "id": "text_2gOrYT_J",
+              "type": "text",
+              "left": 80,
+              "top": 130,
+              "width": 840,
+              "height": 103,
+              "content": "<p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Disk module – persistent data storage</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Cache layer – fast read/write acceleration</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Metadata service – tracks objects and locations</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#1f2937",
+              "rotate": 0
+            },
+            {
+              "id": "chart__VmA6He4",
+              "type": "chart",
+              "left": 100,
+              "top": 260,
+              "width": 800,
+              "height": 300,
+              "chartType": "bar",
+              "data": {
+                "labels": [
+                  "Disk",
+                  "Cache",
+                  "Metadata"
+                ],
+                "legends": [
+                  "Component"
+                ],
+                "series": [
+                  [
+                    1,
+                    1,
+                    1
+                  ]
+                ]
+              },
+              "themeColors": [
+                "#5b9bd5",
+                "#70ad47",
+                "#ed7d31"
+              ],
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "gradient",
+            "gradient": {
+              "type": "linear",
+              "colors": [
+                {
+                  "color": "#f8fffd",
+                  "pos": 0
+                },
+                {
+                  "color": "#eef6ff",
+                  "pos": 100
+                }
+              ],
+              "rotate": 135
+            }
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_ObxJgm8y",
+          "type": "spotlight",
+          "elementId": "text_O_OK2enY"
+        },
+        {
+          "id": "action_3GeAl0Gj",
+          "type": "speech",
+          "text": "Let's start by looking at the overall storage architecture of OpenMAIC. This diagram gives us a high‑level view of how the system is organized."
+        },
+        {
+          "id": "action_rBViy0b2",
+          "type": "spotlight",
+          "elementId": "text_2gOrYT_J"
+        },
+        {
+          "id": "action_60B4qr_o",
+          "type": "speech",
+          "text": "First, we have three key storage modules: the Disk module for persistent data, the Cache layer for fast, temporary access, and the Metadata component that tracks where everything lives."
+        },
+        {
+          "id": "action_4owR5XKD",
+          "type": "spotlight",
+          "elementId": "chart__VmA6He4"
+        },
+        {
+          "id": "action_8OCR4CK7",
+          "type": "speech",
+          "text": "The chart illustrates the data flow between these modules. Data is written to disk, cached for quick reads, and metadata coordinates the lookup—ensuring the system remains both durable and responsive."
+        }
+      ],
+      "createdAt": 1777971162851,
+      "updatedAt": 1777971162851
+    },
+    {
+      "id": "scene_2ycX3SwL7c",
+      "stageId": "clpAVHGV-x",
+      "type": "slide",
+      "title": "What Is a Smoke Test?",
+      "order": 3,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "xHh9wKR4MwC8rkAs5_pvJ",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_EjlCKTEH",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 70,
+              "content": "<p style=\"font-size:32px; text-align:center; color:#0f766e;\"><strong>What Is a Smoke Test?</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#0f766e",
+              "rotate": 0
+            },
+            {
+              "id": "shape_jKqs9Zhk",
+              "type": "shape",
+              "left": 70,
+              "top": 128,
+              "width": 860,
+              "height": 3,
+              "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+              "viewBox": [
+                1,
+                1
+              ],
+              "fill": "#5b9bd5",
+              "fixedRatio": false,
+              "rotate": 0
+            },
+            {
+              "id": "text_MBFgu4zP",
+              "type": "text",
+              "left": 80,
+              "top": 140,
+              "width": 840,
+              "height": 103,
+              "content": "<p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Smoke test vs. regression test</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Typical smoke‑test checkpoints for storage</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Benefits: early detection of critical failures</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#1f2937",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "gradient",
+            "gradient": {
+              "type": "linear",
+              "colors": [
+                {
+                  "color": "#f8fffd",
+                  "pos": 0
+                },
+                {
+                  "color": "#eef6ff",
+                  "pos": 100
+                }
+              ],
+              "rotate": 135
+            }
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_u5rnGCKB",
+          "type": "spotlight",
+          "elementId": "text_EjlCKTEH"
+        },
+        {
+          "id": "action_Y_A1fo_2",
+          "type": "speech",
+          "text": "Welcome, everyone! Today we’re kicking off our journey into storage testing by exploring what a smoke test is and why it matters for reliable systems."
+        },
+        {
+          "id": "action_zBsvuBlv",
+          "type": "spotlight",
+          "elementId": "text_MBFgu4zP"
+        },
+        {
+          "id": "action_nD0jUS2z",
+          "type": "speech",
+          "text": "First, let’s contrast a smoke test with a regression test. A smoke test is a quick, high‑level check to confirm the system boots up and core functions run, while regression testing digs deeper, verifying that recent changes haven’t broken existing features."
+        },
+        {
+          "id": "action_BtZu6XkH",
+          "type": "laser",
+          "elementId": "text_MBFgu4zP"
+        },
+        {
+          "id": "action_obZELFgS",
+          "type": "speech",
+          "text": "Next, consider typical smoke‑test checkpoints for storage: mounting the volume, basic read/write operations, and verifying that the storage service starts without errors. These checkpoints catch fatal problems early, before we invest time in full‑scale testing."
+        },
+        {
+          "id": "action_WLAzlO--",
+          "type": "laser",
+          "elementId": "text_MBFgu4zP"
+        },
+        {
+          "id": "action_KAb3I09P",
+          "type": "speech",
+          "text": "Finally, the biggest benefit is early detection of critical failures. By running a smoke test after each build, we get rapid feedback—if the basic storage pipeline breaks, we stop the line immediately, saving time and effort."
+        },
+        {
+          "id": "action_yYBBjUk3",
+          "type": "speech",
+          "text": "With that overview, let’s move forward and see how we design effective smoke tests for our storage systems."
+        }
+      ],
+      "createdAt": 1777971247279,
+      "updatedAt": 1777971247279
+    },
+    {
+      "id": "scene_mqj7GECAPr",
+      "stageId": "clpAVHGV-x",
+      "type": "interactive",
+      "title": "Interactive Smoke‑Test Simulation",
+      "order": 4,
+      "content": {
+        "type": "interactive",
+        "url": "",
+        "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>OpenMAIC Storage Smoke Test Simulation</title>\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <style>\n    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f4f4f9;color:#212529;display:flex;flex-direction:column;min-height:100vh;}\n    .wrapper{display:flex;flex-direction:column;flex:1;}\n    @media(min-width:768px){.wrapper{flex-direction:row;}}\n    #controls{background:#fff;padding:1rem;box-shadow:0 2px 4px rgba(0,0,0,0.1);overflow:auto;width:100%;max-height:40vh;}\n    @media(min-width:768px){#controls{width:260px;max-height:none;flex-shrink:0;}}\n    .control-group{margin-bottom:1rem;}\n    .control-group label{display:block;margin-bottom:0.25rem;font-weight:bold;}\n    .control-group input[type=range]{width:100%;}\n    .button{display:inline-block;padding:0.5rem 1rem;margin:0.25rem 0;background:#8b5cf6;color:#fff;border:none;border-radius:4px;font-size:1rem;cursor:pointer;min-width:44px;min-height:44px;touch-action:manipulation;}\n    .button:focus{outline:2px solid #5b21b6;}\n    #canvasContainer{flex:1;position:relative;min-height:300px;background:#e5e7eb;}\n    #canvas{width:100%;height:100%;}\n    #infoOverlay{position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.6);color:#fff;padding:0.5rem 0.75rem;border-radius:4px;font-size:0.9rem;}\n    .preset-btn{background:#3b82f6;}\n    .teacher-annotation{pointer-events:none;}\n  </style>\n\n<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css\">\n<script src=\"https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js\"></script>\n<script src=\"https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js\"></script>\n<script>\ndocument.addEventListener(\"DOMContentLoaded\", function() {\n    const katexOptions = {\n        delimiters: [\n            {left: '\\\\[', right: '\\\\]', display: true},\n            {left: '\\\\(', right: '\\\\)', display: false},\n            {left: '$$', right: '$$', display: true},\n            {left: '$', right: '$', display: false}\n        ],\n        throwOnError: false,\n        strict: false,\n        trust: true\n    };\n\n    let renderTimeout;\n    function safeRender() {\n        if (renderTimeout) clearTimeout(renderTimeout);\n        renderTimeout = setTimeout(() => {\n            renderMathInElement(document.body, katexOptions);\n        }, 100);\n    }\n\n    renderMathInElement(document.body, katexOptions);\n\n    const observer = new MutationObserver((mutations) => {\n        let shouldRender = false;\n        mutations.forEach((mutation) => {\n            if (mutation.target &&\n                mutation.target.className &&\n                typeof mutation.target.className === 'string' &&\n                mutation.target.className.includes('katex')) {\n                return;\n            }\n            shouldRender = true;\n        });\n\n        if (shouldRender) {\n            safeRender();\n        }\n    });\n\n    observer.observe(document.body, {\n        childList: true,\n        subtree: true,\n        characterData: true\n    });\n\n    setInterval(() => {\n        const text = document.body.innerText;\n        if (text.includes('\\\\(') || text.includes('$$')) {\n            safeRender();\n        }\n    }, 2000);\n});\n</script>\n</head>\n<body>\n<div class=\"wrapper\">\n  <div id=\"controls\">\n    <h2>Simulation Controls</h2>\n    <div class=\"control-group\">\n      <label for=\"storageSize-slider\">Storage Size (GB)</label>\n      <input type=\"range\" id=\"storageSize-slider\" data-var=\"storageSize\" min=\"10\" max=\"500\" step=\"10\" value=\"100\">\n      <div>Value: <span id=\"storageSize-display\">100</span> GB</div>\n    </div>\n    <div class=\"control-group\">\n      <label for=\"networkLatency-slider\">Network Latency (ms)</label>\n      <input type=\"range\" id=\"networkLatency-slider\" data-var=\"networkLatency\" min=\"0\" max=\"200\" step=\"5\" value=\"20\">\n      <div>Value: <span id=\"networkLatency-display\">20</span> ms</div>\n    </div>\n    <div class=\"control-group\">\n      <label for=\"errorRate-slider\">Error Rate (%)</label>\n      <input type=\"range\" id=\"errorRate-slider\" data-var=\"errorRate\" min=\"0\" max=\"10\" step=\"0.1\" value=\"1\">\n      <div>Value: <span id=\"errorRate-display\">1</span> %</div>\n    </div>\n    <button id=\"mainBtn\" class=\"button\">启动</button>\n    <button id=\"resetBtn\" class=\"button\">Reset</button>\n    <h3>Presets</h3>\n    <button class=\"button preset-btn\" data-preset=\"normal\">Normal Load</button>\n    <button class=\"button preset-btn\" data-preset=\"highLatency\">High Latency</button>\n    <button class=\"button preset-btn\" data-preset=\"errorSpike\">Error Spike</button>\n  </div>\n  <div id=\"canvasContainer\">\n    <canvas id=\"canvas\"></canvas>\n    <div id=\"infoOverlay\"></div>\n  </div>\n</div>\n\n<script type=\"application/json\" id=\"widget-config\">\n{\n  \"type\": \"simulation\",\n  \"concept\": \"openmaic_storage_smoke_test\",\n  \"description\": \"Explore a live storage smoke test by adjusting storage size, network latency, and error rate.\",\n  \"variables\": [\n    { \"name\": \"storageSize\", \"label\": \"Storage Size\", \"min\": 10, \"max\": 500, \"default\": 100, \"unit\": \"GB\" },\n    { \"name\": \"networkLatency\", \"label\": \"Network Latency\", \"min\": 0, \"max\": 200, \"default\": 20, \"unit\": \"ms\" },\n    { \"name\": \"errorRate\", \"label\": \"Error Rate\", \"min\": 0, \"max\": 10, \"default\": 1, \"unit\": \"%\" }\n  ],\n  \"presets\": [\n    { \"name\": \"Normal Load\", \"variables\": { \"storageSize\": 200, \"networkLatency\": 20, \"errorRate\": 0.5 } },\n    { \"name\": \"High Latency\", \"variables\": { \"storageSize\": 150, \"networkLatency\": 150, \"errorRate\": 0.5 } },\n    { \"name\": \"Error Spike\", \"variables\": { \"storageSize\": 100, \"networkLatency\": 30, \"errorRate\": 8 } }\n  ]\n}\n</script>\n\n<script>\n  // ---- State Management ----\n  const state = {\n    running: false,\n    paused: false,\n    ended: false,\n    time: 0,\n    health: 100, // percent\n    storageSize: 100,\n    networkLatency: 20,\n    errorRate: 1\n  };\n  const canvas = document.getElementById('canvas');\n  const ctx = canvas.getContext('2d');\n  const info = document.getElementById('infoOverlay');\n\n  // ---- Resize Canvas ----\n  function resizeCanvas() {\n    canvas.width = canvas.parentElement.clientWidth;\n    canvas.height = canvas.parentElement.clientHeight;\n    draw();\n  }\n  new ResizeObserver(resizeCanvas).observe(document.getElementById('canvasContainer'));\n\n  // ---- UI Updates ----\n  function updateDisplays() {\n    document.getElementById('storageSize-display').textContent = state.storageSize;\n    document.getElementById('networkLatency-display').textContent = state.networkLatency;\n    document.getElementById('errorRate-display').textContent = state.errorRate;\n  }\n  function syncSliders() {\n    document.getElementById('storageSize-slider').value = state.storageSize;\n    document.getElementById('networkLatency-slider').value = state.networkLatency;\n    document.getElementById('errorRate-slider').value = state.errorRate;\n    updateDisplays();\n  }\n\n  // ---- Simulation Logic ----\n  function step(dt) {\n    // Simple health decay model\n    const decayRate = state.errorRate * 0.5 + state.networkLatency * 0.02;\n    state.health -= decayRate * dt;\n    if (state.health <= 0) {\n      state.health = 0;\n      endSimulation();\n    }\n    state.time += dt;\n  }\n\n  function draw() {\n    const w = canvas.width, h = canvas.height;\n    ctx.clearRect(0,0,w,h);\n    // Draw background grid\n    ctx.strokeStyle = '#cbd5e1';\n    ctx.lineWidth = 1;\n    for(let x=0;x<w;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}\n    for(let y=0;y<h;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}\n    // Draw storage bar\n    const barWidth = w * 0.6;\n    const barHeight = 30;\n    const barX = (w - barWidth)/2;\n    const barY = h/2 - barHeight/2;\n    ctx.fillStyle = '#8b5cf6';\n    ctx.fillRect(barX, barY, barWidth, barHeight);\n    // Health fill\n    const healthWidth = barWidth * (state.health/100);\n    ctx.fillStyle = state.health > 30 ? '#10b981' : '#ef4444';\n    ctx.fillRect(barX, barY, healthWidth, barHeight);\n    // Health text\n    ctx.fillStyle = '#fff';\n    ctx.font = '16px monospace';\n    ctx.textAlign = 'center';\n    ctx.textBaseline = 'middle';\n    ctx.fillText(state.health.toFixed(1) + '%', w/2, barY + barHeight/2);\n    // Time overlay\n    ctx.fillStyle = '#000';\n    ctx.font = '14px monospace';\n    ctx.textAlign = 'left';\n    ctx.fillText('Time: ' + state.time.toFixed(1) + 's', 10, 20);\n  }\n\n  let animationId;\n  function run() {\n    const fps = 60;\n    const dt = 1/fps;\n    step(dt);\n    draw();\n    if (state.running) {\n      animationId = requestAnimationFrame(run);\n    }\n  }\n\n  function startSimulation() {\n    if (state.ended) resetSimulation();\n    state.running = true;\n    state.paused = false;\n    document.getElementById('mainBtn').innerText = '暂停';\n    run();\n  }\n\n  function pauseSimulation() {\n    state.running = false;\n    state.paused = true;\n    document.getElementById('mainBtn').innerText = '启动';\n    cancelAnimationFrame(animationId);\n  }\n\n  function endSimulation() {\n    state.running = false;\n    state.ended = true;\n    document.getElementById('mainBtn').innerText = '重新开始';\n    cancelAnimationFrame(animationId);\n    // visual feedback\n    ctx.fillStyle = 'rgba(239,68,68,0.3)';\n    ctx.fillRect(0,0,canvas.width,canvas.height);\n  }\n\n  function resetSimulation() {\n    state.running = false;\n    state.paused = false;\n    state.ended = false;\n    state.time = 0;\n    state.health = 100;\n    // restore defaults from config\n    const cfg = JSON.parse(document.getElementById('widget-config').textContent);\n    cfg.variables.forEach(v=>{\n      state[v.name]=v.default;\n    });\n    syncSliders();\n    document.getElementById('mainBtn').innerText = '启动';\n    draw();\n  }\n\n  // ---- Event Listeners ----\n  document.getElementById('mainBtn').addEventListener('click',()=>{\n    if(state.ended){\n      resetSimulation();\n      startSimulation();\n    }else if(state.running){\n      pauseSimulation();\n    }else{\n      startSimulation();\n    }\n  });\n  document.getElementById('resetBtn').addEventListener('click',resetSimulation);\n\n  // Slider handling\n  ['storageSize','networkLatency','errorRate'].forEach(v=>{\n    const slider=document.getElementById(v+'-slider');\n    slider.addEventListener('input',e=>{\n      state[v]=Number(e.target.value);\n      updateDisplays();\n    });\n  });\n\n  // Preset handling\n  document.querySelectorAll('.preset-btn').forEach(btn=>{\n    btn.addEventListener('click',()=>{\n      const presetName=btn.getAttribute('data-preset');\n      const cfg=JSON.parse(document.getElementById('widget-config').textContent);\n      const preset=cfg.presets.find(p=>p.name.replace(/\\s+/g,'').toLowerCase()===presetName.toLowerCase());\n      if(preset){\n        Object.entries(preset.variables).forEach(([k,v])=>state[k]=v);\n        resetSimulation();\n      }\n    });\n  });\n\n  // Keyboard shortcuts\n  window.addEventListener('keydown',e=>{\n    if(e.code==='Space'){\n      e.preventDefault();\n      document.getElementById('mainBtn').click();\n    }else if(e.key==='r' || e.key==='R'){\n      resetSimulation();\n    }\n  });\n\n  // Initial draw\n  resizeCanvas();\n  updateDisplays();\n\n  // ---- postMessage Listener (teacher actions) ----\n  window.addEventListener('message', function(event) {\n    const { type, target, state: incomingState, content } = event.data;\n\n    switch (type) {\n      case 'SET_WIDGET_STATE':\n        if (incomingState) {\n          Object.entries(incomingState).forEach(([key, value]) => {\n            const slider = document.getElementById(key + '-slider') || document.querySelector('[data-var=\"' + key + '\"]');\n            if (slider) {\n              slider.value = value;\n              slider.dispatchEvent(new Event('input', { bubbles: true }));\n            }\n          });\n        }\n        break;\n\n      case 'HIGHLIGHT_ELEMENT':\n        const highlightEl = document.querySelector(target);\n        if (highlightEl) {\n          highlightEl.style.outline = '3px solid rgba(139, 92, 246, 0.8)';\n          highlightEl.style.outlineOffset = '4px';\n          highlightEl.style.animation = 'pulse-highlight 2s infinite';\n          setTimeout(() => {\n            highlightEl.style.outline = '';\n            highlightEl.style.animation = '';\n          }, 3000);\n        }\n        break;\n\n      case 'ANNOTATE_ELEMENT':\n        const annotateEl = document.querySelector(target);\n        if (annotateEl && content) {\n          const rect = annotateEl.getBoundingClientRect();\n          const tooltip = document.createElement('div');\n          tooltip.className = 'teacher-annotation';\n          tooltip.style.cssText = 'position:fixed; top:' + (rect.top - 40) + 'px; left:' + rect.left + 'px; background:rgba(139,92,246,0.95); color:white; padding:8px 12px; border-radius:8px; font-size:14px; z-index:1000; animation:fadeIn 0.3s;';\n          tooltip.textContent = content;\n          document.body.appendChild(tooltip);\n          setTimeout(() => tooltip.remove(), 4000);\n        }\n        break;\n\n      case 'REVEAL_ELEMENT':\n        const revealEl = document.querySelector(target);\n        if (revealEl) {\n          revealEl.style.display = '';\n          revealEl.style.opacity = '1';\n        }\n        break;\n    }\n  });\n\n  const style = document.createElement('style');\n  style.textContent = '@keyframes pulse-highlight { 0%, 100% { outline-color: rgba(139, 92, 246, 0.8); } 50% { outline-color: rgba(139, 92, 246, 0.4); } } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }';\n  document.head.appendChild(style);\n</script>\n</body>\n</html>",
+        "widgetType": "simulation",
+        "widgetConfig": {
+          "type": "simulation",
+          "concept": "openmaic_storage_smoke_test",
+          "description": "Explore a live storage smoke test by adjusting storage size, network latency, and error rate.",
+          "variables": [
+            {
+              "name": "storageSize",
+              "label": "Storage Size",
+              "min": 10,
+              "max": 500,
+              "default": 100,
+              "unit": "GB"
+            },
+            {
+              "name": "networkLatency",
+              "label": "Network Latency",
+              "min": 0,
+              "max": 200,
+              "default": 20,
+              "unit": "ms"
+            },
+            {
+              "name": "errorRate",
+              "label": "Error Rate",
+              "min": 0,
+              "max": 10,
+              "default": 1,
+              "unit": "%"
+            }
+          ],
+          "presets": [
+            {
+              "name": "Normal Load",
+              "variables": {
+                "storageSize": 200,
+                "networkLatency": 20,
+                "errorRate": 0.5
+              }
+            },
+            {
+              "name": "High Latency",
+              "variables": {
+                "storageSize": 150,
+                "networkLatency": 150,
+                "errorRate": 0.5
+              }
+            },
+            {
+              "name": "Error Spike",
+              "variables": {
+                "storageSize": 100,
+                "networkLatency": 30,
+                "errorRate": 8
+              }
+            }
+          ]
+        },
+        "teacherActions": [
+          {
+            "id": "intro",
+            "type": "speech",
+            "content": "Welcome! In this simulation you can adjust storage size, network latency, and error rate to see how they impact system health during a storage smoke test.",
+            "label": "Intro"
+          },
+          {
+            "id": "highlight_storage",
+            "type": "highlight",
+            "target": "#storageSize-slider",
+            "content": "Use this slider to set the amount of storage available (in GB).",
+            "label": "Storage Slider"
+          },
+          {
+            "id": "highlight_latency",
+            "type": "highlight",
+            "target": "#networkLatency-slider",
+            "content": "This slider controls network latency in milliseconds.",
+            "label": "Latency Slider"
+          },
+          {
+            "id": "highlight_error",
+            "type": "highlight",
+            "target": "#errorRate-slider",
+            "content": "Adjust the error rate percentage to simulate request failures.",
+            "label": "Error Slider"
+          },
+          {
+            "id": "demo_error_spike",
+            "type": "setState",
+            "state": {
+              "storageSize": 100,
+              "networkLatency": 30,
+              "errorRate": 8
+            },
+            "content": "Let's see what happens when the error rate spikes to 8%. Observe how the health indicators react.",
+            "label": "Error Spike"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_aoZHy-XM",
+          "title": "Intro",
+          "type": "speech",
+          "text": "Welcome! In this simulation you can adjust storage size, network latency, and error rate to see how they impact system health during a storage smoke test."
+        },
+        {
+          "id": "action_Kk4v09fK",
+          "title": "Storage Slider",
+          "type": "widget_highlight",
+          "target": "#storageSize-slider"
+        },
+        {
+          "id": "action_Kk4v09fK_speech",
+          "type": "speech",
+          "text": "Use this slider to set the amount of storage available (in GB).",
+          "title": "Storage Slider"
+        },
+        {
+          "id": "action_sNiVf8ij",
+          "title": "Latency Slider",
+          "type": "widget_highlight",
+          "target": "#networkLatency-slider"
+        },
+        {
+          "id": "action_sNiVf8ij_speech",
+          "type": "speech",
+          "text": "This slider controls network latency in milliseconds.",
+          "title": "Latency Slider"
+        },
+        {
+          "id": "action_rBA3QPT1",
+          "title": "Error Slider",
+          "type": "widget_highlight",
+          "target": "#errorRate-slider"
+        },
+        {
+          "id": "action_rBA3QPT1_speech",
+          "type": "speech",
+          "text": "Adjust the error rate percentage to simulate request failures.",
+          "title": "Error Slider"
+        },
+        {
+          "id": "action_Whc4vGYZ",
+          "title": "Error Spike",
+          "type": "widget_setState",
+          "state": {
+            "storageSize": 100,
+            "networkLatency": 30,
+            "errorRate": 8
+          }
+        },
+        {
+          "id": "action_Whc4vGYZ_speech",
+          "type": "speech",
+          "text": "Let's see what happens when the error rate spikes to 8%. Observe how the health indicators react.",
+          "title": "Error Spike"
+        }
+      ],
+      "createdAt": 1777971383713,
+      "updatedAt": 1777971383713
+    },
+    {
+      "id": "scene_XaIxmFxuhx",
+      "stageId": "clpAVHGV-x",
+      "type": "slide",
+      "title": "Step‑by‑Step Smoke Test Procedure",
+      "order": 5,
+      "content": {
+        "type": "slide",
+        "canvas": {
+          "id": "ENJAEfAWQZtExsyN7PyPM",
+          "viewportSize": 1000,
+          "viewportRatio": 0.5625,
+          "theme": {
+            "backgroundColor": "#ffffff",
+            "themeColors": [
+              "#5b9bd5",
+              "#ed7d31",
+              "#a5a5a5",
+              "#ffc000",
+              "#4472c4"
+            ],
+            "fontColor": "#333333",
+            "fontName": "Microsoft YaHei",
+            "outline": {
+              "color": "#d14424",
+              "width": 2,
+              "style": "solid"
+            },
+            "shadow": {
+              "h": 0,
+              "v": 0,
+              "blur": 10,
+              "color": "#000000"
+            }
+          },
+          "elements": [
+            {
+              "id": "text_90ZJ9pnt",
+              "type": "text",
+              "left": 60,
+              "top": 50,
+              "width": 880,
+              "height": 58,
+              "content": "<p style=\"font-size:32px; text-align:center; color:#0f766e;\"><strong>Step‑by‑Step Smoke Test Procedure</strong></p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#0f766e",
+              "rotate": 0
+            },
+            {
+              "id": "text_N3hx32Ny",
+              "type": "text",
+              "left": 80,
+              "top": 130,
+              "width": 840,
+              "height": 103,
+              "content": "<p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Prepare test environment</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Run the built‑in smoke‑test command</p><p style=\"font-size:18px; color:#1f2937; line-height:1.55; text-align:left;\">• Interpret the result report</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#1f2937",
+              "rotate": 0
+            },
+            {
+              "id": "shape_zzhHH7We",
+              "type": "shape",
+              "left": 60,
+              "top": 250,
+              "width": 880,
+              "height": 50,
+              "path": "M 0 0 L 1 0 L 1 1 L 0 1 Z",
+              "viewBox": [
+                1,
+                1
+              ],
+              "fill": "#f5f5f5",
+              "fixedRatio": false,
+              "rotate": 0
+            },
+            {
+              "id": "text_4XpG_NfW",
+              "type": "text",
+              "left": 80,
+              "top": 252,
+              "width": 840,
+              "height": 46,
+              "content": "<p style=\"font-size:16px; font-family:Monaco,monospace; background:#f5f5f5; padding:5px; margin:0;\">openmaic test smoke</p>",
+              "defaultFontName": "Microsoft YaHei",
+              "defaultColor": "#000000",
+              "rotate": 0
+            }
+          ],
+          "background": {
+            "type": "gradient",
+            "gradient": {
+              "type": "linear",
+              "colors": [
+                {
+                  "color": "#f8fffd",
+                  "pos": 0
+                },
+                {
+                  "color": "#eef6ff",
+                  "pos": 100
+                }
+              ],
+              "rotate": 135
+            }
+          }
+        }
+      },
+      "actions": [
+        {
+          "id": "action_FWHzGsR3",
+          "type": "spotlight",
+          "elementId": "text_90ZJ9pnt"
+        },
+        {
+          "id": "action_9yuVIgPN",
+          "type": "speech",
+          "text": "Let's walk through the step‑by‑step smoke test procedure for OpenMAIC storage."
+        },
+        {
+          "id": "action_bUt6RWn1",
+          "type": "spotlight",
+          "elementId": "text_N3hx32Ny"
+        },
+        {
+          "id": "action_xP2phO-7",
+          "type": "speech",
+          "text": "First, we need to prepare the test environment—make sure the storage service is up, configuration files are in place, and any required test data is seeded."
+        },
+        {
+          "id": "action_cbsHkHhA",
+          "type": "laser",
+          "elementId": "text_N3hx32Ny"
+        },
+        {
+          "id": "action_d9RW1SIZ",
+          "type": "speech",
+          "text": "Next, run the built‑in smoke‑test command provided by OpenMAIC. It's a single CLI call that exercises the core storage APIs."
+        },
+        {
+          "id": "action_sZWUyP8R",
+          "type": "spotlight",
+          "elementId": "text_4XpG_NfW"
+        },
+        {
+          "id": "action_X3DLljvp",
+          "type": "speech",
+          "text": "Finally, interpret the result report: a green status means all health checks passed, while any red entries point to specific failures you can investigate."
+        },
+        {
+          "id": "action_y3x-fVNc",
+          "type": "speech",
+          "text": "Any questions about these steps before we move on to a live demonstration?"
+        }
+      ],
+      "createdAt": 1777971423425,
+      "updatedAt": 1777971423425
+    },
+    {
+      "id": "scene_T7HkQuwIWa",
+      "stageId": "clpAVHGV-x",
+      "type": "quiz",
+      "title": "Knowledge Check",
+      "order": 6,
+      "content": {
+        "type": "quiz",
+        "questions": [
+          {
+            "id": "q1",
+            "type": "single",
+            "question": "Which of the following items is NOT typically part of a smoke‑test checklist for OpenMAIC storage deployment?",
+            "options": [
+              {
+                "value": "A",
+                "label": "Verify that the storage service starts without errors"
+              },
+              {
+                "value": "B",
+                "label": "Confirm that data can be written and read back correctly"
+              },
+              {
+                "value": "C",
+                "label": "Run a full performance benchmark suite"
+              },
+              {
+                "value": "D",
+                "label": "Check that configuration files are present and syntactically correct"
+              }
+            ],
+            "answer": [
+              "C"
+            ],
+            "analysis": "Running a full performance benchmark suite is beyond the scope of a smoke test, which focuses on basic functionality. The other items (service start, read/write verification, config validation) are common checklist items.",
+            "points": 10,
+            "hasAnswer": true
+          },
+          {
+            "id": "q2",
+            "type": "multiple",
+            "question": "Given the sample test result below, select all statements that are true.\n\nSample Result:\n- Service status: RUNNING\n- Write test: PASS\n- Read test: PASS\n- Latency: 120 ms (within acceptable range)\n- Disk usage: 45% of capacity\n\nSelect all that apply:",
+            "options": [
+              {
+                "value": "A",
+                "label": "The storage service is operational."
+              },
+              {
+                "value": "B",
+                "label": "The write functionality is failing."
+              },
+              {
+                "value": "C",
+                "label": "Latency meets the defined threshold."
+              },
+              {
+                "value": "D",
+                "label": "Disk space is critically low."
+              }
+            ],
+            "answer": [
+              "A",
+              "C"
+            ],
+            "analysis": "A is correct because the service status is RUNNING. C is correct because latency of 120 ms is reported as within the acceptable range. B is false because the write test passed. D is false because 45% usage is not critical.",
+            "points": 15,
+            "hasAnswer": true
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_fcCkdK1h",
+          "type": "speech",
+          "text": "Alright, everyone, let's check what we've just covered about smoke‑test checklists for OpenMAIC storage deployments. Remember, a smoke test is a quick, high‑level verification that the most critical functions are working before we move on to deeper testing."
+        },
+        {
+          "id": "action_wfhTBj69",
+          "type": "speech",
+          "text": "First, think about the items that belong on that checklist: verifying the service starts, confirming you can write and read data, and making sure configuration files are present and syntactically correct. Those are all essential, lightweight checks. A full performance benchmark, however, is far more involved and belongs in a later, dedicated performance test phase, not in a smoke test."
+        },
+        {
+          "id": "action_QwuK-ZiZ",
+          "type": "speech",
+          "text": "Now, look at the sample test result. The service status is RUNNING, both write and read tests passed, latency is 120 ms which is within the acceptable range, and disk usage is at 45 %—well below any critical threshold. From that we can conclude the storage service is operational, the write functionality is fine, latency meets the defined threshold, and there’s no immediate concern about disk space."
+        },
+        {
+          "id": "action_EmFfZDt-",
+          "type": "discussion",
+          "topic": "Why is it important to keep smoke tests lightweight, and how does interpreting a quick test result help us catch issues early?",
+          "prompt": "Share your thoughts on balancing thoroughness with speed in early testing stages.",
+          "agentId": "default-4"
+        }
+      ],
+      "createdAt": 1777971458196,
+      "updatedAt": 1777971458196
+    }
+  ],
+  "scenesCount": 6,
+  "createdAt": "2026-05-05T08:57:38.197Z"
+}

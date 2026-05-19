@@ -1,0 +1,22 @@
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.1}Introduction}{\reset@font\mtcSfont 15}{section.2.1}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.2}Limites des Méthodologies Traditionnelles face à l'IA Générative}{\reset@font\mtcSfont 15}{section.2.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.1}Le modèle Agile et ses dérivés}{\reset@font\mtcSSfont 15}{subsection.2.2.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.2}Inadéquation structurelle avec le développement assisté par l'IA}{\reset@font\mtcSSfont 15}{subsection.2.2.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.3}Le vibe coding : une réponse insuffisante}{\reset@font\mtcSSfont 16}{subsection.2.2.3}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.3}Vers un Nouveau Paradigme : l'AI-Driven Development Lifecycle (AI-DLC)}{\reset@font\mtcSfont 16}{section.2.3}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.3.1}Définition}{\reset@font\mtcSSfont 16}{subsection.2.3.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.3.2}Principes fondamentaux}{\reset@font\mtcSSfont 16}{subsection.2.3.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.3.3}Phases de l'AI-DLC}{\reset@font\mtcSSfont 17}{subsection.2.3.3}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.4}Frameworks d'Implémentation de l'AI-DLC}{\reset@font\mtcSfont 18}{section.2.4}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.1}GitHub Spec Kit}{\reset@font\mtcSSfont 18}{subsection.2.4.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.2}BMAD Method}{\reset@font\mtcSSfont 18}{subsection.2.4.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.3}GSD Framework}{\reset@font\mtcSSfont 18}{subsection.2.4.3}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.4}AWS Kiro}{\reset@font\mtcSSfont 19}{subsection.2.4.4}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.5}Étude Comparative des Frameworks}{\reset@font\mtcSfont 19}{section.2.5}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.6}Framework Retenu : GSD enrichi de Skills Personnalisées}{\reset@font\mtcSfont 20}{section.2.6}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.6.1}Justification du choix}{\reset@font\mtcSSfont 20}{subsection.2.6.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.6.2}Démarche adoptée : approche hybride progressive}{\reset@font\mtcSSfont 21}{subsection.2.6.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.6.2.1}Phase 1 : Découverte et planification avec GSD}{\reset@font\mtcSSSfont 21}{subsubsection.2.6.2.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.6.2.2}Phase 2 : Sélection de l'outil de construction par benchmark empirique}{\reset@font\mtcSSSfont 21}{subsubsection.2.6.2.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.6.2.3}Phase 3 : Construction avec Codex CLI et skills personnalisées}{\reset@font\mtcSSSfont 22}{subsubsection.2.6.2.3}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.7}Synthèse}{\reset@font\mtcSfont 22}{section.2.7}}

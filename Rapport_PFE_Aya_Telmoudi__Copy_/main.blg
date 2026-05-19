@@ -1,0 +1,23 @@
+[0] Config.pm:328> INFO - This is Biber 2.21
+[0] Config.pm:331> INFO - Logfile is 'main.blg'
+[121] biber-MSWIN64:342> INFO - === 
+[159] Biber.pm:421> INFO - Reading 'main.bcf'
+[285] Biber.pm:999> INFO - Using all citekeys in bib section 0
+[300] Biber.pm:4487> INFO - Processing section 0
+[314] Biber.pm:4678> INFO - Looking for bibtex file 'bibliographie/biblio.bib' for section 0
+[355] bibtex.pm:1713> INFO - LaTeX decoding ...
+[363] bibtex.pm:1519> INFO - Found BibTeX data source 'bibliographie/biblio.bib'
+[404] Biber.pm:4678> INFO - Looking for bibtex file 'bibliographie/references.bib' for section 0
+[460] bibtex.pm:1713> INFO - LaTeX decoding ...
+[505] bibtex.pm:1519> INFO - Found BibTeX data source 'bibliographie/references.bib'
+[606] UCollate.pm:68> INFO - Overriding locale 'fr-FR' defaults 'variable = shifted' with 'variable = non-ignorable'
+[606] UCollate.pm:68> INFO - Overriding locale 'fr-FR' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[606] Biber.pm:4307> INFO - Sorting list 'none/global//global/global/global' of type 'entry' with template 'none' and locale 'fr-FR'
+[606] Biber.pm:4313> INFO - No sort tailoring available for locale 'fr-FR'
+[630] bbl.pm:676> INFO - Writing 'main.bbl' with encoding 'UTF-8'
+[642] bbl.pm:779> INFO - Output to main.bbl
+[643] Biber.pm:132> WARN - legacy month field 'Mars' in entry 'bourguignon2026' is not an integer - this will probably not sort properly.
+[643] Biber.pm:132> WARN - legacy month field 'November' in entry 'awsblog2025b' is not an integer - this will probably not sort properly.
+[643] Biber.pm:132> WARN - legacy month field 'July' in entry 'awsblog2025' is not an integer - this will probably not sort properly.
+[643] Biber.pm:132> WARN - legacy month field 'December' in entry 'awsreinvent2025' is not an integer - this will probably not sort properly.
+[644] Biber.pm:134> INFO - WARNINGS: 4

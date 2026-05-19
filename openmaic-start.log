@@ -1,0 +1,182 @@
+▲ Next.js 16.1.2
+- Local:         http://localhost:3000
+- Network:       http://172.18.123.25:3000
+
+✓ Starting...
+⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+✓ Ready in 742ms
+[2026-05-05T10:23:02.532Z] [INFO] [ServerProviderConfig] [ServerProviderConfig] Loaded (server-providers.yml): 2 LLM, 1 TTS, 0 ASR, 0 PDF, 0 Image, 0 Video, 0 WebSearch providers
+[2026-05-05T10:23:19.738Z] [INFO] [LearningExpertAgentAPI] OpenMAIC generate endpoint received Course Maker workflow payload {"pdfName":null,"pdfSize":null,"pdfType":null,"requirementPreview":"Create a very short beginner course about CSS variables. Keep it concise.","options":{"enableWebSearch":false,"enableImageGeneration":false,"enableVideoGeneration":false,"enableTTS":true,"agentMode":"default"}}
+[2026-05-05T10:23:19.868Z] [INFO] [Classroom] Using server-configured model: openrouter:openai/gpt-oss-120b:free
+[2026-05-05T10:24:03.452Z] [INFO] [Classroom] Generated 6 scene outlines (languageDirective: The entire course will be delivered in English. Use clear, beginner-friendly wording and avoid technical jargon unless it is explained. Keep all code snippets and terminology in their original English form. Provide brief explanations for any CSS-specific terms to ensure comprehension.)
+[2026-05-05T10:24:03.453Z] [INFO] [Classroom] Stage 2: Generating scene content and actions...
+[2026-05-05T10:24:51.854Z] [INFO] [Classroom] Scene "Welcome & Course Overview": 10 actions
+[2026-05-05T10:26:11.850Z] [INFO] [Classroom] Scene "Syntax of a CSS Variable": 9 actions
+[2026-05-05T10:27:17.801Z] [INFO] [Classroom] Scene "Defining Variables in :root": 9 actions
+[2026-05-05T10:28:30.291Z] [INFO] [Classroom] Scene "Applying Variables in Styles": 10 actions
+[2026-05-05T10:28:30.292Z] [INFO] [Generation] Generating code widget for: Hands‑On: Live CSS Variable Playground
+[2026-05-05T10:29:41.606Z] [INFO] [Generation] [Ultra Mode] Generated 6 teacher actions for "Hands‑On: Live CSS Variable Playground" (code)
+[2026-05-05T10:29:41.606Z] [INFO] [Generation] [Ultra Mode] Teacher actions for "Hands‑On: Live CSS Variable Playground": [
+  {
+    "id": "intro",
+    "type": "speech",
+    "content": "Welcome! In this editor you can create and change variables to see the results instantly.",
+    "label": "Intro"
+  },
+  {
+    "id": "highlight_editor",
+    "type": "highlight",
+    "target": "#code-editor",
+    "content": "This is the code editor where you write your JavaScript.",
+    "label": "Highlight Editor"
+  },
+  {
+    "id": "annotation_output",
+    "type": "annotation",
+    "target": "#output-panel",
+    "content": "The output area shows the result of your code as you type.",
+    "label": "Show Output"
+  },
+  {
+    "id": "demo_change_variable",
+    "type": "speech",
+    "content": "Try changing the value of the existing variable and watch how the output updates.",
+    "label": "Change Variable"
+  },
+  {
+    "id": "demo_add_variable",
+    "type": "speech",
+    "content": "Now add a new variable, use it in a calculation, and see the new result appear.",
+    "label": "Add Variable"
+  },
+  {
+    "id": "explain_fallback",
+    "type": "speech",
+    "content": "Notice that if you reference a variable that hasn't been defined, the code shows a fallback value instead of crashing.",
+    "label": "Explain Fallback"
+  }
+]
+[2026-05-05T10:29:41.607Z] [INFO] [Generation] [Actions Gen] Interactive "Hands‑On: Live CSS Variable Playground": hasHtml=true, teacherActions=6, widgetType=code
+[2026-05-05T10:29:41.607Z] [INFO] [Generation] [Ultra Mode] Converting 6 teacherActions to Actions for: Hands‑On: Live CSS Variable Playground
+[2026-05-05T10:29:41.607Z] [INFO] [Classroom] Scene "Hands‑On: Live CSS Variable Playground": 8 actions
+[2026-05-05T10:30:33.943Z] [INFO] [Classroom] Scene "Quick Check": 4 actions
+[2026-05-05T10:30:33.943Z] [INFO] [Classroom] Pipeline complete: 6 scenes generated
+[2026-05-05T10:30:35.190Z] [INFO] [ClassroomMedia] Generated TTS: tts_s1_action_gwVIZqEH.wav (343084 bytes)
+[2026-05-05T10:30:36.063Z] [INFO] [ClassroomMedia] Generated TTS: tts_s1_action_L1Gx9VgP.wav (527916 bytes)
+[2026-05-05T10:30:36.639Z] [INFO] [ClassroomMedia] Generated TTS: tts_s1_action_sIfa0ZGK.wav (362028 bytes)
+[2026-05-05T10:30:37.579Z] [INFO] [ClassroomMedia] Generated TTS: tts_s1_action_RWBCzhsg.wav (418860 bytes)
+[2026-05-05T10:30:38.718Z] [INFO] [ClassroomMedia] Generated TTS: tts_s1_action_Xa7QezQo.wav (304684 bytes)
+[2026-05-05T10:30:39.776Z] [INFO] [ClassroomMedia] Generated TTS: tts_s2_action_BzSY5iG1.wav (267308 bytes)
+[2026-05-05T10:30:40.720Z] [INFO] [ClassroomMedia] Generated TTS: tts_s2_action_TtlTpZ_L.wav (545324 bytes)
+[2026-05-05T10:30:41.766Z] [INFO] [ClassroomMedia] Generated TTS: tts_s2_action_cmA0Z8Rk.wav (551468 bytes)
+[2026-05-05T10:30:42.784Z] [INFO] [ClassroomMedia] Generated TTS: tts_s2_action_GHUVz_C0.wav (448044 bytes)
+[2026-05-05T10:30:43.446Z] [INFO] [ClassroomMedia] Generated TTS: tts_s2_action_pdSr1V-I.wav (374828 bytes)
+[2026-05-05T10:30:43.820Z] [INFO] [ClassroomMedia] Generated TTS: tts_s3_action_ehizBKGL.wav (251948 bytes)
+[2026-05-05T10:30:44.625Z] [INFO] [ClassroomMedia] Generated TTS: tts_s3_action_NwuIPbjv.wav (388652 bytes)
+[2026-05-05T10:30:45.335Z] [INFO] [ClassroomMedia] Generated TTS: tts_s3_action_O50LK7Dj.wav (473132 bytes)
+[2026-05-05T10:30:46.030Z] [INFO] [ClassroomMedia] Generated TTS: tts_s3_action_puJh6wTy.wav (442412 bytes)
+[2026-05-05T10:30:46.694Z] [INFO] [ClassroomMedia] Generated TTS: tts_s3_action_xyE__T6O.wav (292396 bytes)
+[2026-05-05T10:30:47.252Z] [INFO] [ClassroomMedia] Generated TTS: tts_s4_action_Xg35ffFP.wav (194092 bytes)
+[2026-05-05T10:30:47.860Z] [INFO] [ClassroomMedia] Generated TTS: tts_s4_action_gxjbKy3c.wav (407084 bytes)
+[2026-05-05T10:30:48.470Z] [INFO] [ClassroomMedia] Generated TTS: tts_s4_action_H9k7iz_t.wav (457260 bytes)
+[2026-05-05T10:30:49.468Z] [INFO] [ClassroomMedia] Generated TTS: tts_s4_action_j4oYpqDz.wav (558636 bytes)
+[2026-05-05T10:30:50.199Z] [INFO] [ClassroomMedia] Generated TTS: tts_s4_action_Nscfwq1I.wav (449068 bytes)
+[2026-05-05T10:30:50.893Z] [INFO] [ClassroomMedia] Generated TTS: tts_s5_action_0EDqk1bw.wav (217132 bytes)
+[2026-05-05T10:30:51.251Z] [INFO] [ClassroomMedia] Generated TTS: tts_s5_action_00CyTW71_speech.wav (127020 bytes)
+[2026-05-05T10:30:51.753Z] [INFO] [ClassroomMedia] Generated TTS: tts_s5_action_J3moIX17_speech.wav (139820 bytes)
+[2026-05-05T10:30:52.423Z] [INFO] [ClassroomMedia] Generated TTS: tts_s5_action_QpbkFIBY.wav (218668 bytes)
+[2026-05-05T10:30:53.190Z] [INFO] [ClassroomMedia] Generated TTS: tts_s5_action_6Ij8cT0B.wav (218156 bytes)
+[2026-05-05T10:30:54.090Z] [INFO] [ClassroomMedia] Generated TTS: tts_s5_action_szyjQ11x.wav (278572 bytes)
+[2026-05-05T10:30:54.999Z] [INFO] [ClassroomMedia] Generated TTS: tts_s6_action_kTDWit84.wav (629804 bytes)
+[2026-05-05T10:30:58.238Z] [INFO] [ClassroomMedia] Generated TTS: tts_s6_action_JRPCQgDx.wav (1139756 bytes)
+[2026-05-05T10:30:59.279Z] [INFO] [ClassroomMedia] Generated TTS: tts_s6_action_hwhqZcsJ.wav (515116 bytes)
+[2026-05-05T10:30:59.279Z] [INFO] [Classroom] TTS generation complete
+[2026-05-05T10:30:59.316Z] [INFO] [Classroom] Classroom persisted: _hXs3qkgfk, URL: http://localhost:3000/classroom/_hXs3qkgfk
+[2026-05-05T10:56:11.334Z] [INFO] [LearningExpertAgentAPI] OpenMAIC generate endpoint received Course Maker workflow payload {"pdfName":null,"pdfSize":null,"pdfType":null,"requirementPreview":"Create a very short beginner course about cloud basics with 3 concise scenes.","options":{"enableWebSearch":false,"enableImageGeneration":false,"enableVideoGeneration":false,"enableTTS":true,"agentMode":"default"}}
+[2026-05-05T10:56:11.371Z] [INFO] [Classroom] Using server-configured model: openrouter:openai/gpt-oss-120b:free
+[2026-05-05T10:56:28.337Z] [INFO] [Classroom] Generated 3 scene outlines (languageDirective: Deliver the entire course in English. Use clear, beginner-friendly terminology and avoid jargon unless defined. Provide brief explanations for technical terms and include simple visual aids where helpful.)
+[2026-05-05T10:56:28.338Z] [INFO] [Classroom] Stage 2: Generating scene content and actions...
+[2026-05-05T10:57:05.743Z] [INFO] [Classroom] Scene "What Is Cloud Computing?": 9 actions
+[2026-05-05T10:57:05.744Z] [INFO] [Generation] Generating diagram widget for: Exploring Cloud Service Models
+[2026-05-05T10:58:19.986Z] [INFO] [LearningExpertAgentAPI] OpenMAIC generate endpoint received Course Maker workflow payload {"pdfName":null,"pdfSize":null,"pdfType":null,"requirementPreview":"Create a very short beginner course about cloud basics with 3 concise scenes.","options":{"enableWebSearch":false,"enableImageGeneration":false,"enableVideoGeneration":false,"enableTTS":true,"agentMode":"default"}}
+[2026-05-05T10:58:20.002Z] [INFO] [Classroom] Using server-configured model: openrouter:openai/gpt-oss-120b:free
+[2026-05-05T10:58:27.580Z] [INFO] [LearningExpertAgentAPI] Learning expert generation cancelled {"requirementPreview":"Create a very short beginner course about cloud basics with 3 concise scenes."}
+[2026-05-05T10:58:53.039Z] [INFO] [Classroom] Generated 3 scene outlines (languageDirective: Deliver the entire course in English. Use clear, beginner-friendly terminology and avoid jargon unless defined. When technical terms are necessary, provide brief explanations in parentheses.)
+[2026-05-05T10:58:53.039Z] [INFO] [Classroom] Stage 2: Generating scene content and actions...
+[2026-05-05T10:59:36.508Z] [INFO] [Classroom] Scene "What is Cloud Computing?": 10 actions
+[2026-05-05T10:59:36.508Z] [INFO] [Generation] Generating diagram widget for: Explore Cloud Service Models
+[2026-05-05T11:01:58.491Z] [INFO] [Generation] [Ultra Mode] Generated 8 teacher actions for "Explore Cloud Service Models" (diagram)
+[2026-05-05T11:01:58.491Z] [INFO] [Generation] [Ultra Mode] Teacher actions for "Explore Cloud Service Models": [
+  {
+    "id": "intro",
+    "type": "speech",
+    "content": "Let's explore the three main cloud service models and see how they relate to each other.",
+    "label": "Intro"
+  },
+  {
+    "id": "highlight_layer",
+    "type": "highlight",
+    "target": "#layer",
+    "content": "This node represents the overall cloud service hierarchy.",
+    "label": "Show Layers"
+  },
+  {
+    "id": "reveal_iaas",
+    "type": "reveal",
+    "content": "",
+    "label": "Reveal IaaS"
+  },
+  {
+    "id": "highlight_iaas",
+    "type": "highlight",
+    "target": "#iaas",
+    "content": "IaaS (Infrastructure as a Service) provides virtual machines, storage, and networking.",
+    "label": "Explain IaaS"
+  },
+  {
+    "id": "reveal_paas",
+    "type": "reveal",
+    "content": "",
+    "label": "Reveal PaaS"
+  },
+  {
+    "id": "highlight_paas",
+    "type": "highlight",
+    "target": "#paas",
+    "content": "PaaS (Platform as a Service) builds on IaaS and adds runtimes, development tools, and databases.",
+    "label": "Explain PaaS"
+  },
+  {
+    "id": "reveal_saas",
+    "type": "reveal",
+    "content": "",
+    "label": "Reveal SaaS"
+  },
+  {
+    "id": "highlight_saas",
+    "type": "highlight",
+    "target": "#saas",
+    "content": "SaaS (Software as a Service) sits on top, delivering ready‑to‑use applications like email or CRM.",
+    "label": "Explain SaaS"
+  }
+]
+[2026-05-05T11:01:58.492Z] [INFO] [Generation] [Actions Gen] Interactive "Explore Cloud Service Models": hasHtml=true, teacherActions=8, widgetType=diagram
+[2026-05-05T11:01:58.493Z] [INFO] [Generation] [Ultra Mode] Converting 8 teacherActions to Actions for: Explore Cloud Service Models
+[2026-05-05T11:01:58.493Z] [INFO] [Classroom] Scene "Explore Cloud Service Models": 12 actions
+[2026-05-05T11:02:48.063Z] [INFO] [Classroom] Scene "Quick Knowledge Check": 4 actions
+[2026-05-05T11:02:48.064Z] [INFO] [Classroom] Pipeline complete: 3 scenes generated
+[2026-05-05T11:02:49.158Z] [INFO] [ClassroomMedia] Generated TTS: tts_s1_action_tCmzL21b.wav (157740 bytes)
+[2026-05-05T11:02:50.316Z] [INFO] [ClassroomMedia] Generated TTS: tts_s1_action_vrhFOPcP.wav (486444 bytes)
+[2026-05-05T11:02:50.868Z] [INFO] [ClassroomMedia] Generated TTS: tts_s1_action_290aThX4.wav (361516 bytes)
+[2026-05-05T11:02:52.018Z] [INFO] [ClassroomMedia] Generated TTS: tts_s1_action_Bu5_DOZD.wav (557100 bytes)
+[2026-05-05T11:02:52.659Z] [INFO] [ClassroomMedia] Generated TTS: tts_s1_action_piKbnb4D.wav (406060 bytes)
+[2026-05-05T11:02:52.998Z] [INFO] [ClassroomMedia] Generated TTS: tts_s2_action_CXcLQCcG.wav (188460 bytes)
+[2026-05-05T11:02:53.270Z] [INFO] [ClassroomMedia] Generated TTS: tts_s2_action_wttPyWf9_speech.wav (153132 bytes)
+[2026-05-05T11:02:53.663Z] [INFO] [ClassroomMedia] Generated TTS: tts_s2_action_YmqLO7xM_speech.wav (257068 bytes)
+[2026-05-05T11:02:54.124Z] [INFO] [ClassroomMedia] Generated TTS: tts_s2_action_6F8NU4wd_speech.wav (288812 bytes)
+[2026-05-05T11:02:54.586Z] [INFO] [ClassroomMedia] Generated TTS: tts_s2_action_frm6xdcc_speech.wav (260652 bytes)
+[2026-05-05T11:02:55.094Z] [INFO] [ClassroomMedia] Generated TTS: tts_s3_action_4QR6w35x.wav (315948 bytes)
+[2026-05-05T11:02:56.657Z] [INFO] [ClassroomMedia] Generated TTS: tts_s3_action_J0vck-Vc.wav (1135660 bytes)
+[2026-05-05T11:02:57.225Z] [INFO] [ClassroomMedia] Generated TTS: tts_s3_action_nBwOZkty.wav (361516 bytes)
+[2026-05-05T11:02:57.225Z] [INFO] [Classroom] TTS generation complete
+[2026-05-05T11:02:57.249Z] [INFO] [Classroom] Classroom persisted: DTdwYXTLHP, URL: http://localhost:3000/classroom/DTdwYXTLHP

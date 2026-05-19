@@ -1,0 +1,69 @@
+INFO:     Started server process [37920]
+INFO:     Waiting for application startup.
+ERROR:      + Exception Group Traceback (most recent call last):
+  |   File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\starlette\routing.py", line 694, in lifespan
+  |     async with self.lifespan_context(app) as maybe_state:
+  |   File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 210, in __aenter__
+  |     return await anext(self.gen)
+  |            ^^^^^^^^^^^^^^^^^^^^^
+  |   File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\api\__init__.py", line 83, in chained_lifespan
+  |     async with multi_bank_starlette_app.router.lifespan_context(multi_bank_starlette_app):
+  |   File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(typ, value, traceback)
+  |   File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\fastmcp\server\http.py", line 367, in lifespan
+  |     async with server._lifespan_manager(), session_manager.run():
+  |   File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(typ, value, traceback)
+  |   File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\mcp\server\streamable_http_manager.py", line 112, in run
+  |     async with anyio.create_task_group() as tg:
+  |   File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 781, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\mcp\server\streamable_http_manager.py", line 117, in run
+    |     yield  # Let the application run
+    |     ^^^^^
+    |   File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\fastmcp\server\http.py", line 368, in lifespan
+    |     yield
+    |   File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\api\__init__.py", line 84, in chained_lifespan
+    |     async with single_bank_starlette_app.router.lifespan_context(single_bank_starlette_app):
+    |   File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 231, in __aexit__
+    |     await self.gen.athrow(typ, value, traceback)
+    |   File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\fastmcp\server\http.py", line 367, in lifespan
+    |     async with server._lifespan_manager(), session_manager.run():
+    |   File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 231, in __aexit__
+    |     await self.gen.athrow(typ, value, traceback)
+    |   File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\mcp\server\streamable_http_manager.py", line 112, in run
+    |     async with anyio.create_task_group() as tg:
+    |   File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 781, in __aexit__
+    |     raise BaseExceptionGroup(
+    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\mcp\server\streamable_http_manager.py", line 117, in run
+      |     yield  # Let the application run
+      |     ^^^^^
+      |   File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\fastmcp\server\http.py", line 368, in lifespan
+      |     yield
+      |   File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\api\__init__.py", line 87, in chained_lifespan
+      |     async with original_lifespan(app_instance):
+      |   File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 210, in __aenter__
+      |     return await anext(self.gen)
+      |            ^^^^^^^^^^^^^^^^^^^^^
+      |   File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\api\http.py", line 2614, in lifespan
+      |     await memory.initialize()
+      |   File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\engine\memory_engine.py", line 1830, in initialize
+      |     await asyncio.gather(*init_tasks)
+      |   File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\engine\memory_engine.py", line 1726, in start_pg0
+      |     self.db_url = await pg0.ensure_running()
+      |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |   File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\pg0.py", line 122, in ensure_running
+      |     return await self.start()
+      |            ^^^^^^^^^^^^^^^^^^
+      |   File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\pg0.py", line 83, in start
+      |     raise RuntimeError(
+      | RuntimeError: Failed to start embedded PostgreSQL after 5 attempts. Last error: Error: Failed to start PostgreSQL: Command error: stdout=; stderr=
+      +------------------------------------
+
+ERROR:    Application startup failed. Exiting.

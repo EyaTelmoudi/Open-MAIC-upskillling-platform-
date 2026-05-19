@@ -1,0 +1,196 @@
+INFO:     Started server process [37320]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8888 (Press CTRL+C to quit)
+Traceback (most recent call last):
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\worker\poller.py", line 824, in run
+    tasks = await self.claim_batch()
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\worker\poller.py", line 311, in claim_batch
+    active_schemas = await self._scan_active_schemas(schemas)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\worker\poller.py", line 194, in _scan_active_schemas
+    async with self._backend.acquire() as conn:
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\engine\db\postgresql.py", line 114, in acquire
+    async with pool.acquire() as conn:
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 1024, in __aenter__
+    self.connection = await self.pool._acquire(self.timeout)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 864, in _acquire
+    return await _acquire_impl()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 849, in _acquire_impl
+    proxy = await ch.acquire()  # type: PoolConnectionProxy
+            ^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 140, in acquire
+    await self.connect()
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 132, in connect
+    self._con = await self._pool._get_new_connection()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 517, in _get_new_connection
+    con = await self._connect(
+          ^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connection.py", line 2421, in connect
+    return await connect_utils._connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 1075, in _connect
+    raise last_error or exceptions.TargetServerAttributeNotMatched(
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 1049, in _connect
+    conn = await _connect_addr(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 886, in _connect_addr
+    return await __connect_addr(params, True, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 931, in __connect_addr
+    tr, pr = await connector
+             ^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 802, in _create_ssl_connection
+    tr, pr = await loop.create_connection(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 1086, in create_connection
+    raise exceptions[0]
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 1070, in create_connection
+    sock = await self._connect_sock(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 974, in _connect_sock
+    await self.sock_connect(sock, address)
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\proactor_events.py", line 726, in sock_connect
+    return await self._proactor.connect(sock, address)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\windows_events.py", line 854, in _poll
+    value = callback(transferred, key, ov)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\windows_events.py", line 641, in finish_connect
+    ov.getresult()
+ConnectionRefusedError: [WinError 1225] Le système distant a refusé la connexion réseau
+Traceback (most recent call last):
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\worker\poller.py", line 824, in run
+    tasks = await self.claim_batch()
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\worker\poller.py", line 311, in claim_batch
+    active_schemas = await self._scan_active_schemas(schemas)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\worker\poller.py", line 194, in _scan_active_schemas
+    async with self._backend.acquire() as conn:
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\engine\db\postgresql.py", line 114, in acquire
+    async with pool.acquire() as conn:
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 1024, in __aenter__
+    self.connection = await self.pool._acquire(self.timeout)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 864, in _acquire
+    return await _acquire_impl()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 849, in _acquire_impl
+    proxy = await ch.acquire()  # type: PoolConnectionProxy
+            ^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 140, in acquire
+    await self.connect()
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 132, in connect
+    self._con = await self._pool._get_new_connection()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 517, in _get_new_connection
+    con = await self._connect(
+          ^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connection.py", line 2421, in connect
+    return await connect_utils._connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 1075, in _connect
+    raise last_error or exceptions.TargetServerAttributeNotMatched(
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 1049, in _connect
+    conn = await _connect_addr(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 886, in _connect_addr
+    return await __connect_addr(params, True, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 931, in __connect_addr
+    tr, pr = await connector
+             ^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 802, in _create_ssl_connection
+    tr, pr = await loop.create_connection(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 1086, in create_connection
+    raise exceptions[0]
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 1070, in create_connection
+    sock = await self._connect_sock(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 974, in _connect_sock
+    await self.sock_connect(sock, address)
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\proactor_events.py", line 726, in sock_connect
+    return await self._proactor.connect(sock, address)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\windows_events.py", line 854, in _poll
+    value = callback(transferred, key, ov)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\windows_events.py", line 641, in finish_connect
+    ov.getresult()
+ConnectionRefusedError: [WinError 1225] Le système distant a refusé la connexion réseau
+Traceback (most recent call last):
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\worker\poller.py", line 824, in run
+    tasks = await self.claim_batch()
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\worker\poller.py", line 311, in claim_batch
+    active_schemas = await self._scan_active_schemas(schemas)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\worker\poller.py", line 194, in _scan_active_schemas
+    async with self._backend.acquire() as conn:
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\engine\db\postgresql.py", line 114, in acquire
+    async with pool.acquire() as conn:
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 1024, in __aenter__
+    self.connection = await self.pool._acquire(self.timeout)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 864, in _acquire
+    return await _acquire_impl()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 849, in _acquire_impl
+    proxy = await ch.acquire()  # type: PoolConnectionProxy
+            ^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 140, in acquire
+    await self.connect()
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 132, in connect
+    self._con = await self._pool._get_new_connection()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\pool.py", line 517, in _get_new_connection
+    con = await self._connect(
+          ^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connection.py", line 2421, in connect
+    return await connect_utils._connect(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 1075, in _connect
+    raise last_error or exceptions.TargetServerAttributeNotMatched(
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 1049, in _connect
+    conn = await _connect_addr(
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 886, in _connect_addr
+    return await __connect_addr(params, True, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 931, in __connect_addr
+    tr, pr = await connector
+             ^^^^^^^^^^^^^^^
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\.venv\Lib\site-packages\asyncpg\connect_utils.py", line 802, in _create_ssl_connection
+    tr, pr = await loop.create_connection(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 1086, in create_connection
+    raise exceptions[0]
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 1070, in create_connection
+    sock = await self._connect_sock(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 974, in _connect_sock
+    await self.sock_connect(sock, address)
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\proactor_events.py", line 726, in sock_connect
+    return await self._proactor.connect(sock, address)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\windows_events.py", line 854, in _poll
+    value = callback(transferred, key, ov)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ayate\AppData\Local\Programs\Python\Python311\Lib\asyncio\windows_events.py", line 641, in finish_connect
+    ov.getresult()
+ConnectionRefusedError: [WinError 1225] Le système distant a refusé la connexion réseau

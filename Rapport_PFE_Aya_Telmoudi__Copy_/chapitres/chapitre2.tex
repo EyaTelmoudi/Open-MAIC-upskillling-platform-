@@ -1,0 +1,423 @@
+% ============================================================
+%  CHAPITRE 2 : MÉTHODOLOGIE DE TRAVAIL ET CADRE DE DÉVELOPPEMENT
+% ============================================================
+
+\chapter{Méthodologie de Travail et Cadre de Développement}
+
+\minitoc
+
+\newpage
+
+% ------------------------------------------------------------
+\section{Introduction}
+% ------------------------------------------------------------
+
+La conception d'une plateforme intelligente multi-agents dédiée à la montée en compétences
+et au mentorat en entreprise représente un défi technique qui dépasse les frontières des
+approches classiques de gestion de projet. Ce chapitre présente la démarche méthodologique
+adoptée tout au long du cycle de développement, en commençant par une analyse critique
+des méthodes traditionnelles, puis en introduisant les nouvelles méthodologies nées à l'ère
+de l'intelligence artificielle générative, pour finalement justifier et exposer le cadre
+retenu pour la réalisation de ce projet.
+
+% ------------------------------------------------------------
+\section{Limites des Méthodologies Traditionnelles face à l'IA Générative}
+% ------------------------------------------------------------
+
+\subsection{Le modèle Agile et ses dérivés}
+
+Depuis le début des années 2000, les méthodes agiles --- Scrum, Kanban, Extreme Programming
+(XP) --- ont constitué le socle dominant du développement logiciel. Fondées sur des itérations
+courtes (sprints de deux à quatre semaines), des équipes pluridisciplinaires et une livraison
+continue de valeur, ces méthodes ont représenté une rupture salutaire avec les modèles
+séquentiels de type \textit{waterfall}.
+
+Cependant, ces méthodes ont été conçues pour un contexte précis : celui d'une équipe humaine
+complète --- développeurs, product owner, testeurs, UX designers --- collaborant selon un
+rythme cadencé par des cérémonies régulières (daily standups, sprint reviews, rétrospectives).
+Or, l'émergence de l'IA générative remet fondamentalement en question ce modèle.
+
+\subsection{Inadéquation structurelle avec le développement assisté par l'IA}
+
+Comme l'a souligné une étude publiée dans le \textit{Journal du Net} en mars 2026,
+l'arrivée de l'IA agentique dans le cycle de développement logiciel (SDLC) rend les
+méthodes agiles « progressivement inadaptées »~\cite{bourguignon2026}. Plusieurs raisons
+structurelles expliquent cette inadéquation :
+
+\begin{itemize}
+    \item \textbf{Modèle d'équipe obsolète.} Scrum repose sur une squad de plusieurs
+    développeurs, un product owner, des testeurs et des UX designers. Avec l'IA, un
+    développeur augmenté peut orchestrer des agents capables de jouer chacun de ces rôles.
+    La taille des équipes se contracte, rendant le modèle organisationnel agile inadapté.
+
+    \item \textbf{Sprints trop longs.} Le cycle en deux à quatre semaines introduit une
+    latence incompatible avec la vitesse de génération du code par les agents IA.
+    Anupam Mishra et Raja, architects chez AWS, ont démontré lors d'AWS re:Invent 2025
+    que « les sprints ne devraient plus durer deux semaines mais quelques heures »~\cite{awsreinvent2025}.
+
+    \item \textbf{Absence d'implication de l'IA dans le cycle.} Ni Scrum ni Kanban ne
+    définissent de rôle, de rituel ou d'artefact spécifiquement conçu pour l'orchestration
+    d'agents IA. L'IA y est traitée au mieux comme un outil auxiliaire de productivité,
+    jamais comme un collaborateur à part entière du processus de développement.
+
+    \item \textbf{Gaspillage lié aux dépendances humaines.} La grande majorité du temps
+    dans un SDLC classique n'est pas consacrée à l'écriture de code mais à des réunions
+    d'alignement, des attentes entre équipes et des escalades. Les agents IA éliminent
+    naturellement ces frictions lorsqu'ils sont orchestrés dans un cadre adapté.
+\end{itemize}
+
+\subsection{Le vibe coding : une réponse insuffisante}
+
+Face à ces limites, une première génération de développeurs a adopté le \textit{vibe coding},
+concept popularisé par Andrej Karpathy en 2025 : laisser l'IA générer le code par
+enchaînement de prompts conversationnels sans supervision structurée. Si cette approche
+permet un prototypage rapide, elle s'avère rapidement insuffisante pour des applications
+de production, notamment en raison de l'absence d'architecture cohérente, de la fragilité
+de la sécurité, et de la dégradation progressive du contexte de l'agent (\textit{context rot}).
+En 2026, l'industrie a largement convergé vers des méthodologies plus structurées,
+capables de tirer parti de la puissance de l'IA sans en subir les dérives.
+
+% ------------------------------------------------------------
+\section{Vers un Nouveau Paradigme : l'AI-Driven Development Lifecycle (AI-DLC)}
+% ------------------------------------------------------------
+
+\subsection{Définition}
+
+L'\textbf{AI-Driven Development Lifecycle (AI-DLC)} est une méthodologie de
+développement logiciel introduite par AWS en juillet 2025~\cite{awsblog2025}
+et formalisée lors d'AWS re:Invent 2025~\cite{awsreinvent2025}. Elle est définie
+comme une approche qui « assigne stratégiquement les tâches routinières à l'IA
+tout en maintenant la supervision humaine pour les décisions critiques, couvrant
+l'ensemble du cycle de vie du développement logiciel »~\cite{awsblog2025}.
+Son architecture repose sur un cycle collaboratif obligatoire à chaque étape :
+l'IA génère un plan, les parties prenantes le révisent et le valident avant toute
+exécution~\cite{awsblog2025b}.
+
+Contrairement aux approches agiles qui \textit{intègrent} l'IA en périphérie de
+processus conçus pour les humains, l'AI-DLC \textit{réimagine} le cycle de
+développement en partant du principe que les agents IA sont des participants à
+part entière du processus.
+
+\subsection{Principes fondamentaux}
+
+L'AI-DLC repose sur cinq principes directeurs :
+
+\begin{enumerate}
+    \item \textbf{Planification avant exécution.} Avant toute génération de code, l'agent IA
+    produit un plan explicite que le développeur valide. Ce cycle \textit{plan → validation
+    humaine → exécution → vérification} garantit l'alignement entre l'intention humaine
+    et la production de l'agent.
+
+    \item \textbf{Spécification comme source de vérité.} La spécification --- décrivant ce
+    que le système doit garantir, ses contraintes et ses critères d'acceptation --- devient
+    l'artefact central du projet. Tout le code, les tests et la documentation en découlent.
+
+    \item \textbf{Décomposition atomique des tâches.} Les problèmes ambigus ou larges sont
+    systématiquement décomposés en unités de travail étroites et non ambiguës avant d'être
+    confiés à un agent, évitant ainsi la dérive incontrôlée.
+
+    \item \textbf{Gestion rigoureuse du contexte.} Le contexte des agents est traité comme
+    une ressource précieuse : on l'enrichit avec les artefacts pertinents et on le purge des
+    informations obsolètes, afin de maintenir la qualité de la génération.
+
+    \item \textbf{Vérification humaine à chaque étape.} Le développeur conserve la propriété
+    intellectuelle et la responsabilité du code. L'IA agit comme un collaborateur expert
+    sous supervision, non comme un système autonome.
+\end{enumerate}
+
+\subsection{Phases de l'AI-DLC}
+
+Le cycle AI-DLC est structuré en trois phases principales, elles-mêmes découpées en
+étapes adaptatives (neuf au total pour un nouveau projet from scratch) :
+
+\begin{description}
+    \item[\textbf{Phase 1 --- Inception.}] Comprend la définition de l'intention, la
+    clarification des exigences (session de \textit{mob elaboration} réunissant toutes
+    les parties prenantes), la création des user stories et l'analyse de l'architecture.
+    L'agent IA génère les artefacts, le développeur les valide en temps réel.
+
+    \item[\textbf{Phase 2 --- Construction.}] L'agent analyse le contexte existant
+    (reverse engineering du code brownfield si nécessaire), propose un plan d'implémentation
+    détaillé, génère le code par unités atomiques, et les tests unitaires et d'intégration
+    accompagnent chaque livraison.
+
+    \item[\textbf{Phase 3 --- Opération.}] Couvre le déploiement, la validation en
+    environnement de staging, la surveillance et l'intégration CI/CD. L'IA assiste
+    également la correction des régressions et la réduction de la dette technique.
+\end{description}
+
+Le caractère adaptatif de ce cadre est essentiel : un simple correctif de bug ne traverse
+que deux ou trois étapes ; une nouvelle fonctionnalité complexe en traverse davantage.
+L'agent lui-même propose le chemin le plus approprié que le développeur peut ajuster.
+
+% ------------------------------------------------------------
+\section{Frameworks d'Implémentation de l'AI-DLC}
+% ------------------------------------------------------------
+
+L'adoption croissante de l'AI-DLC a donné naissance à plusieurs frameworks concrets,
+chacun proposant une implémentation particulière des principes décrits ci-dessus.
+Nous présentons ici les quatre principaux frameworks disponibles en 2025--2026.
+
+\subsection{GitHub Spec Kit}
+
+Publié fin 2025 par GitHub en open source, le \textbf{GitHub Spec Kit} est une boîte à outils
+officielle pour le Spec-Driven Development (SDD)~\cite{githubspeckit}. Il structure le cycle
+de développement en quatre phases séquentielles :
+
+\begin{center}
+\texttt{Spec} $\rightarrow$ \texttt{Plan} $\rightarrow$ \texttt{Tasks} $\rightarrow$ \texttt{Implement}
+\end{center}
+
+Chaque phase produit un artefact Markdown versionné qui alimente la phase suivante,
+fournissant à l'agent IA un contexte structuré plutôt que des prompts ad hoc. Spec Kit
+supporte plus de trente intégrations d'agents (Claude Code, Codex CLI, Gemini CLI,
+OpenCode, Cursor, etc.) et s'installe sans lock-in dans l'environnement existant.
+Il constitue une couche légère et pragmatique, idéale pour initier un projet selon les
+principes SDD.
+
+\subsection{BMAD Method}
+
+La \textbf{BMAD Method} (\textit{Breakthrough Method for Agile AI-Driven Development})
+est un framework agentique open source qui simule une équipe Agile complète via
+douze agents IA spécialisés~\cite{bmad2025}. Ces agents incarnent les rôles de l'Analyste,
+du Product Manager, de l'Architecte, du Scrum Master, du Développeur, de l'UX Designer
+et du QA.
+
+Le cycle BMAD est divisé en deux phases : une phase de \textit{Discovery \& Planning}
+(génération du brief, du PRD et de l'architecture par des agents dédiés) suivie d'une
+phase d'implémentation où les agents collaborent pour produire le code et les tests.
+La version 6 du framework introduit un mécanisme d'adaptation automatique de la
+profondeur de planification selon la complexité du projet.
+
+\subsection{GSD Framework}
+
+Le \textbf{GSD Framework} (\textit{Get Shit Done}) est un système léger de meta-prompting,
+d'ingénierie de contexte et de développement orienté spécification, conçu spécifiquement
+pour Claude Code et Codex CLI~\cite{gsd2026}. Il a dépassé 59\,600 étoiles sur GitHub
+en mai 2026.
+
+Son innovation principale réside dans la résolution du problème de \textit{context rot} :
+GSD fragmente le projet en plans atomiques (2 à 3 tâches maximum par plan), chaque
+plan étant exécuté dans une fenêtre de contexte fraîche par un sous-agent dédié.
+Le processus suit le cycle suivant :
+
+\begin{center}
+\texttt{Interview} $\rightarrow$ \texttt{Roadmap} $\rightarrow$ \texttt{Plans atomiques}
+$\rightarrow$ \texttt{Exécution} $\rightarrow$ \texttt{Vérification}
+\end{center}
+
+Les plans sont stockés sous forme de fichiers \texttt{PLAN.md} qui constituent
+directement les instructions exécutables des sous-agents, garantissant la traçabilité
+entre les exigences, les phases, les plans et les commits Git.
+
+\subsection{AWS Kiro}
+
+\textbf{Kiro} est un IDE agentique lancé par AWS en 2025, construit sur Code OSS,
+qui implémente nativement le Spec-Driven Development~\cite{kiro2025}. Son workflow guide
+le développeur à travers trois phases --- Exigences, Design et Tâches --- avant toute
+génération de code. Il utilise Claude Sonnet 4.5 et d'autres modèles frontier en coulisses.
+Kiro propose également des \textit{steering files} persistants qui maintiennent en
+permanence le contexte du projet (stack technique, conventions, objectifs produit).
+
+% ------------------------------------------------------------
+\section{Étude Comparative des Frameworks}
+% ------------------------------------------------------------
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\caption{Comparaison des frameworks AI-DLC disponibles en 2025--2026}
+\label{tab:comparaison-frameworks}
+\begin{tabular}{|p{2.6cm}|p{2.6cm}|p{2.6cm}|p{2.6cm}|p{2.6cm}|}
+\hline
+\textbf{Critère} & \textbf{GitHub Spec Kit} & \textbf{BMAD Method} & \textbf{GSD Framework} & \textbf{AWS Kiro} \\
+\hline
+\textbf{Type} & Toolkit SDD léger & Framework multi-agents & Méta-prompting agentique & IDE SDD intégré \\
+\hline
+\textbf{Gestion du contexte} & Artefacts Markdown versionné & Agents à contexte restreint & Sous-agents à contexte frais & Steering files persistants \\
+\hline
+\textbf{Agents spécialisés} & Non & Oui (12 agents) & Oui (orchestrateur + sous-agents) & Partiel (hooks automatiques) \\
+\hline
+\textbf{Compatibilité} & 30+ intégrations & Claude, Cursor, Copilot & Claude Code, Codex CLI, OpenCode & VS Code (Code OSS) \\
+\hline
+\textbf{Courbe d'apprentissage} & Faible & Élevée & Moyenne & Faible à moyenne \\
+\hline
+\textbf{Vérification intégrée} & Checklists qualité & QA agent & Verify step dédié & Hooks automatiques \\
+\hline
+\textbf{Open source} & Oui & Oui & Oui & Non (propriétaire AWS) \\
+\hline
+\textbf{Idéal pour} & Initiation SDD, projets simples & Équipes entreprise, specs complexes & Projets multi-agents, solo dev & Projets AWS-centric \\
+\hline
+\end{tabular}
+\end{table}
+
+L'analyse de ce tableau met en évidence plusieurs observations clés :
+
+\begin{itemize}
+    \item Le \textbf{GitHub Spec Kit} constitue une excellente porte d'entrée dans le
+    Spec-Driven Development mais ne résout pas nativement le problème du context rot
+    pour des projets de grande envergure.
+
+    \item La \textbf{BMAD Method} offre la structure la plus proche d'une équipe Agile
+    traditionnelle, mais sa complexité (12 agents, nombreux artefacts) peut être un
+    obstacle pour un projet porté par un développeur unique.
+
+    \item \textbf{GSD} se distingue par sa gestion avancée du contexte, sa compatibilité
+    native avec Codex CLI et OpenCode, et son architecture de sous-agents qui correspond
+    précisément aux besoins d'un projet multi-agents développé en solo.
+
+    \item \textbf{AWS Kiro} offre une expérience intégrée de qualité mais reste lié à
+    l'écosystème AWS, ce qui introduit un lock-in incompatible avec les contraintes
+    du projet.
+\end{itemize}
+
+% ------------------------------------------------------------
+\section{Framework Retenu : GSD enrichi de Skills Personnalisées}
+% ------------------------------------------------------------
+
+\subsection{Justification du choix}
+
+% -- UN SEUL BLOC DE JUSTIFICATION (doublon supprimé) --
+À l'issue de cette analyse comparative, et compte tenu des spécificités du projet ---
+architecture multi-agents, développement en solo avec orchestration IA, et nécessité
+d'une gestion rigoureuse du contexte --- le framework \textbf{GSD} a été sélectionné
+comme cadre principal du développement, enrichi d'une démarche hybride décrite ci-après.
+
+Plusieurs facteurs ont motivé ce choix :
+
+\begin{itemize}
+    \item \textbf{Résolution native du context rot.} La nature multi-agents de la
+    plateforme produit de nombreux modules interdépendants. L'architecture de sous-agents
+    à contexte frais de GSD garantit que chaque module est développé dans des conditions
+    optimales, sans dégradation progressive de la qualité du code généré.
+
+    \item \textbf{Compatibilité avec l'outillage retenu.} GSD supporte nativement
+    Codex CLI --- l'outil finalement retenu à l'issue d'une phase de benchmark --- ainsi
+    que les agents Claude Code et OpenCode, couvrant ainsi l'ensemble de l'écosystème
+    utilisé dans ce projet.
+
+    \item \textbf{Atomicité et traçabilité.} Le découpage en plans atomiques de deux à
+    trois tâches, couplé à un commit Git par plan exécuté, offre une traçabilité complète
+    entre les exigences, les décisions d'implémentation et le code livré --- qualité
+    essentielle dans le cadre d'un projet académique.
+
+    \item \textbf{Flexibilité pour un développeur augmenté.} Contrairement à BMAD, GSD
+    ne présuppose pas une équipe constituée : il est conçu pour un développeur seul
+    orchestrant des agents spécialisés, ce qui correspond précisément au profil de ce
+    projet.
+\end{itemize}
+
+% ------------------------------------------------------------
+\subsection{Démarche adoptée : approche hybride progressive}
+% ------------------------------------------------------------
+
+La méthodologie appliquée dans ce projet a évolué en trois phases successives, reflétant
+la montée en maturité avec les principes de l'AI-DLC et les outils d'assistance au
+développement.
+
+\subsubsection{Phase 1 : Découverte et planification avec GSD}
+
+La première phase a consisté à utiliser le \textbf{framework GSD} pour structurer
+l'ensemble de la démarche de découverte du projet. GSD a été mobilisé pour deux
+objectifs complémentaires :
+
+\begin{itemize}
+    \item \textbf{Définition des spécifications du projet :} formalisation des exigences
+    fonctionnelles et non fonctionnelles de la plateforme, identification des cas
+    d'usage prioritaires et définition des contraintes techniques et métier.
+
+    \item \textbf{Construction du plan d'implémentation :} décomposition du périmètre
+    en modules cohérents (base de données, backend, agents IA, interface utilisateur),
+    puis en plans atomiques de deux à trois tâches, conformément aux principes de GSD.
+    Chaque plan a été matérialisé sous forme de fichier \texttt{PLAN.md} constituant
+    directement les instructions exécutables pour les sous-agents.
+\end{itemize}
+
+Cette phase a produit l'ensemble des artefacts de planification qui ont servi de
+source de vérité tout au long du développement : spécifications, roadmap et plans
+atomiques versionnés dans le dépôt Git.
+
+\subsubsection{Phase 2 : Sélection de l'outil de construction par benchmark empirique}
+
+Avant d'engager la phase de construction, une évaluation comparative des principaux
+outils d'assistance au développement disponibles en 2025--2026 a été conduite. Cinq
+outils ont été mis en compétition sur des critères objectifs et mesurables :
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.4}
+\caption{Benchmark des outils de développement assisté par IA}
+\label{tab:benchmark-outils}
+\begin{tabular}{|p{2.8cm}|p{2.2cm}|p{2.2cm}|p{2.4cm}|p{2.8cm}|}
+\hline
+\textbf{Outil} & \textbf{Qualité du code} & \textbf{Coût} & \textbf{Performance} & \textbf{Gestion du contexte} \\
+\hline
+OpenCode        & Moyenne   & Gratuit   & Lente        & Basique \\
+\hline
+Cline           & Bonne     & Payant    & Correcte     & Partielle \\
+\hline
+Antigravity     & Correcte  & Gratuit   & Correcte     & Limitée \\
+\hline
+GitHub Copilot  & Bonne     & Payant    & Bonne        & Faible \\
+\hline
+\textbf{Codex CLI} & \textbf{Très bonne} & \textbf{Accessible} & \textbf{Bonne} & \textbf{AGENTS.md natif} \\
+\hline
+\end{tabular}
+\end{table}
+
+À l'issue de ce benchmark, \textbf{Codex CLI} a été retenu comme outil principal de
+construction pour quatre raisons déterminantes : la qualité supérieure du code généré
+sur des tâches complexes, un modèle de coût accessible, une performance stable même sur
+des sessions longues, et la prise en charge native du fichier \texttt{AGENTS.md} qui
+permet une gestion structurée du contexte projet sans réinitialisation manuelle.
+
+\subsubsection{Phase 3 : Construction avec Codex CLI et skills personnalisées}
+
+La phase de construction a été intégralement orchestrée avec \textbf{Codex CLI} dans
+le cadre des plans atomiques définis par GSD. Pour maximiser la cohérence et la qualité
+du code généré, une couche de personnalisation a été ajoutée : des \textit{skills}
+spécifiques au projet ont été créées et injectées dans les agents sous forme de fichiers
+de contexte dédiés.
+
+Ces skills encodent :
+
+\begin{itemize}
+    \item les \textbf{conventions d'architecture} du projet (organisation des modules,
+    patterns utilisés, séparation des responsabilités) ;
+    \item les \textbf{principes GSD} appliqués au projet (atomicité, vérification
+    systématique, commit par plan) ;
+    \item les \textbf{standards de qualité} retenus (couverture de tests, gestion des
+    erreurs, sécurité) ;
+    \item le \textbf{contexte métier} de la plateforme de mentorat (domaine fonctionnel,
+    terminologie, contraintes spécifiques).
+\end{itemize}
+
+Ces instructions ont été configurées globalement dans le répertoire
+\texttt{\textasciitilde/.codex/instructions/} pour que chaque session Codex CLI démarre
+avec le contexte projet complet, sans nécessiter de réinitialisation manuelle entre les
+plans. La commande \texttt{/gsd:verify-work} a été systématiquement exécutée en fin de
+chaque plan pour valider le comportement fonctionnel avant de progresser vers le plan
+suivant.
+
+% ------------------------------------------------------------
+\section{Synthèse}
+% ------------------------------------------------------------
+
+Ce chapitre a établi le fondement méthodologique du projet en suivant une progression
+logique : de la critique des méthodes agiles traditionnelles à l'adoption d'un cadre
+innovant adapté à l'ère de l'IA générative.
+
+Les méthodes agiles classiques (Scrum, Kanban) ont été écartées non par rejet du principe
+itératif qu'elles incarnent, mais parce qu'elles n'intègrent structurellement pas l'IA
+comme collaborateur du cycle de développement. L'AI-DLC, formalisé par AWS en 2025,
+propose un cadre réimagine qui place la spécification et les agents IA au cœur du processus.
+
+Parmi les frameworks d'implémentation disponibles, le \textbf{GSD Framework} a été retenu
+pour sa gestion avancée du contexte, sa compatibilité native avec l'outillage utilisé
+(Codex CLI, OpenCode, Claude Code) et son adéquation avec le profil d'un développeur
+augmenté travaillant en autonomie sur un projet multi-agents complexe. Cette base a été
+enrichie par des skills personnalisées configurées dans Codex CLI, constituant une
+méthodologie hybride cohérente et documentée.
+
+Le chapitre suivant présente l'architecture technique de la plateforme, conçue et
+développée dans ce cadre méthodologique.

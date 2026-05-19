@@ -1,0 +1,349 @@
+
+  [38;2;9;127;184m▄[0m[48;2;8;130;178m[38;2;5;133;186m▄[0m       [48;2;10;143;160m[38;2;10;143;165m▄[0m[38;2;7;140;156m▄[0m
+ [38;2;8;125;192m▄[0m [38;2;3;132;191m▀[0m[38;2;2;133;192m▄[0m [38;2;3;132;180m▄[0m[38;2;1;137;184m▄[0m[38;2;3;133;174m▄[0m [38;2;3;142;176m▄[0m[38;2;4;142;169m▀[0m [38;2;10;144;164m▄[0m
+[38;2;6;121;195m▀[0m[38;2;5;128;203m▀[0m[48;2;5;124;195m[38;2;3;125;200m▄[0m[38;2;2;126;196m▄[0m[48;2;3;128;188m[38;2;1;131;196m▄[0m[48;2;0;152;219m[38;2;2;131;191m▄[0m[38;2;1;141;196m▀[0m[38;2;1;135;183m▀[0m[38;2;1;148;198m▀[0m[48;2;1;156;202m[38;2;2;135;180m▄[0m[48;2;4;134;169m[38;2;1;137;177m▄[0m[38;2;3;138;173m▄[0m[48;2;6;137;165m[38;2;2;140;170m▄[0m[38;2;7;144;169m▀[0m[38;2;7;139;158m▀[0m
+   [48;2;2;128;202m[38;2;2;124;201m▄[0m[48;2;1;130;201m[38;2;0;135;212m▄[0m[38;2;2;128;196m▄[0m [48;2;2;142;204m[38;2;7;138;199m▄[0m [38;2;1;135;186m▄[0m[48;2;1;142;186m[38;2;2;144;194m▄[0m[48;2;3;138;176m[38;2;2;134;176m▄[0m
+ [48;2;8;118;200m[38;2;8;121;209m▄[0m[38;2;3;121;203m▀[0m [38;2;3;122;192m▀[0m[38;2;1;138;216m▀[0m[48;2;0;138;210m[38;2;3;128;198m▄[0m[48;2;0;126;188m[38;2;2;131;198m▄[0m[48;2;0;142;205m[38;2;3;132;193m▄[0m[38;2;1;140;196m▀[0m  [38;2;4;134;175m▀[0m[48;2;13;135;167m[38;2;8;136;174m▄[0m 
+
+  [38;2;0;116;217mH[38;2;0;116;215mi[38;2;0;117;214mn[38;2;0;117;213md[38;2;0;118;211ms[38;2;0;118;210mi[38;2;0;119;209mg[38;2;0;120;207mh[38;2;0;120;206mt[38;2;0;121;205m: [38;2;0;122;202mA[38;2;0;123;201mg[38;2;0;123;199me[38;2;0;124;198mn[38;2;0;124;197mt [38;2;0;126;194mM[38;2;0;126;193me[38;2;0;127;192mm[38;2;0;127;190mo[38;2;0;128;189mr[38;2;0;128;188my [38;2;0;130;185mT[38;2;0;130;184mh[38;2;0;131;182ma[38;2;0;131;181mt [38;2;0;133;178mW[38;2;0;133;177mo[38;2;0;134;176mr[38;2;0;134;174mk[38;2;0;135;173ms [38;2;0;136;171mL[38;2;0;137;169mi[38;2;0;137;168mk[38;2;0;138;167me [38;2;0;139;164mH[38;2;0;140;163mu[38;2;0;140;161mm[38;2;0;141;160ma[38;2;0;141;159mn [38;2;0;143;156mM[38;2;0;143;155me[38;2;0;144;153mm[38;2;0;144;152mo[38;2;0;145;151mr[38;2;0;146;150my[0m
+
+2026-05-08 00:22:09,836 - INFO - hindsight_api.config - Database: pg0://hindsight-memory:5544 (schema: public)
+2026-05-08 00:22:09,836 - INFO - hindsight_api.config - LLM: provider=openrouter, model=openai/gpt-oss-120b:free
+2026-05-08 00:22:09,836 - INFO - hindsight_api.config - Embeddings: provider=tei
+2026-05-08 00:22:09,836 - INFO - hindsight_api.config - Reranker: provider=rrf
+2026-05-08 00:22:09,836 - INFO - hindsight_api.config - Graph retriever: link_expansion
+2026-05-08 00:22:10,098 - INFO - hindsight_api.engine.providers.openai_compatible_llm - OpenAI-compatible client initialized: provider=openrouter, model=openai/gpt-oss-120b:free, base_url=https://openrouter.ai/api/v1
+2026-05-08 00:22:10,342 - INFO - hindsight_api.engine.providers.openai_compatible_llm - OpenAI-compatible client initialized: provider=openrouter, model=openai/gpt-oss-120b:free, base_url=https://openrouter.ai/api/v1
+2026-05-08 00:22:10,604 - INFO - hindsight_api.engine.providers.openai_compatible_llm - OpenAI-compatible client initialized: provider=openrouter, model=openai/gpt-oss-120b:free, base_url=https://openrouter.ai/api/v1
+2026-05-08 00:22:10,843 - INFO - hindsight_api.engine.providers.openai_compatible_llm - OpenAI-compatible client initialized: provider=openrouter, model=openai/gpt-oss-120b:free, base_url=https://openrouter.ai/api/v1
+2026-05-08 00:22:11,028 - INFO - hindsight_api.api.mcp - MCP servers created (stateless_http=False)
+2026-05-08 00:22:11,098 - INFO - hindsight_api.api - HTTP REST API enabled
+2026-05-08 00:22:11,098 - INFO - hindsight_api.api - MCP server enabled at /mcp/
+winloop installed as asyncio event loop policy (Windows uvloop port)
+[38;2;0;116;217mStarting Hindsight API...[0m
+  [38;2;128;128;128mVersion:[0m [38;2;0;119;210mv0.5.6[0m
+  [38;2;128;128;128mURL:[0m [38;2;0;122;203mhttp://127.0.0.1:8888[0m
+  [38;2;128;128;128mDatabase:[0m [38;2;0;128;190mpg0://hindsight-memory:5544[0m
+  [38;2;128;128;128mLLM:[0m [38;2;0;134;176mopenrouter / openai/gpt-oss-120b:free[0m
+  [38;2;128;128;128mEmbeddings:[0m [38;2;0;140;163mtei[0m
+  [38;2;128;128;128mReranker:[0m [38;2;0;146;150mrrf[0m
+  [38;2;128;128;128mExtensions:[0m [38;2;0;128;190mpgvector (vector) / native (text)[0m
+  [38;2;128;128;128mMCP:[0m [38;2;0;146;150menabled at /mcp[0m
+
+2026-05-08 00:22:11,132 - INFO - mcp.server.streamable_http_manager - StreamableHTTP session manager started
+2026-05-08 00:22:11,132 - INFO - mcp.server.streamable_http_manager - StreamableHTTP session manager started
+2026-05-08 00:22:11,132 - INFO - hindsight_api.api - MCP lifespans started (multi-bank and single-bank)
+2026-05-08 00:22:11,132 - INFO - root - Metrics initialized - available at /metrics endpoint
+2026-05-08 00:22:11,132 - INFO - hindsight_api.engine.embeddings - Embeddings: initializing TEI provider at http://127.0.0.1:8081
+2026-05-08 00:22:11,406 - INFO - hindsight_api.engine.embeddings - Embeddings: TEI provider initialized (model: BAAI/bge-small-en-v1.5, dim: 384)
+2026-05-08 00:22:11,406 - INFO - hindsight_api.engine.cross_encoder - Reranker: RRF passthrough provider initialized (neural reranking disabled)
+2026-05-08 00:22:11,407 - INFO - hindsight_api.engine.providers.openai_compatible_llm - Verifying connection: openrouter/openai/gpt-oss-120b:free
+2026-05-08 00:22:12,085 - INFO - hindsight_api.pg0 - Starting embedded PostgreSQL (name=hindsight-memory, port=5544)...
+2026-05-08 00:22:12,896 - WARNING - hindsight_api.pg0 - pg0 start failed for instance 'hindsight-memory'; falling back to direct postgres start using existing data dir C:\Users\ayate\.pg0\instances\hindsight-memory\data
+2026-05-08 00:22:13,417 - INFO - hindsight_api.pg0 - Direct postgres fallback started successfully: postgresql://hindsight:hindsight@127.0.0.1:5544/hindsight
+2026-05-08 00:22:14,546 - INFO - hindsight_api.engine.providers.openai_compatible_llm - Connection verified: openrouter/openai/gpt-oss-120b:free
+2026-05-08 00:22:14,546 - INFO - hindsight_api.engine.memory_engine - Running database migrations...
+2026-05-08 00:22:14,546 - INFO - hindsight_api.engine.memory_engine - Running migrations on 1 schema(s)...
+2026-05-08 00:22:14,762 - INFO - hindsight_api.migrations - pgvector extension found in public schema - ready to use
+2026-05-08 00:22:14,762 - INFO - hindsight_api.migrations - Running database migrations to head for schema 'public'...
+2026-05-08 00:22:14,762 - INFO - hindsight_api.migrations - Database URL: postgresql://***:***@127.0.0.1:5544/hindsight
+2026-05-08 00:22:14,762 - INFO - hindsight_api.migrations - Script location: D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\alembic
+2026-05-08 00:22:14,801 - INFO - alembic.runtime.migration - Context impl PostgresqlImpl.
+2026-05-08 00:22:14,801 - INFO - alembic.runtime.migration - Will assume transactional DDL.
+2026-05-08 00:22:14,872 - INFO - hindsight_api.migrations - Database migrations completed successfully for schema 'public'
+2026-05-08 00:22:14,874 - INFO - hindsight_api.engine.memory_engine - Schema migrations completed
+2026-05-08 00:22:14,925 - INFO - hindsight_api.migrations - Using vector extension: pgvector
+2026-05-08 00:22:14,973 - INFO - hindsight_api.migrations - Target vector extension: pgvector
+2026-05-08 00:22:15,059 - INFO - hindsight_api.engine.memory_engine - Connecting to database at postgresql://***:***@127.0.0.1:5544/hindsight
+2026-05-08 00:22:15,148 - INFO - hindsight_api.engine.db.postgresql - PostgreSQL pool created (min=5, max=100, cmd_timeout=60s, acquire_timeout=30s)
+2026-05-08 00:22:16,881 - INFO - hindsight_api.engine.task_backend - BrokerTaskBackend initialized
+2026-05-08 00:22:16,882 - INFO - hindsight_api.engine.memory_engine - Memory system initialized (pool and task backend started)
+2026-05-08 00:22:16,882 - INFO - root - Memory system initialized
+2026-05-08 00:22:16,882 - INFO - root - DB pool metrics configured
+2026-05-08 00:22:16,883 - INFO - root - Worker poller started (worker_id=DESKTOP-QFDJ68L)
+2026-05-08 00:22:16,883 - INFO - root - Tenant extension started
+2026-05-08 00:22:16,902 - INFO - hindsight_api.worker.poller - Worker DESKTOP-QFDJ68L starting polling loop (max_slots=10, reservations=[consolidation=2], shared_pool=8)
+2026-05-08 00:22:17,428 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:22:47,841 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:23:18,284 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:23:48,789 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:23:49,819 - INFO - hindsight_api.engine.retain.fact_storage - [OBSERVATIONS] Deleted 3 observations, reset 0 source memories for re-consolidation in bank tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:31e44527-1107-48f1-9097-14b8d7452673
+2026-05-08 00:23:49,827 - INFO - hindsight_api.engine.memory_engine - consolidation task queued for bank_id=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:31e44527-1107-48f1-9097-14b8d7452673, operation_id=6d142a62-d3e6-495f-bab0-0f998414112c
+2026-05-08 00:23:50,275 - INFO - hindsight_api.worker.poller - Worker DESKTOP-QFDJ68L claimed 1 tasks (1 consolidation): consolidation:1 (schemas: default)
+2026-05-08 00:23:50,311 - INFO - hindsight_api.engine.memory_engine - [CONSOLIDATION] bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:31e44527-1107-48f1-9097-14b8d7452673 completed: 0 processed
+2026-05-08 00:23:50,311 - INFO - hindsight_api.engine.memory_engine - Marked async operation as completed: 6d142a62-d3e6-495f-bab0-0f998414112c
+2026-05-08 00:24:18,792 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:24:28,786 - INFO - hindsight_api.config_resolver - Updated bank config for tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79: ['reflect_mission', 'retain_mission']
+2026-05-08 00:24:28,804 - INFO - hindsight_api.engine.memory_engine - Created parent operation 4c6120be-4e96-485a-bc4e-3598f769f6ac with 1 child sub-batch(es)
+2026-05-08 00:24:28,806 - WARNING - hindsight_api.api.http - Unknown parameters ignored: [async] for POST /v1/default/banks/tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79/memories
+2026-05-08 00:24:29,013 - INFO - hindsight_api.worker.poller - Worker DESKTOP-QFDJ68L claimed 1 tasks (0 consolidation): batch_retain:1 (schemas: default)
+2026-05-08 00:24:29,016 - INFO - hindsight_api.engine.memory_engine - [BATCH_RETAIN_TASK] Starting background batch retain for bank_id=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79, 3 items, operation_id=a53bd734-a908-4637-aa0b-a0cd1d640f7c
+2026-05-08 00:24:49,035 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:24:49,035 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:24:49,035 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=20s stage=llm.openrouter.retain_extract_facts+structured stage_age=19s
+2026-05-08 00:25:19,375 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:25:19,383 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:25:19,383 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=50s stage=llm.openrouter.retain_extract_facts+structured stage_age=50s
+2026-05-08 00:25:49,481 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:25:49,481 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:25:49,482 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=80s stage=llm.openrouter.retain_extract_facts+structured stage_age=80s
+2026-05-08 00:26:19,869 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:26:19,869 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:26:19,869 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=111s stage=llm.openrouter.retain_extract_facts+structured stage_age=110s
+2026-05-08 00:26:50,328 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:26:50,328 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:26:50,328 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=141s stage=llm.openrouter.retain_extract_facts+structured stage_age=140s
+2026-05-08 00:27:20,688 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=2 limits=5-100 idle=2 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:27:20,688 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:27:20,689 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=172s stage=llm.openrouter.retain_extract_facts+structured stage_age=171s
+2026-05-08 00:27:51,023 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=2 limits=5-100 idle=2 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:27:51,024 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:27:51,024 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=202s stage=llm.openrouter.retain_extract_facts+structured stage_age=201s
+2026-05-08 00:28:21,371 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=2 limits=5-100 idle=2 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:28:21,381 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:28:21,381 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=232s stage=llm.openrouter.retain_extract_facts+structured stage_age=232s
+2026-05-08 00:28:51,400 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=2 limits=5-100 idle=2 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:28:51,408 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:28:51,408 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=262s stage=llm.openrouter.retain_extract_facts+structured stage_age=262s
+2026-05-08 00:29:21,862 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=2 limits=5-100 idle=2 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:29:21,863 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:29:21,863 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=293s stage=llm.openrouter.retain_extract_facts+structured stage_age=292s
+2026-05-08 00:29:36,476 - WARNING - hindsight_api.engine.providers.openai_compatible_llm - JSON parse error from LLM response (attempt 1/4): Expecting ',' delimiter: line 44 column 32 (char 1344)
+  Model: openrouter/openai/gpt-oss-120b:free
+  Content length: 1351 chars
+  Content preview: '{\n  "facts": [\n    {\n      "what": "Course \\"Ai spec driven development\\" is a beginner programming course lasting 5 minutes, offering 500 XP, consisting of 1 module titled \\"Module 1\\" and belongs to the company-specific learning catalog.",\n      "when": "2026-05-07",\n      "where": "N/A",\n      "who": "N/A",\n      "why": "N/A",\n      "fact_kind": "event",\n      "occurred_start": "2026-05-07T00:00:00Z",\n      "occurred_end": "2026-05-07T23:59:59Z",\n      "fact_type": "world",\n      "entities": ...TRUNCATED...      {\n          "text": "d917f22b-db28-4cf9-b401-adb680731e79"\n        },\n        {\n          "text": "99e5465c-24b1-44a2-9e88-b2079e2492a6"\n        }\n      ],\n      "causal{_relations": null"\n    }'
+  Finish reason: length
+2026-05-08 00:29:52,101 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=2 limits=5-100 idle=2 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:29:52,101 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:29:52,101 - INFO - hindsight_api.worker.poller - [WORKER_TASK] [STUCK?] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=323s stage=llm.openrouter.retain_extract_facts.attempt=2/4 stage_age=15s
+2026-05-08 00:29:52,103 - WARNING - hindsight_api.worker.poller - [STUCK_STACK] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=323s threshold=300s stage=llm.openrouter.retain_extract_facts.attempt=2/4
+Stack for <Task pending name='Task-623' coro=<WorkerPoller._execute_task_inner() running at D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\worker\poller.py:667> wait_for=<_GatheringFuture pending cb=[Task.task_wakeup()]> cb=[WorkerPoller.execute_task.<locals>.<lambda>() at D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\worker\poller.py:629]> (most recent call last):
+  File "D:\PFE\OpenMAIC\hindsight\hindsight\hindsight-api-slim\hindsight_api\worker\poller.py", line 667, in _execute_task_inner
+    await self._executor(task.task_dict)
+
+2026-05-08 00:30:22,468 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=2 limits=5-100 idle=2 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:30:22,469 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:30:22,469 - INFO - hindsight_api.worker.poller - [WORKER_TASK] [STUCK?] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=353s stage=llm.openrouter.retain_extract_facts.attempt=2/4 stage_age=45s
+2026-05-08 00:30:28,643 - INFO - hindsight_api.engine.providers.openai_compatible_llm - slow llm call: scope=retain_extract_facts, model=openrouter/openai/gpt-oss-120b:free, input_tokens=2998, output_tokens=770, total_tokens=3768, cached_tokens=64, time=358.808s, ratio out/in=0.26
+2026-05-08 00:30:29,173 - INFO - hindsight_api.engine.retain.orchestrator - [streaming] Phase 1 (entity resolution): 0.028s
+2026-05-08 00:30:29,260 - INFO - hindsight_api.engine.retain.orchestrator - [streaming] Phase 2 (write txn): 0.085s
+2026-05-08 00:30:29,273 - INFO - hindsight_api.engine.retain.orchestrator - [streaming] Consumer batch 1 total (excluding fire-and-forget): 0.128s
+2026-05-08 00:30:29,317 - INFO - hindsight_api.engine.retain.orchestrator - [streaming] Final ANN chunk 1/1: 6 links in 0.039s
+2026-05-08 00:30:29,317 - INFO - hindsight_api.engine.retain.orchestrator - 
+============================================================
+RETAIN_BATCH START: tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79
+Batch size: 1 content items, 279 chars
+============================================================
+[streaming] 1 chunks, batch_size 100 — 1 batch
+  Extract facts: 4 facts, 1 chunks from 1 contents in 358.815s
+  Generate embeddings: 4 embeddings in 0.499s
+[streaming] Consumer batch 1: processing 4 facts from 1 chunks
+[streaming] Document course:d917f22b-db28-4cf9-b401-adb680731e79:overview tracked (full content)
+  Store chunks: 1 chunks in 0.007s
+  Insert facts: 4 units in 0.000s
+  Insert unit_entities: 6 pairs in 0.004s
+  Temporal links: 24 links in 0.021s
+  Semantic links: skipped (deferred to final ANN pass)
+  Causal links: 0 links in 0.000s
+  Entity links (viz): 0 links in 0.003s
+[streaming] Checkpoint: 4 facts committed, ANN pass next
+[streaming] Final ANN: loaded 4 units with embeddings in 0.003s
+      [8.1] ANN search (Phase 1): 4 units → 6 links in 0.035s
+[streaming] Final ANN: 6 total semantic links
+[streaming] Final ANN pass: 0.042s for 4 units
+============================================================
+STREAMING RETAIN COMPLETE: 4 units across 1 batches in 360.275s
+Document: course:d917f22b-db28-4cf9-b401-adb680731e79:overview
+============================================================
+
+2026-05-08 00:30:47,862 - INFO - hindsight_api.engine.providers.openai_compatible_llm - slow llm call: scope=retain_extract_facts, model=openrouter/openai/gpt-oss-120b:free, input_tokens=3523, output_tokens=485, total_tokens=4008, cached_tokens=64, time=18.533s, ratio out/in=0.14
+2026-05-08 00:30:52,769 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=2 limits=5-100 idle=2 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:30:52,777 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:30:52,778 - INFO - hindsight_api.worker.poller - [WORKER_TASK] [STUCK?] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=384s stage=llm.openrouter.retain_extract_facts+structured stage_age=23s
+2026-05-08 00:30:55,647 - INFO - hindsight_api.engine.providers.openai_compatible_llm - slow llm call: scope=retain_extract_facts, model=openrouter/openai/gpt-oss-120b:free, input_tokens=2963, output_tokens=599, total_tokens=3562, cached_tokens=64, time=26.324s, ratio out/in=0.20
+2026-05-08 00:31:19,374 - INFO - hindsight_api.engine.providers.openai_compatible_llm - slow llm call: scope=retain_extract_facts, model=openrouter/openai/gpt-oss-120b:free, input_tokens=3248, output_tokens=1225, total_tokens=4473, cached_tokens=160, time=50.041s, ratio out/in=0.38
+2026-05-08 00:31:19,661 - INFO - hindsight_api.engine.retain.orchestrator - [streaming] Phase 1 (entity resolution): 0.014s
+2026-05-08 00:31:19,740 - INFO - hindsight_api.engine.retain.orchestrator - [streaming] Phase 2 (write txn): 0.079s
+2026-05-08 00:31:19,760 - INFO - hindsight_api.engine.retain.orchestrator - [streaming] Consumer batch 1 total (excluding fire-and-forget): 0.113s
+2026-05-08 00:31:19,818 - INFO - hindsight_api.engine.retain.orchestrator - [streaming] Final ANN chunk 1/1: 89 links in 0.048s
+2026-05-08 00:31:19,818 - INFO - hindsight_api.engine.retain.orchestrator - 
+============================================================
+RETAIN_BATCH START: tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79
+Batch size: 1 content items, 4,569 chars
+============================================================
+[streaming] 3 chunks, batch_size 100 — 1 batch
+  Extract facts: 2 facts, 1 chunks from 1 contents in 18.548s
+  Generate embeddings: 2 embeddings in 0.082s
+  Extract facts: 4 facts, 1 chunks from 1 contents in 26.324s
+  Generate embeddings: 4 embeddings in 0.085s
+  Extract facts: 7 facts, 1 chunks from 1 contents in 50.052s
+  Generate embeddings: 7 embeddings in 0.271s
+[streaming] Consumer batch 1: processing 13 facts from 3 chunks
+[streaming] Document course:d917f22b-db28-4cf9-b401-adb680731e79:source:1 tracked (full content)
+  Store chunks: 3 chunks in 0.006s
+  Insert facts: 13 units in 0.000s
+  Insert unit_entities: 28 pairs in 0.003s
+  Temporal links: 260 links in 0.006s
+  Semantic links: skipped (deferred to final ANN pass)
+  Causal links: 1 links in 0.010s
+  Entity links (viz): 8 links in 0.012s
+[streaming] Checkpoint: 13 facts committed, ANN pass next
+[streaming] Final ANN: loaded 13 units with embeddings in 0.002s
+      [8.1] ANN search (Phase 1): 13 units → 89 links in 0.040s
+[streaming] Final ANN: 89 total semantic links
+[streaming] Final ANN pass: 0.050s for 13 units
+============================================================
+STREAMING RETAIN COMPLETE: 13 units across 1 batches in 50.502s
+Document: course:d917f22b-db28-4cf9-b401-adb680731e79:source:1
+============================================================
+
+2026-05-08 00:31:23,031 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=0/2(avail=2)] | shared=1/8(avail=7) | global: pending=1 (schemas: default) | others: none | pool: size=2 limits=5-100 idle=2 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: retain:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:31:23,031 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] batch_retain: total=1 claimable=0 payload_null=1 retry_blocked=0 assigned=0
+2026-05-08 00:31:23,032 - INFO - hindsight_api.worker.poller - [WORKER_TASK] [STUCK?] op=a53bd734-a908-4637-aa0b-a0cd1d640f7c type=batch_retain op_type=retain bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=414s stage=llm.openrouter.retain_extract_facts+structured stage_age=3s
+2026-05-08 00:31:42,752 - INFO - hindsight_api.engine.providers.openai_compatible_llm - slow llm call: scope=retain_extract_facts, model=openrouter/openai/gpt-oss-120b:free, input_tokens=3045, output_tokens=429, total_tokens=3474, cached_tokens=64, time=22.925s, ratio out/in=0.14
+2026-05-08 00:31:42,793 - INFO - hindsight_api.engine.retain.orchestrator - [streaming] Phase 1 (entity resolution): 0.005s
+2026-05-08 00:31:42,816 - INFO - hindsight_api.engine.retain.orchestrator - [streaming] Phase 2 (write txn): 0.022s
+2026-05-08 00:31:42,821 - INFO - hindsight_api.engine.retain.orchestrator - [streaming] Consumer batch 1 total (excluding fire-and-forget): 0.033s
+2026-05-08 00:31:42,832 - INFO - hindsight_api.engine.retain.orchestrator - [streaming] Final ANN chunk 1/1: 26 links in 0.011s
+2026-05-08 00:31:42,832 - INFO - hindsight_api.engine.retain.orchestrator - 
+============================================================
+RETAIN_BATCH START: tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79
+Batch size: 1 content items, 167 chars
+============================================================
+[streaming] 1 chunks, batch_size 100 — 1 batch
+  Extract facts: 3 facts, 1 chunks from 1 contents in 22.926s
+  Generate embeddings: 3 embeddings in 0.035s
+[streaming] Consumer batch 1: processing 3 facts from 1 chunks
+[streaming] Document course:d917f22b-db28-4cf9-b401-adb680731e79:lesson:be1bad43-aade-4e48-9eb0-2454da42ff9d tracked (full content)
+  Store chunks: 1 chunks in 0.000s
+  Insert facts: 3 units in 0.000s
+  Insert unit_entities: 4 pairs in 0.000s
+  Temporal links: 60 links in 0.009s
+  Semantic links: skipped (deferred to final ANN pass)
+  Causal links: 0 links in 0.000s
+  Entity links (viz): 6 links in 0.005s
+[streaming] Checkpoint: 3 facts committed, ANN pass next
+[streaming] Final ANN: loaded 3 units with embeddings in 0.000s
+      [8.1] ANN search (Phase 1): 3 units → 26 links in 0.011s
+[streaming] Final ANN: 26 total semantic links
+[streaming] Final ANN pass: 0.011s for 3 units
+============================================================
+STREAMING RETAIN COMPLETE: 3 units across 1 batches in 23.013s
+Document: course:d917f22b-db28-4cf9-b401-adb680731e79:lesson:be1bad43-aade-4e48-9eb0-2454da42ff9d
+============================================================
+
+2026-05-08 00:31:42,832 - INFO - hindsight_api.engine.memory_engine - consolidation task queued for bank_id=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79, operation_id=3696c4ad-4bfb-4870-a19a-7a645900145b
+2026-05-08 00:31:42,832 - INFO - hindsight_api.engine.memory_engine - [BATCH_RETAIN_TASK] Completed background batch retain for bank_id=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79
+2026-05-08 00:31:42,847 - INFO - hindsight_api.engine.memory_engine - Marked async operation as completed: a53bd734-a908-4637-aa0b-a0cd1d640f7c
+2026-05-08 00:31:42,847 - INFO - hindsight_api.engine.memory_engine - Updated parent operation 4c6120be-4e96-485a-bc4e-3598f769f6ac to status 'completed' (all children done)
+2026-05-08 00:31:43,313 - INFO - hindsight_api.worker.poller - Worker DESKTOP-QFDJ68L claimed 1 tasks (1 consolidation): consolidation:1 (schemas: default)
+2026-05-08 00:31:43,313 - INFO - hindsight_api.engine.consolidation.consolidator - [CONSOLIDATION] bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 total_unconsolidated=20
+2026-05-08 00:31:43,370 - INFO - hindsight_api.engine.search.retrieval - Using LinkExpansion graph retriever
+2026-05-08 00:31:53,193 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=1/2(avail=1)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=4 in_use=1 free_holders=99 pending_acquires=0 | proc: unavailable | my_active: consolidation:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:31:53,193 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=3696c4ad-4bfb-4870-a19a-7a645900145b type=consolidation op_type=consolidation bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=10s stage=llm.openrouter.consolidation+structured stage_age=9s
+2026-05-08 00:32:17,990 - INFO - hindsight_api.engine.providers.openai_compatible_llm - slow llm call: scope=consolidation, model=openrouter/openai/gpt-oss-120b:free, input_tokens=2268, output_tokens=750, total_tokens=3018, cached_tokens=64, time=33.889s, ratio out/in=0.33
+2026-05-08 00:32:18,118 - INFO - hindsight_api.engine.consolidation.consolidator - [CONSOLIDATION] bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 llm_batch #1 (4 memories, 1 llm calls) | 4/20 processed | recall=0.777s, llm=33.891s, embedding=0.092s, db_write=0.022s | created=4 updated=0 skipped=0 | input_tokens=~1657 | avg=8.699s/memory
+2026-05-08 00:32:21,869 - WARNING - hindsight_api.engine.providers.openai_compatible_llm - JSON parse error from LLM response (attempt 1/11): Expecting value: line 1 column 1 (char 0)
+  Model: openrouter/openai/gpt-oss-120b:free
+  Content length: 0 chars
+  Content preview: '<empty>'
+  Finish reason: stop
+2026-05-08 00:32:23,489 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=1/2(avail=1)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=10 limits=5-100 idle=9 in_use=1 free_holders=99 pending_acquires=0 | proc: unavailable | my_active: consolidation:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:32:23,499 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=3696c4ad-4bfb-4870-a19a-7a645900145b type=consolidation op_type=consolidation bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=40s stage=llm.openrouter.consolidation.attempt=2/11 stage_age=1s
+2026-05-08 00:32:39,071 - INFO - hindsight_api.config_resolver - Updated bank config for tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79: ['reflect_mission', 'retain_mission']
+2026-05-08 00:32:39,108 - INFO - hindsight_api.engine.memory_engine - Created parent operation 6cb703dc-92bc-4189-a169-27591d690a68 with 1 child sub-batch(es)
+2026-05-08 00:32:39,108 - WARNING - hindsight_api.api.http - Unknown parameters ignored: [async] for POST /v1/default/banks/tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79/memories
+2026-05-08 00:32:39,255 - INFO - hindsight_api.worker.poller - Worker DESKTOP-QFDJ68L claimed 1 tasks (0 consolidation): batch_retain:1 (schemas: default)
+2026-05-08 00:32:39,255 - INFO - hindsight_api.engine.memory_engine - [BATCH_RETAIN_TASK] Starting background batch retain for bank_id=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79, 2 items, operation_id=12c3ffa6-00d3-4d76-95e2-c18ddb0b202c
+2026-05-08 00:32:39,263 - INFO - hindsight_api.engine.retain.orchestrator - 
+============================================================
+RETAIN_BATCH START: tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79
+Batch size: 1 content items, 279 chars
+============================================================
+[delta] Chunked new content: 1 chunks in 0.000s
+[delta] Chunk diff: 1 unchanged, 0 changed, 0 new, 0 removed
+[delta] No chunk changes detected — updating document metadata only
+DELTA RETAIN (no changes): metadata updated in 0.000s
+
+2026-05-08 00:32:39,280 - INFO - hindsight_api.engine.retain.orchestrator - 
+============================================================
+RETAIN_BATCH START: tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79
+Batch size: 1 content items, 167 chars
+============================================================
+[delta] Chunked new content: 1 chunks in 0.000s
+[delta] Chunk diff: 1 unchanged, 0 changed, 0 new, 0 removed
+[delta] No chunk changes detected — updating document metadata only
+DELTA RETAIN (no changes): metadata updated in 0.017s
+
+2026-05-08 00:32:39,280 - INFO - hindsight_api.engine.memory_engine - consolidation task queued for bank_id=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79, operation_id=4482d952-3000-43af-b102-d15aad9d1559
+2026-05-08 00:32:39,280 - INFO - hindsight_api.engine.memory_engine - [BATCH_RETAIN_TASK] Completed background batch retain for bank_id=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79
+2026-05-08 00:32:39,286 - INFO - hindsight_api.engine.memory_engine - Marked async operation as completed: 12c3ffa6-00d3-4d76-95e2-c18ddb0b202c
+2026-05-08 00:32:39,286 - INFO - hindsight_api.engine.memory_engine - Updated parent operation 6cb703dc-92bc-4189-a169-27591d690a68 to status 'completed' (all children done)
+2026-05-08 00:32:52,509 - INFO - hindsight_api.engine.providers.openai_compatible_llm - slow llm call: scope=consolidation, model=openrouter/openai/gpt-oss-120b:free, input_tokens=2622, output_tokens=826, total_tokens=3448, cached_tokens=64, time=32.540s, ratio out/in=0.32
+2026-05-08 00:32:52,890 - INFO - hindsight_api.engine.consolidation.consolidator - [CONSOLIDATION] bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 llm_batch #2 (8 memories, 1 llm calls) | 12/20 processed | recall=1.849s, llm=32.542s, embedding=0.329s, db_write=0.025s | created=8 updated=0 skipped=0 | input_tokens=~1948 | avg=4.347s/memory
+2026-05-08 00:32:54,452 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=1/2(avail=1)] | shared=0/8(avail=8) | global: pending=1 (schemas: default) | others: none | pool: size=10 limits=5-100 idle=4 in_use=6 free_holders=94 pending_acquires=0 | proc: unavailable | my_active: consolidation:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:32:54,452 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] consolidation: total=1 claimable=1 payload_null=0 retry_blocked=0 assigned=0
+2026-05-08 00:32:54,452 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=3696c4ad-4bfb-4870-a19a-7a645900145b type=consolidation op_type=consolidation bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=71s stage=llm.openrouter.consolidation.attempt=2/11 stage_age=32s
+2026-05-08 00:33:09,511 - INFO - hindsight_api.engine.memory_engine - [REFLECT tenant:9-89510] Starting agentic reflect for query: Answer the learner's question using only the retai..., tags=['course:d917f22b-db28-4cf9-b401-adb680731e79'] (all_strict)
+2026-05-08 00:33:24,335 - INFO - hindsight_api.engine.reflect.agent - [REFLECT tenant:9-89533] done | query='Answer the learner's question using only the retai...' | iterations=2 | llm=[agent_1=6894ms, agent_2=7564ms] (14458ms) | tools=[search_observations((query='main risks of vibe coding ente...', max_tokens=5000))=309ms/6772c] (309ms) | answer='{
+  "answer": "The lesson says the main risks of vibe coding in an enterprise are:\n- Creating dupli...' | total=14801ms
+2026-05-08 00:33:24,336 - INFO - hindsight_api.engine.memory_engine - [REFLECT tenant:9-89510] Complete: 749 chars, 2 iterations, 1 tool calls | 14.826s
+2026-05-08 00:33:24,452 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=1/2(avail=1)] | shared=0/8(avail=8) | global: pending=1 (schemas: default) | others: none | pool: size=10 limits=5-100 idle=9 in_use=1 free_holders=99 pending_acquires=0 | proc: unavailable | my_active: consolidation:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:33:24,453 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] consolidation: total=1 claimable=1 payload_null=0 retry_blocked=0 assigned=0
+2026-05-08 00:33:24,453 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=3696c4ad-4bfb-4870-a19a-7a645900145b type=consolidation op_type=consolidation bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=101s stage=llm.openrouter.consolidation+structured stage_age=30s
+2026-05-08 00:33:44,712 - WARNING - hindsight_api.engine.providers.openai_compatible_llm - JSON parse error from LLM response (attempt 1/11): Invalid control character at: line 16 column 41 (char 513)
+  Model: openrouter/openai/gpt-oss-120b:free
+  Content length: 3976 chars
+  Content preview: '{\n  "creates": [\n    {\n      "text": "The first step in a spec‑driven workflow is to generate documentation, not code.",\n      "source_fact_ids": [\n        "e8d128f5-3c57-4ae5-b734-57aa93dad903"\n      ]\n    },\n    {\n      "text": "Spec‑driven development enforces best practices by requiring developers to be explicit about architecture and to focus on one feature at a time.",\n      "source_fact_ids": [\n        "7ac3f03a-d297-49e6-9bfd-f98110123025"\n      ]\n    },\n    {\n      "text": "Spec‑driven{...TRUNCATED...re than rapid code generation, even though Vibe coding remains useful.",\n      "source_fact_ids": [\n        "8193244e-a0ea-4fc4-a623-b927ec6c6146"\n      ]\n    }\n  ],\n  "updates": [],\n  "deletes": []\n}'
+  Finish reason: stop
+2026-05-08 00:33:54,502 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=1/2(avail=1)] | shared=0/8(avail=8) | global: pending=1 (schemas: default) | others: none | pool: size=10 limits=5-100 idle=9 in_use=1 free_holders=99 pending_acquires=0 | proc: unavailable | my_active: consolidation:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:33:54,502 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] consolidation: total=1 claimable=1 payload_null=0 retry_blocked=0 assigned=0
+2026-05-08 00:33:54,502 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=3696c4ad-4bfb-4870-a19a-7a645900145b type=consolidation op_type=consolidation bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=131s stage=llm.openrouter.consolidation.attempt=2/11 stage_age=9s
+2026-05-08 00:34:06,586 - WARNING - hindsight_api.engine.providers.openai_compatible_llm - JSON parse error from LLM response (attempt 2/11): Expecting value: line 1 column 1 (char 0)
+  Model: openrouter/openai/gpt-oss-120b:free
+  Content length: 0 chars
+  Content preview: '<empty>'
+  Finish reason: stop
+2026-05-08 00:34:24,904 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=1/10 | reserved: [consolidation=1/2(avail=1)] | shared=0/8(avail=8) | global: pending=1 (schemas: default) | others: none | pool: size=10 limits=5-100 idle=9 in_use=1 free_holders=99 pending_acquires=0 | proc: unavailable | my_active: consolidation:tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79(1)
+2026-05-08 00:34:24,904 - INFO - hindsight_api.worker.poller - [PENDING_BREAKDOWN] consolidation: total=1 claimable=1 payload_null=0 retry_blocked=0 assigned=0
+2026-05-08 00:34:24,904 - INFO - hindsight_api.worker.poller - [WORKER_TASK] op=3696c4ad-4bfb-4870-a19a-7a645900145b type=consolidation op_type=consolidation bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 age=162s stage=llm.openrouter.consolidation.attempt=3/11 stage_age=16s
+2026-05-08 00:34:31,698 - INFO - hindsight_api.engine.providers.openai_compatible_llm - slow llm call: scope=consolidation, model=openrouter/openai/gpt-oss-120b:free, input_tokens=3884, output_tokens=494, total_tokens=4378, cached_tokens=64, time=97.164s, ratio out/in=0.13
+2026-05-08 00:34:31,837 - INFO - hindsight_api.engine.consolidation.consolidator - [CONSOLIDATION] bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 llm_batch #3 (5 memories, 1 llm calls) | 17/20 processed | recall=1.642s, llm=97.165s, embedding=0.110s, db_write=0.015s | created=5 updated=0 skipped=0 | input_tokens=~3016 | avg=19.789s/memory
+2026-05-08 00:34:42,658 - INFO - hindsight_api.engine.providers.openai_compatible_llm - slow llm call: scope=consolidation, model=openrouter/openai/gpt-oss-120b:free, input_tokens=2148, output_tokens=308, total_tokens=2456, cached_tokens=1152, time=10.459s, ratio out/in=0.14
+2026-05-08 00:34:42,739 - INFO - hindsight_api.engine.consolidation.consolidator - [CONSOLIDATION] bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 llm_batch #4 (3 memories, 1 llm calls) | 20/20 processed | recall=0.361s, llm=10.461s, embedding=0.059s, db_write=0.010s | created=3 updated=0 skipped=0 | input_tokens=~1585 | avg=3.634s/memory
+2026-05-08 00:34:42,747 - INFO - hindsight_api.engine.consolidation.consolidator - 
+============================================================
+CONSOLIDATION for bank tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79
+[1] Found 20 pending memories to consolidate
+[3] Results: 20 memories -> 20 actions (20 created, 0 updated, 0 merged, 0 skipped)
+[4] Timing breakdown: recall=4.629s, llm=174.059s, embedding=0.590s, db_write=0.073s, avg_obs=2.0, avg_prompt_tokens=~2052
+============================================================
+CONSOLIDATION COMPLETE: 179.434s total
+============================================================
+2026-05-08 00:34:42,748 - INFO - hindsight_api.engine.memory_engine - [CONSOLIDATION] bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 completed: 20 processed
+2026-05-08 00:34:42,749 - INFO - hindsight_api.engine.memory_engine - Marked async operation as completed: 3696c4ad-4bfb-4870-a19a-7a645900145b
+2026-05-08 00:34:42,888 - INFO - hindsight_api.worker.poller - Worker DESKTOP-QFDJ68L claimed 1 tasks (1 consolidation): consolidation:1 (schemas: default)
+2026-05-08 00:34:42,892 - INFO - hindsight_api.engine.memory_engine - [CONSOLIDATION] bank=tenant:99e5465c-24b1-44a2-9e88-b2079e2492a6:course:d917f22b-db28-4cf9-b401-adb680731e79 completed: 0 processed
+2026-05-08 00:34:42,893 - INFO - hindsight_api.engine.memory_engine - Marked async operation as completed: 4482d952-3000-43af-b102-d15aad9d1559
+2026-05-08 00:34:55,105 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=10 limits=5-100 idle=10 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:35:25,115 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=10 limits=5-100 idle=10 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:35:55,493 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=10 limits=5-100 idle=10 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:36:25,876 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=10 limits=5-100 idle=10 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:36:56,370 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=10 limits=5-100 idle=10 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:37:26,832 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=7 limits=5-100 idle=7 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:37:56,863 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:38:27,115 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:38:57,136 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:39:27,540 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=5 limits=5-100 idle=5 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:39:58,015 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=1 limits=5-100 idle=1 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:40:07,234 - ERROR - hindsight_api.worker.poller - Worker DESKTOP-QFDJ68L error in polling loop: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-08 00:40:28,300 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=1 limits=5-100 idle=1 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:40:49,114 - ERROR - hindsight_api.worker.poller - Worker DESKTOP-QFDJ68L error in polling loop: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-08 00:40:58,352 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=1 limits=5-100 idle=1 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:41:28,756 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=1 limits=5-100 idle=1 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:41:59,207 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=1 limits=5-100 idle=1 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:42:29,628 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=1 limits=5-100 idle=1 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:43:00,044 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=1 limits=5-100 idle=1 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:43:02,587 - ERROR - hindsight_api.worker.poller - Worker DESKTOP-QFDJ68L error in polling loop: [WinError 1225] Le système distant a refusé la connexion réseau
+2026-05-08 00:43:30,268 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=1 limits=5-100 idle=1 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none
+2026-05-08 00:44:00,661 - INFO - hindsight_api.worker.poller - [WORKER_STATS] worker=DESKTOP-QFDJ68L slots=0/10 | reserved: [consolidation=0/2(avail=2)] | shared=0/8(avail=8) | global: pending=0 (schemas: default) | others: none | pool: size=1 limits=5-100 idle=1 in_use=0 free_holders=100 pending_acquires=0 | proc: unavailable | my_active: none

@@ -1,0 +1,16 @@
+{
+  "requirement": "prepare this course",
+  "options": {
+    "enableWebSearch": true,
+    "enableImageGeneration": true,
+    "enableVideoGeneration": true,
+    "enableTTS": true,
+    "agentMode": "default"
+  },
+  "pdf": {
+    "fileName": "Introduction to CSS.pdf",
+    "size": 51532,
+    "type": "application/pdf"
+  },
+  "createdAt": "2026-05-04T13:52:44.806Z"
+}

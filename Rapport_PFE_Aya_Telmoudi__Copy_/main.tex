@@ -1,0 +1,210 @@
+\documentclass[12pt,a4paper,oneside]{report}
+
+% =========================
+% Packages
+% =========================
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{pdfpages}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{geometry}
+
+\geometry{
+    a4paper,
+    left=2cm,
+    right=2cm,
+    top=1.8cm,
+    bottom=3cm
+}
+
+\usepackage{setspace}
+\onehalfspacing
+
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{minitoc}
+\usepackage{calc}
+
+% =========================
+% BIBLIOGRAPHIE
+% =========================
+
+\usepackage[backend=biber,style=ieee]{biblatex}
+
+\addbibresource{bibliographie/biblio.bib}
+\addbibresource{bibliographie/references.bib}
+
+% NE PAS mettre \nocite{*} ici — on le met juste avant chaque \printbibliography
+
+% =========================
+% Header & Footer
+% =========================
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\nouppercase{\leftmark}}
+\fancyfoot[C]{\thepage}
+
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% =========================
+% TOC
+% =========================
+
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{3}
+
+% =========================
+% MINITOC
+% =========================
+
+\dominitoc
+
+% =========================
+% STYLE CHAPITRE (INTACT)
+% =========================
+
+\makeatletter
+
+\newlength{\chapter@number@width}
+
+\def\@makechapterhead#1{%
+  {%
+  \normalfont
+  \setlength{\parindent}{0pt}%
+  \vspace*{10pt}%
+
+  \settowidth{\chapter@number@width}{%
+    \hbox{%
+      \color{white}\Large\bfseries
+      \hspace{\dimexpr 1mm+3pt}%
+      \thechapter
+      \hspace{\dimexpr 1mm+3pt}%
+    }%
+  }
+
+  \hbox{
+
+    % Bloc gauche
+    \vtop{%
+      \hsize=\dimexpr\chapter@number@width+\tabcolsep+2\fboxrule+\tabcolsep
+
+      \begin{tabular}[t]{@{}c}
+        \scshape
+        \@chapapp
+
+        \fboxsep=0pt
+        \colorbox{black}{%
+          \vbox{
+            \hbox{\vbox to 0.7cm{}}
+            \hbox{%
+              \color{white}\Large\bfseries
+              \thechapter
+            }
+            \hbox{\vbox to 5pt{}}
+          }%
+        }
+
+      \end{tabular}%
+    }%
+
+    % Bloc droite
+    \vtop{%
+      \advance\hsize by -\dimexpr\chapter@number@width
+      \hspace*{-0.4cm}
+
+      \begin{tabular}[t]{c}
+        \scshape
+
+        \fboxsep=0pt
+        \colorbox{white}{%
+          \vbox{
+
+            \hbox{\Large\bfseries #1}
+
+          }%
+        }
+
+      \end{tabular}%
+    }%
+  }%
+
+  \vspace{40pt}
+  }%
+}
+
+\makeatother
+
+% =========================
+% DOCUMENT
+% =========================
+
+\begin{document}
+
+% --- Page de garde (pas de numéro) ---
+\includepdf[pages=-]{page_garde.pdf}
+
+% --- Pages préliminaires en chiffres romains ---
+\pagenumbering{roman}
+\pagestyle{fancy}
+
+\input{remerciement}
+
+\clearpage
+\tableofcontents
+
+\clearpage
+\listoffigures
+
+\clearpage
+\listoftables
+
+% --- Corps du document en chiffres arabes ---
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\input{introduction_generale}
+\input{chapitres/chapitre1}
+\input{chapitres/chapitre2}
+
+% =========================
+% BIBLIOGRAPHIE
+% =========================
+
+\clearpage
+\chapter*{Bibliographie}
+\markboth{Bibliographie}{Bibliographie}
+\addcontentsline{toc}{chapter}{Bibliographie}
+\nocite{*}
+\printbibliography[heading=none, notkeyword=web]
+
+% =========================
+% WEBOGRAPHIE
+% =========================
+
+\clearpage
+\chapter*{Webographie}
+\markboth{Webographie}{Webographie}
+\addcontentsline{toc}{chapter}{Webographie}
+\printbibliography[heading=none, keyword=web]
+
+\appendix
+
+\end{document}
