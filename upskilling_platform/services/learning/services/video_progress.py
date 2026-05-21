@@ -398,7 +398,7 @@ class VideoProgressService:
             merged_segments, video_duration or lesson.duration * 60
         )
 
-        completion_threshold = 90.0
+        completion_threshold = 100.0
         completion_unlocked = watch_percent >= completion_threshold
 
         video_data["segments"] = merged_segments

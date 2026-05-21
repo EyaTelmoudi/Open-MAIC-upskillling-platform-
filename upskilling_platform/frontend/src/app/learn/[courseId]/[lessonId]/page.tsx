@@ -16,6 +16,7 @@ import {
 import { AiPlatformQuiz } from "@/app/components/learn/AiPlatformQuiz";
 import {
   api,
+  learningApi,
   type AssessmentAttemptResult,
   type GamificationProfileResponse,
 } from "@/app/lib/api";
@@ -307,6 +308,8 @@ export default function LearnPage() {
   const [coachSessionId, setCoachSessionId] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressTrackerRef = useRef<ProgressTracker | null>(null);
+  const resumeVideoPositionRef = useRef<number | null>(null);
+  const resumeVideoAppliedForLessonRef = useRef<string | null>(null);
   const completionSequenceRunningRef = useRef(false);
   const gamificationBaselineRef = useRef<GamificationSnapshot | null>(null);
   const xpCelebrationResolverRef = useRef<(() => void) | null>(null);
@@ -314,6 +317,7 @@ export default function LearnPage() {
   const badgeCelebrationResolverRef = useRef<(() => void) | null>(null);
   const nextLessonTimerRef = useRef<number | null>(null);
   const learnerMemoryCaptureKeysRef = useRef<Set<string>>(new Set());
+  const videoProgressCheckpointBucketsRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (user) {
@@ -367,6 +371,8 @@ export default function LearnPage() {
       setCurrentLesson(lesson);
       setSupportOpen(false);
       setVideoProgressPercent(0);
+      resumeVideoPositionRef.current = null;
+      resumeVideoAppliedForLessonRef.current = null;
       setCompletionLocked(lesson?.content_type === "video");
       // Expand module containing current lesson
       for (const mod of course.modules) {
@@ -377,6 +383,77 @@ export default function LearnPage() {
       }
     }
   }, [course, lessonId]);
+
+  useEffect(() => {
+    if (!user?.id || !currentLesson || currentLesson.content_type !== "video") {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadSavedVideoProgress = async () => {
+      try {
+        const saved = await learningApi.get<{
+          current_time: number;
+          watch_percent: number;
+          status: string;
+        }>(`/api/v1/learning/progress/video/${currentLesson.id}?user_id=${user.id}`);
+
+        if (cancelled) {
+          return;
+        }
+
+        const safeCurrentTime = Math.max(0, Number(saved.current_time || 0));
+        resumeVideoPositionRef.current = safeCurrentTime;
+        setVideoProgressPercent(Math.max(0, Number(saved.watch_percent || 0)));
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+        resumeVideoPositionRef.current = null;
+        setVideoProgressPercent(0);
+      }
+    };
+
+    void loadSavedVideoProgress();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentLesson?.id, currentLesson?.content_type, user?.id]);
+
+  const applySavedVideoPosition = useCallback(() => {
+    if (!currentLesson || currentLesson.content_type !== "video" || !videoRef.current) {
+      return;
+    }
+
+    const savedPosition = resumeVideoPositionRef.current;
+    if (
+      savedPosition === null ||
+      !Number.isFinite(savedPosition) ||
+      savedPosition <= 0 ||
+      resumeVideoAppliedForLessonRef.current === currentLesson.id
+    ) {
+      return;
+    }
+
+    const video = videoRef.current;
+    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    const clampedPosition =
+      duration > 1 ? Math.min(savedPosition, Math.max(duration - 1, 0)) : savedPosition;
+
+    if (clampedPosition <= 0) {
+      resumeVideoAppliedForLessonRef.current = currentLesson.id;
+      return;
+    }
+
+    try {
+      video.currentTime = clampedPosition;
+      resumeVideoAppliedForLessonRef.current = currentLesson.id;
+    } catch (error) {
+      console.error("Failed to restore saved video position:", error);
+    }
+  }, [currentLesson]);
 
   useEffect(() => {
     if (!currentLesson || !user) return;
@@ -447,11 +524,17 @@ export default function LearnPage() {
 
   const captureLearnerMemoryEvent = useCallback(
     async (
-      eventType: "lesson_completed" | "course_enrollment_completed" | "quiz_completed",
+      eventType:
+        | "lesson_completed"
+        | "course_enrollment_completed"
+        | "quiz_completed"
+        | "video_progress_checkpoint",
       extras?: {
         quizId?: string | null;
         quizPassed?: boolean | null;
         quizScore?: number | null;
+        videoWatchPercent?: number | null;
+        videoCurrentTimeSeconds?: number | null;
         wrongAnswers?: Array<Record<string, unknown>>;
         captureSuffix?: string;
       },
@@ -493,16 +576,58 @@ export default function LearnPage() {
           quizId: extras?.quizId || null,
           quizPassed: extras?.quizPassed ?? null,
           quizScore: extras?.quizScore ?? null,
+          videoWatchPercent: extras?.videoWatchPercent ?? null,
+          videoCurrentTimeSeconds: extras?.videoCurrentTimeSeconds ?? null,
           wrongAnswers: extras?.wrongAnswers || [],
           lessonReferenceIds: [],
           supportReferences: [],
         });
       } catch (error) {
         learnerMemoryCaptureKeysRef.current.delete(captureKey);
+        if (eventType === "course_enrollment_completed") {
+          console.warn(
+            "Failed to capture learner course_enrollment_completed memory; suppressing hard failure for course completion flow:",
+            error,
+          );
+          return;
+        }
         console.error(`Failed to capture learner ${eventType} memory:`, error);
       }
     },
     [course, currentLesson, user?.id, user?.tenant_id]
+  );
+
+  const captureVideoProgressCheckpoint = useCallback(
+    async (watchPercent: number, currentTimeSeconds: number) => {
+      if (!currentLesson || currentLesson.content_type !== "video") {
+        return;
+      }
+
+      const normalizedPercent = Math.max(0, Math.min(100, Number(watchPercent || 0)));
+      const normalizedCurrentTime = Math.max(0, Number(currentTimeSeconds || 0));
+      if (normalizedPercent <= 0 || normalizedPercent >= 100) {
+        return;
+      }
+
+      const checkpointBucket = Math.floor(normalizedPercent / 10) * 10;
+      if (checkpointBucket < 10) {
+        return;
+      }
+
+      const lessonKey = `${courseId}:${currentLesson.id}`;
+      const lastCapturedBucket = videoProgressCheckpointBucketsRef.current.get(lessonKey) ?? 0;
+      if (checkpointBucket <= lastCapturedBucket) {
+        return;
+      }
+
+      videoProgressCheckpointBucketsRef.current.set(lessonKey, checkpointBucket);
+      await captureLearnerMemoryEvent("video_progress_checkpoint", {
+        videoWatchPercent: normalizedPercent,
+        videoCurrentTimeSeconds: normalizedCurrentTime,
+        captureSuffix: `video-progress-${checkpointBucket}`,
+      });
+    },
+    [captureLearnerMemoryEvent, courseId, currentLesson],
   );
 
   const aiGeneratedLesson = useMemo(
@@ -1035,6 +1160,63 @@ export default function LearnPage() {
     }
   }, [currentLesson, handleMarkComplete, lessonId, progress]);
 
+  useEffect(() => {
+    if (!currentLesson || currentLesson.content_type !== "video" || !user?.id) {
+      return;
+    }
+
+    const handlePageHide = () => {
+      const video = videoRef.current;
+      if (!video || !user?.tenant_id) {
+        return;
+      }
+
+      const currentModule = course?.modules.find((module) =>
+        module.lessons.some((lesson) => lesson.id === currentLesson.id),
+      );
+
+      const watchPercent = Math.round(videoProgressPercent);
+      if (watchPercent <= 0 || watchPercent >= 100) {
+        return;
+      }
+
+      const body = JSON.stringify({
+        tenantId: user.tenant_id,
+        userId: user.id,
+        courseId,
+        courseTitle: course?.title || null,
+        lessonId: currentLesson.id,
+        lessonTitle: currentLesson.title,
+        moduleId: currentModule?.id || null,
+        moduleTitle: currentModule?.title || null,
+        lessonContentType: currentLesson.content_type,
+        lessonDurationMinutes: currentLesson.duration,
+        lessonOrder: currentLesson.order,
+        assessmentId: currentLesson.assessment_id || null,
+        eventType: "video_progress_checkpoint",
+        videoWatchPercent: watchPercent,
+        videoCurrentTimeSeconds: Number(video.currentTime || 0),
+        wrongAnswers: [],
+        lessonReferenceIds: [],
+        supportReferences: [],
+      });
+
+      fetch("/api/learner-memory-agent/lesson-engagement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      }).catch(() => {
+        // ignore pagehide failures
+      });
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+    };
+  }, [course, courseId, currentLesson, user?.id, user?.tenant_id, videoProgressPercent]);
+
   const handleCoachMessage = useCallback(
     async (content: string) => {
       let sessionId = coachSessionId;
@@ -1371,6 +1553,7 @@ export default function LearnPage() {
                       controls
                       className="w-full h-full"
                       src={currentLesson.video_url}
+                      onLoadedMetadata={applySavedVideoPosition}
                       onPlay={() => {
                         if (videoRef.current && user && progressTrackerRef.current) {
                           progressTrackerRef.current.startVideoTracking(
@@ -1382,20 +1565,23 @@ export default function LearnPage() {
                       onPause={() => {
                         if (progressTrackerRef.current) {
                           progressTrackerRef.current.stopVideoTracking();
+                          progressTrackerRef.current.sendVideoHeartbeat().then((result) => {
+                            if (result) {
+                              setVideoProgressPercent(result.watch_percent);
+                              void captureVideoProgressCheckpoint(
+                                result.watch_percent,
+                                Number(videoRef.current?.currentTime || 0),
+                              );
+                            }
+                          }).catch((error) => {
+                            console.error("Failed to capture video progress checkpoint:", error);
+                          });
                         }
                       }}
                       onEnded={handleVideoEnded}
                     >
                       Your browser does not support the video tag.
                     </video>
-                    {videoProgressPercent > 0 && (
-                      <div className="absolute bottom-16 left-4 rounded-full border border-white/15 bg-slate-950/78 px-3 py-1 backdrop-blur-sm">
-                        <span className="flex items-center gap-1 text-sm text-white">
-                          <Percent className="h-3 w-3" />
-                          {Math.round(videoProgressPercent)}% watched
-                        </span>
-                      </div>
-                    )}
                   </>
                 ) : (
                   <div className="rounded-3xl bg-white/8 px-8 py-6 text-center backdrop-blur-sm">

@@ -1,4 +1,5 @@
 import { startSoloChallengeWorkflow } from "@/app/lib/solo-challenge-agent";
+import { createSoloChallengeAttempt, sanitizeSoloChallengeQuiz } from "@/app/lib/solo-challenge-db";
 
 function decodeJwtClaims(token: string | null): { tenantId?: string | null; sub?: string | null; role?: string | null } | null {
   if (!token) {
@@ -43,7 +44,30 @@ export async function POST(request: Request) {
       pagePath: typeof body?.pagePath === "string" ? body.pagePath : "/courses",
     });
 
-    return Response.json(result, { status: 200 });
+    const tenantId = typeof body?.tenantId === "string" ? body.tenantId : claims?.tenantId || null;
+    const userId = typeof body?.userId === "string" ? body.userId : claims?.sub || null;
+    const recreatedQuiz = result.recreatedQuiz ?? null;
+
+    if (!tenantId || !userId || !recreatedQuiz?.courseId) {
+      return Response.json(result, { status: 200 });
+    }
+
+    const challengeId = await createSoloChallengeAttempt({
+      tenantId,
+      userId,
+      courseId: recreatedQuiz.courseId,
+      lessonId: recreatedQuiz.lessonId || null,
+      quiz: recreatedQuiz,
+    });
+
+    return Response.json(
+      {
+        ...result,
+        challengeId,
+        recreatedQuiz: sanitizeSoloChallengeQuiz(recreatedQuiz),
+      },
+      { status: 200 },
+    );
   } catch (error) {
     return Response.json(
       {

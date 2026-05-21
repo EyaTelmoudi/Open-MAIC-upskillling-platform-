@@ -4,7 +4,9 @@ import json
 import os
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 from uuid import UUID
 
 import httpx
@@ -16,6 +18,8 @@ from agno.workflow import Step, StepInput, StepOutput, Workflow
 
 DEFAULT_QUIZ_REWRITE_MODEL = os.getenv("SOLO_CHALLENGE_QUIZ_REWRITE_MODEL", "openai/gpt-oss-120b:free")
 DEFAULT_LLM_TIMEOUT_SECONDS = float(os.getenv("SOLO_CHALLENGE_LLM_TIMEOUT_SECONDS", "45"))
+DEFAULT_HINDSIGHT_URL = os.getenv("HINDSIGHT_URL", os.getenv("HINDSIGHT_API_URL", "http://127.0.0.1:8888"))
+DEFAULT_HINDSIGHT_API_KEY = os.getenv("HINDSIGHT_API_KEY", "")
 
 
 class SoloChallengeStartInput(BaseModel):
@@ -24,6 +28,59 @@ class SoloChallengeStartInput(BaseModel):
     role: str | None = None
     source: str = "learning-shell"
     pagePath: str = "/courses"
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _solo_challenge_skill_path() -> Path:
+    return _repo_root() / "agents" / "solo-challenge" / "skills" / "solo-challenge-mode-selector" / "SKILL.md"
+
+
+def _load_solo_challenge_skill_text() -> str:
+    skill_path = _solo_challenge_skill_path()
+    try:
+        raw = skill_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        _log(
+            "[Agno Solo Challenge Agent] Solo challenge mode skill file was not found. "
+            f"Path={skill_path}"
+        )
+        return ""
+
+    if raw.startswith("---"):
+        parts = raw.split("---", 2)
+        if len(parts) == 3:
+            raw = parts[2]
+    return raw.strip()
+
+
+def _solo_challenge_mode_skill_path(mode: str) -> Path:
+    safe_mode = _clean_text(mode).replace("_", "-")
+    return _repo_root() / "agents" / "solo-challenge" / "skills" / safe_mode / "SKILL.md"
+
+
+def _load_solo_challenge_mode_skill_text(mode: str) -> str:
+    skill_path = _solo_challenge_mode_skill_path(mode)
+    try:
+        raw = skill_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        _log(
+            "[Agno Solo Challenge Agent] Solo challenge detailed mode skill file was not found. "
+            f"Path={skill_path}"
+        )
+        return ""
+
+    if raw.startswith("---"):
+        parts = raw.split("---", 2)
+        if len(parts) == 3:
+            raw = parts[2]
+    _log(
+        "[Agno Solo Challenge Agent] Loaded detailed skill for selected mode. "
+        f"mode={mode} path={skill_path}"
+    )
+    return raw.strip()
 
 
 def _load_dependencies() -> dict[str, Any]:
@@ -56,6 +113,330 @@ def _clean_text(value: Any) -> str:
 
 def _normalize_text(value: Any) -> str:
     return " ".join(_clean_text(str(value or "")).lower().split())
+
+
+def _build_user_course_bank_id(tenant_id: str, user_id: str, course_id: str) -> str:
+    return f"tenant:{tenant_id}:user:{user_id}:course:{course_id}"
+
+
+def _build_course_bank_id(tenant_id: str, course_id: str) -> str:
+    return f"tenant:{tenant_id}:course:{course_id}"
+
+
+def _recall_user_course_memory(*, tenant_id: str, user_id: str, course_id: str) -> dict[str, Any]:
+    bank_id = _build_user_course_bank_id(tenant_id, user_id, course_id)
+    hindsight_url = DEFAULT_HINDSIGHT_URL.rstrip("/")
+    headers = {"Content-Type": "application/json"}
+    if DEFAULT_HINDSIGHT_API_KEY:
+        headers["Authorization"] = f"Bearer {DEFAULT_HINDSIGHT_API_KEY}"
+
+    payload = {
+        "query": (
+            "What are this learner's difficulties, weak concepts, repeated confusions, "
+            "and quiz answers or quiz topics they got wrong in this course?"
+        ),
+        "budget": "mid",
+        "max_tokens": 1400,
+        "include": {
+            "facts": {},
+        },
+    }
+
+    _log(f"[Agno Solo Challenge Agent] Calling Hindsight recall for learner-course bank {bank_id}")
+
+    with httpx.Client(timeout=120.0, trust_env=False) as client:
+        response = client.post(
+            f"{hindsight_url}/v1/default/banks/{quote(bank_id, safe='')}/memories/recall",
+            headers=headers,
+            json=payload,
+        )
+
+    response_payload = response.json() if response.content else {}
+    if not response.is_success:
+        error_message = (
+            _clean_text(response_payload.get("error")) if isinstance(response_payload, dict) else ""
+        ) or (
+            _clean_text(response_payload.get("detail")) if isinstance(response_payload, dict) else ""
+        ) or f"Hindsight recall failed with status {response.status_code}."
+        raise RuntimeError(error_message)
+
+    results = [
+        item
+        for item in (response_payload.get("results") if isinstance(response_payload, dict) else []) or []
+        if isinstance(item, dict)
+    ]
+    supporting_memories = [
+        {
+            "text": _clean_text(item.get("text") or item.get("content")),
+            "type": _clean_text(item.get("type")) or "memory",
+        }
+        for item in results
+        if _clean_text(item.get("text") or item.get("content"))
+    ][:8]
+
+    return {
+        "bankId": bank_id,
+        "results": results,
+        "supportingMemories": supporting_memories,
+    }
+
+
+def _parse_embedded_answer_json(text: str) -> dict[str, Any] | None:
+    cleaned = _clean_text(text)
+    if not cleaned:
+        return None
+
+    decoder = json.JSONDecoder()
+    candidates = [cleaned]
+    if "{" in cleaned:
+        candidates.append(cleaned[cleaned.find("{") :])
+
+    for candidate in candidates:
+        try:
+            parsed, _ = decoder.raw_decode(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return None
+
+
+def _extract_failed_quiz_signature(failed_quiz: dict[str, Any] | None) -> dict[str, str]:
+    if not isinstance(failed_quiz, dict):
+        return {}
+
+    wrong_answers = failed_quiz.get("wrongAnswers")
+    wrong_answers = wrong_answers if isinstance(wrong_answers, list) else []
+    first_wrong = next((item for item in wrong_answers if isinstance(item, dict)), None)
+
+    return {
+        "attemptId": _clean_text(failed_quiz.get("attemptId")),
+        "questionId": _clean_text(first_wrong.get("questionId")) if isinstance(first_wrong, dict) else "",
+        "question": _clean_text(first_wrong.get("question")) if isinstance(first_wrong, dict) else "",
+        "correctAnswer": _clean_text(first_wrong.get("correctAnswer")) if isinstance(first_wrong, dict) else "",
+        "completedAt": _clean_text(failed_quiz.get("completedAt")),
+    }
+
+
+def _latest_failed_quiz_already_remediated(
+    db: Any,
+    *,
+    user_id: str,
+    course_id: str,
+    latest_failed_quiz: dict[str, Any] | None,
+) -> bool:
+    signature = _extract_failed_quiz_signature(latest_failed_quiz)
+    attempt_id = signature.get("attemptId")
+    question_id = signature.get("questionId")
+    question_text = signature.get("question")
+    completed_at = signature.get("completedAt")
+
+    if not attempt_id and not question_id and not question_text:
+        return False
+
+    row = db.execute(
+        text(
+            """
+            SELECT id
+            FROM solo_challenge_attempts
+            WHERE user_id = CAST(:user_id AS uuid)
+              AND course_id = CAST(:course_id AS uuid)
+              AND is_correct = TRUE
+              AND (
+                    quiz_payload->>'sourceFailedQuizAttemptId' = :attempt_id
+                 OR quiz_payload->>'sourceFailedQuestionId' = :question_id
+                 OR lower(quiz_payload->>'sourceFailedQuestion') = lower(:question_text)
+              )
+              AND (
+                    CAST(:completed_at AS timestamp) IS NULL
+                 OR created_at >= CAST(:completed_at AS timestamp)
+              )
+            ORDER BY created_at DESC
+            LIMIT 1
+            """
+        ),
+        {
+            "user_id": user_id,
+            "course_id": course_id,
+            "attempt_id": attempt_id or None,
+            "question_id": question_id or None,
+            "question_text": question_text or None,
+            "completed_at": completed_at or None,
+        },
+    ).mappings().first()
+
+    return bool(row)
+
+
+def _call_hindsight_reflect(
+    *,
+    bank_id: str,
+    query: str,
+    max_tokens: int,
+) -> dict[str, Any]:
+    hindsight_url = DEFAULT_HINDSIGHT_URL.rstrip("/")
+    headers = {"Content-Type": "application/json"}
+    if DEFAULT_HINDSIGHT_API_KEY:
+        headers["Authorization"] = f"Bearer {DEFAULT_HINDSIGHT_API_KEY}"
+
+    payload = {
+        "query": query,
+        "max_tokens": max_tokens,
+    }
+
+    with httpx.Client(timeout=180.0, trust_env=False) as client:
+        response = client.post(
+            f"{hindsight_url}/v1/default/banks/{quote(bank_id, safe='')}/reflect",
+            headers=headers,
+            json=payload,
+        )
+
+    response_payload = response.json() if response.content else {}
+    if not response.is_success:
+        error_message = (
+            _clean_text(response_payload.get("error")) if isinstance(response_payload, dict) else ""
+        ) or (
+            _clean_text(response_payload.get("detail")) if isinstance(response_payload, dict) else ""
+        ) or f"Hindsight reflect failed with status {response.status_code}."
+        raise RuntimeError(error_message)
+
+    answer_text = ""
+    parsed_answer: dict[str, Any] | None = None
+    if isinstance(response_payload, dict):
+        answer_text = _clean_text(response_payload.get("answer"))
+        if answer_text:
+            parsed_answer = _parse_embedded_answer_json(answer_text)
+
+        if not parsed_answer:
+            text_payload = _clean_text(response_payload.get("text"))
+            if text_payload:
+                parsed_from_text = _parse_embedded_answer_json(text_payload)
+                if isinstance(parsed_from_text, dict):
+                    parsed_answer = parsed_from_text
+                    answer_text = text_payload
+
+        if not parsed_answer and isinstance(response_payload.get("mode"), str):
+            parsed_answer = response_payload
+
+    if not answer_text:
+        answer_text = _clean_text(response.text)
+
+    if not parsed_answer:
+        parsed_answer = _parse_embedded_answer_json(answer_text)
+
+    return {
+        "bankId": bank_id,
+        "answer": answer_text,
+        "parsedAnswer": parsed_answer,
+        "rawResponse": response_payload if isinstance(response_payload, dict) else {},
+    }
+
+
+def _reflect_solo_challenge_mode(
+    *,
+    tenant_id: str,
+    course_id: str,
+    course_title: str,
+    learner_memories: list[dict[str, Any]],
+    latest_failed_quiz: dict[str, Any] | None,
+) -> dict[str, Any]:
+    bank_id = _build_course_bank_id(tenant_id, course_id)
+    learner_memory_lines = [
+        f"- {memory.get('text')}"
+        for memory in learner_memories
+        if _clean_text(memory.get("text"))
+    ]
+    learner_memory_block = "\n".join(learner_memory_lines) if learner_memory_lines else "- No specific learner difficulty memories were recalled."
+    failed_quiz_block = json.dumps(latest_failed_quiz, ensure_ascii=False, indent=2) if isinstance(latest_failed_quiz, dict) and latest_failed_quiz else "null"
+    skill_text = _load_solo_challenge_skill_text()
+
+    reflect_query = (
+        "You are the Solo Challenge Agent for a gamified learning platform.\n"
+        "Follow the skill instructions below exactly, then use the provided learner and course context to choose the best challenge mode only.\n"
+        "Always return valid JSON only.\n\n"
+        "=== SOLO CHALLENGE SKILL ===\n"
+        f"{skill_text or 'Skill file unavailable. Use the current course, learner memory, and failed-quiz context to choose the best mode.'}\n"
+        "=== END SOLO CHALLENGE SKILL ===\n\n"
+        "Return JSON with exactly these keys:\n"
+        "{\n"
+        '  "mode": "...",\n'
+        '  "mode_reason": "..."\n'
+        "}\n\n"
+        f"Current course title: {course_title or course_id}\n"
+        f"Current course bank id: {bank_id}\n"
+        "Learner-course memory context for this same current course:\n"
+        f"{learner_memory_block}\n\n"
+        "Latest failed quiz context for this same current course from the platform database:\n"
+        f"{failed_quiz_block}\n"
+    )
+
+    _log(f"[Agno Solo Challenge Agent] Calling Hindsight reflect for mode selection on course bank {bank_id}")
+    return _call_hindsight_reflect(
+        bank_id=bank_id,
+        query=reflect_query,
+        max_tokens=900,
+    )
+
+
+def _generate_solo_challenge_from_mode(
+    *,
+    tenant_id: str,
+    course_id: str,
+    course_title: str,
+    learner_memories: list[dict[str, Any]],
+    latest_failed_quiz: dict[str, Any] | None,
+    selected_mode: str,
+    mode_reason: str,
+) -> dict[str, Any]:
+    bank_id = _build_course_bank_id(tenant_id, course_id)
+    _log(
+        "[Agno Solo Challenge Agent] Preparing the learner challenge question. "
+        f"mode={selected_mode} courseId={course_id} courseTitle={course_title or course_id}"
+    )
+    learner_memory_lines = [
+        f"- {memory.get('text')}"
+        for memory in learner_memories
+        if _clean_text(memory.get("text"))
+    ]
+    learner_memory_block = "\n".join(learner_memory_lines) if learner_memory_lines else "- No specific learner difficulty memories were recalled."
+    failed_quiz_block = json.dumps(latest_failed_quiz, ensure_ascii=False, indent=2) if isinstance(latest_failed_quiz, dict) and latest_failed_quiz else "null"
+    mode_skill_text = _load_solo_challenge_mode_skill_text(selected_mode)
+
+    reflect_query = (
+        "You are the Solo Challenge Agent for a gamified learning platform.\n"
+        "A mode has already been selected. Your job now is to generate exactly one grounded multiple-choice question for that selected mode.\n"
+        "Always return valid JSON only.\n\n"
+        f"Selected mode: {selected_mode}\n"
+        f"Mode reason: {mode_reason or 'No reason provided'}\n\n"
+        "=== MODE SKILL ===\n"
+        f"{mode_skill_text or 'No mode skill file was available. Generate one grounded four-option multiple-choice question that matches the selected mode.'}\n"
+        "=== END MODE SKILL ===\n\n"
+        "Return JSON with exactly these keys:\n"
+        "{\n"
+        '  "challenge_title": "...",\n'
+        '  "intro": "...",\n'
+        '  "question": "...",\n'
+        '  "options": ["...", "...", "...", "..."],\n'
+        '  "correct_answer": "...",\n'
+        '  "explanation": "..."\n'
+        "}\n\n"
+        f"Current course title: {course_title or course_id}\n"
+        f"Current course bank id: {bank_id}\n"
+        "Learner-course memory context for this same current course:\n"
+        f"{learner_memory_block}\n\n"
+        "Latest failed quiz context for this same current course from the platform database:\n"
+        f"{failed_quiz_block}\n"
+    )
+
+    _log(
+        "[Agno Solo Challenge Agent] Calling Hindsight reflect for question generation "
+        f"with mode {selected_mode} on course bank {bank_id}"
+    )
+    return _call_hindsight_reflect(
+        bank_id=bank_id,
+        query=reflect_query,
+        max_tokens=1400,
+    )
 
 
 def _resolve_llm_url() -> str | None:
@@ -249,10 +630,53 @@ def _log_recreated_quiz(quiz_payload: dict[str, Any]) -> None:
             )
 
 
+def _log_failed_quiz_source_questions(
+    failed_quiz: dict[str, Any],
+    questions: list[dict[str, Any]],
+    *,
+    focus_mode: str,
+) -> None:
+    _log("[Agno Solo Challenge Agent] Source questions from the selected failed quiz:")
+    _log(
+        json.dumps(
+            {
+                "courseId": failed_quiz.get("courseId"),
+                "courseTitle": failed_quiz.get("courseTitle"),
+                "lessonId": failed_quiz.get("lessonId"),
+                "lessonTitle": failed_quiz.get("lessonTitle"),
+                "assessmentId": failed_quiz.get("assessmentId"),
+                "source": failed_quiz.get("source"),
+                "focusMode": focus_mode,
+                "questionCount": len(questions),
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
+    for question in questions:
+        _log(
+            f"[Agno Solo Challenge Agent] Failed Quiz Question {question.get('displayOrder')}: "
+            f"{_clean_text(question.get('text'))}"
+        )
+        for option in question.get("options") or []:
+            _log(
+                f"[Agno Solo Challenge Agent]   {option.get('id')}. "
+                f"{_clean_text(option.get('label') or option.get('value'))}"
+            )
+        correct_answers = [
+            _clean_text(answer)
+            for answer in question.get("correctAnswers") or []
+            if _clean_text(answer)
+        ]
+        if correct_answers:
+            _log(f"[Agno Solo Challenge Agent]   Correct answer(s): {', '.join(correct_answers)}")
+
+
 def _build_fallback_recreated_question(
     question: dict[str, Any],
     *,
     display_order: int,
+    lesson_title: str | None = None,
 ) -> dict[str, Any]:
     options = _normalize_public_options(
         [
@@ -261,9 +685,13 @@ def _build_fallback_recreated_question(
             if isinstance(option, dict)
         ]
     )
+    base_text = _clean_text(question.get("text"))
+    cleaned_lesson_title = _clean_text(lesson_title)
+    if cleaned_lesson_title and cleaned_lesson_title.lower() not in base_text.lower():
+        base_text = f'According to the lesson "{cleaned_lesson_title}", {base_text[:1].lower()}{base_text[1:]}' if base_text else f'According to the lesson "{cleaned_lesson_title}", what is correct?'
     return {
         "questionId": question["questionId"],
-        "text": question["text"],
+        "text": base_text,
         "questionType": question.get("questionType") or "multiple_choice",
         "displayOrder": display_order,
         "options": options,
@@ -277,6 +705,7 @@ def _generate_llm_recreated_question(
     source_question: dict[str, Any],
     failed_quiz: dict[str, Any],
 ) -> dict[str, Any] | None:
+    lesson_title = _clean_text(failed_quiz.get("lessonTitle"))
     original_options = [
         _clean_text(option.get("label") or option.get("value"))
         for option in source_question.get("options") or []
@@ -291,6 +720,7 @@ def _generate_llm_recreated_question(
     system_prompt = (
         "You generate one fresh multiple-choice quiz question for a learner. "
         "Keep the same concept as the failed source question, but rewrite it so it is not a copy. "
+        "Make the question self-contained and explicitly mention the lesson title when one is provided. "
         "Return valid JSON only with keys: question, options, correct_answer, explanation."
     )
     user_prompt = json.dumps(
@@ -314,6 +744,7 @@ def _generate_llm_recreated_question(
                 "Include the correct answer inside options.",
                 "Do not copy the original question wording exactly.",
                 "Keep options concise and realistic.",
+                "If lesson_title is provided, explicitly mention it in the question text.",
             ],
         },
         ensure_ascii=False,
@@ -359,6 +790,9 @@ def _generate_llm_recreated_question(
             "Falling back to original question."
         )
         return None
+
+    if lesson_title and lesson_title.lower() not in question_text.lower():
+        question_text = f'According to the lesson "{lesson_title}", {question_text[:1].lower()}{question_text[1:]}'
 
     _log("[Agno Solo Challenge Agent] LLM recreated a fresh quiz question successfully.")
     return {
@@ -659,10 +1093,6 @@ def _log_latest_course_and_failed_assessment(
 
 
 def _select_latest_failed_quiz_source(previous_content: dict[str, Any]) -> dict[str, Any] | None:
-    latest_across_courses = previous_content.get("latestFailedQuizAssessmentAcrossCourses")
-    if isinstance(latest_across_courses, dict) and latest_across_courses:
-        return latest_across_courses
-
     last_failed_for_course = previous_content.get("lastFailedQuizAssessment")
     if isinstance(last_failed_for_course, dict) and last_failed_for_course:
         return {
@@ -772,10 +1202,10 @@ def kickoff_solo_challenge(step_input: StepInput) -> StepOutput:
         f"[Agno Solo Challenge Agent] Learner login mission received. "
         f"userId={payload.userId or 'unknown'} tenantId={payload.tenantId or 'unknown'} role={payload.role or 'unknown'}"
     )
-    _log("[Agno Solo Challenge Agent] Workflow kickoff: preparing the first welcome challenge.")
-    _log("[Agno Solo Challenge Agent] Step 1 queued: validate and load learner context.")
-    _log("[Agno Solo Challenge Agent] Step 2 queued: analyze weak spots in parallel.")
-    _log("[Agno Solo Challenge Agent] Step 3 queued: select challenge type and difficulty.")
+    _log("[Agno Solo Challenge Agent] Workflow kickoff: preparing a challenge from the learner's latest failed quiz.")
+    _log("[Agno Solo Challenge Agent] Step 1 queued: load the latest enrolled published course.")
+    _log("[Agno Solo Challenge Agent] Step 2 queued: select the learner's latest failed quiz.")
+    _log("[Agno Solo Challenge Agent] Step 3 queued: reformulate that failed quiz into a fresh challenge.")
 
     return StepOutput(
         content={
@@ -789,8 +1219,8 @@ def kickoff_solo_challenge(step_input: StepInput) -> StepOutput:
             "pagePath": payload.pagePath,
             "startedAt": started_at,
             "status": "warming_up",
-            "message": "Solo Challenge Agent started its workflow and is preparing the first challenge.",
-            "nextStep": "validate_and_load_learner_context",
+            "message": "Solo Challenge Agent started and is preparing a challenge from the learner's latest failed quiz.",
+            "nextStep": "load_latest_enrolled_course_context",
         },
         success=True,
     )
@@ -828,14 +1258,19 @@ def load_latest_enrolled_course_context(step_input: StepInput) -> StepOutput:
     SessionLocal = dependencies["SessionLocal"]
     Course = dependencies["Course"]
     Enrollment = dependencies["Enrollment"]
-    build_learner_context_response = dependencies["build_learner_context_response"]
 
     db = SessionLocal()
     try:
         learner_id = UUID(user_id)
 
         query = (
-            db.query(Enrollment, Course)
+            db.query(
+                Enrollment.id.label("enrollment_id"),
+                Enrollment.status.label("enrollment_status"),
+                Enrollment.enrolled_at.label("enrolled_at"),
+                Course.id.label("course_id"),
+                Course.title.label("course_title"),
+            )
             .join(Course, Course.id == Enrollment.course_id)
             .filter(Enrollment.user_id == learner_id, Course.is_published == True)
         )
@@ -849,7 +1284,7 @@ def load_latest_enrolled_course_context(step_input: StepInput) -> StepOutput:
         if not latest_pair:
             _log(
                 "[Agno Solo Challenge Agent] No published enrolled course was found for this learner. "
-                "The workflow will stop before challenge generation."
+                "The workflow will stop here."
             )
             return StepOutput(
                 content={
@@ -863,71 +1298,423 @@ def load_latest_enrolled_course_context(step_input: StepInput) -> StepOutput:
                 error="No published enrolled course was found for this learner.",
             )
 
-        enrollment, course = latest_pair
-        learner_context = build_learner_context_response(
-            db,
-            user_id=learner_id,
-            course_id=course.id,
+        _log(
+            "[Agno Solo Challenge Agent] Latest enrolled course resolved. "
+            f"courseId={latest_pair.course_id} title={latest_pair.course_title!r} "
+            f"enrollmentStatus={latest_pair.enrollment_status}"
         )
+        _log("[Agno Solo Challenge Agent] Latest enrolled course details:")
+        _log(
+            json.dumps(
+                {
+                    "tenantId": tenant_id or None,
+                    "userId": user_id,
+                    "courseId": str(latest_pair.course_id),
+                    "courseTitle": latest_pair.course_title,
+                    "enrollmentStatus": latest_pair.enrollment_status,
+                    "enrolledAt": latest_pair.enrolled_at.isoformat() if latest_pair.enrolled_at else None,
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
+        )
+
         latest_failed_quiz_across_courses = _fetch_latest_failed_quiz_assessment_across_courses(
             db,
             user_id=user_id,
             tenant_id=tenant_id or None,
         )
-        last_failed_assessment = _fetch_last_failed_quiz_assessment_for_course(
+        last_failed_assessment_for_latest_course = _fetch_last_failed_quiz_assessment_for_course(
             db,
             user_id=user_id,
-            course_id=str(course.id),
+            course_id=str(latest_pair.course_id),
         )
+        remediated_latest_failed_quiz_for_latest_course = _latest_failed_quiz_already_remediated(
+            db,
+            user_id=user_id,
+            course_id=str(latest_pair.course_id),
+            latest_failed_quiz=last_failed_assessment_for_latest_course,
+        )
+        if remediated_latest_failed_quiz_for_latest_course:
+            _log(
+                "[Agno Solo Challenge Agent] The latest failed quiz for the latest course was already remediated "
+                "by a later correct solo challenge. It will not be reused."
+            )
+            last_failed_assessment_for_latest_course = None
 
+        challenge_course_id = str(latest_pair.course_id)
+        challenge_course_title = latest_pair.course_title
+        challenge_enrollment_status = latest_pair.enrollment_status
+        challenge_enrolled_at = latest_pair.enrolled_at.isoformat() if latest_pair.enrolled_at else None
+        challenge_course_source = "latest_enrolled_course"
+        last_failed_assessment = last_failed_assessment_for_latest_course
+        remediated_latest_failed_quiz = remediated_latest_failed_quiz_for_latest_course
+
+        if isinstance(latest_failed_quiz_across_courses, dict) and latest_failed_quiz_across_courses:
+            failed_quiz_course_id = _clean_text(latest_failed_quiz_across_courses.get("courseId"))
+            failed_quiz_course_title = _clean_text(latest_failed_quiz_across_courses.get("courseTitle"))
+            failed_quiz_remediated = _latest_failed_quiz_already_remediated(
+                db,
+                user_id=user_id,
+                course_id=failed_quiz_course_id,
+                latest_failed_quiz=latest_failed_quiz_across_courses,
+            ) if failed_quiz_course_id else False
+
+            if failed_quiz_course_id and not failed_quiz_remediated:
+                challenge_course_id = failed_quiz_course_id
+                challenge_course_title = failed_quiz_course_title or challenge_course_title
+                challenge_course_source = "latest_failed_quiz_course"
+                last_failed_assessment = latest_failed_quiz_across_courses
+                remediated_latest_failed_quiz = False
+                _log(
+                    "[Agno Solo Challenge Agent] Challenge course switched to the latest failed-quiz course. "
+                    f"courseId={challenge_course_id} courseTitle={challenge_course_title!r}"
+                )
+            elif failed_quiz_remediated:
+                _log(
+                    "[Agno Solo Challenge Agent] The latest failed quiz across courses was already remediated. "
+                    "The workflow will stay on the latest enrolled course."
+                )
+
+        _log("[Agno Solo Challenge Agent] Latest failed quiz context collected:")
         _log(
-            "[Agno Solo Challenge Agent] Latest enrolled course resolved. "
-            f"courseId={course.id} title={course.title!r} enrollmentStatus={enrollment.status}"
-        )
-        _log_latest_course_and_failed_assessment(
-            user_id=user_id,
-            role=_clean_text(previous_content.get("role")) or None,
-            tenant_id=tenant_id or None,
-            course_id=str(course.id),
-            course_title=course.title,
-            enrollment_status=enrollment.status,
-            enrolled_at=enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
-            last_failed_assessment=last_failed_assessment,
-            latest_failed_quiz_across_courses=latest_failed_quiz_across_courses,
-        )
-        _log_loaded_learner_context(learner_context)
-        _log_collected_user_context(
-            tenant_id=tenant_id or None,
-            user_id=user_id,
-            role=_clean_text(previous_content.get("role")) or None,
-            course_id=str(course.id),
-            course_title=course.title,
-            enrollment_status=enrollment.status,
-            enrolled_at=enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
-            learner_context=learner_context,
-            latest_failed_quiz_across_courses=latest_failed_quiz_across_courses,
+            json.dumps(
+                {
+                    "latestFailedQuizAssessmentAcrossCourses": latest_failed_quiz_across_courses,
+                    "lastFailedQuizAssessmentForLatestCourse": last_failed_assessment_for_latest_course,
+                    "latestFailedQuizForLatestCourseAlreadyRemediated": remediated_latest_failed_quiz_for_latest_course,
+                    "selectedChallengeCourseId": challenge_course_id,
+                    "selectedChallengeCourseTitle": challenge_course_title,
+                    "selectedChallengeCourseSource": challenge_course_source,
+                },
+                indent=2,
+                ensure_ascii=False,
+            )
         )
 
         return StepOutput(
             content={
                 **previous_content,
                 "success": True,
-                "action": "latest_enrolled_course_context_loaded",
-                "status": "learner_context_loaded",
-                "courseId": str(course.id),
-                "courseTitle": course.title,
-                "enrollmentStatus": enrollment.status,
-                "enrolledAt": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
+                "action": "latest_enrolled_course_resolved",
+                "status": "latest_course_logged",
+                "courseId": challenge_course_id,
+                "courseTitle": challenge_course_title,
+                "enrollmentStatus": challenge_enrollment_status,
+                "enrolledAt": challenge_enrolled_at,
+                "challengeCourseSource": challenge_course_source,
+                "latestEnrolledCourse": {
+                    "courseId": str(latest_pair.course_id),
+                    "courseTitle": latest_pair.course_title,
+                    "enrollmentStatus": latest_pair.enrollment_status,
+                    "enrolledAt": latest_pair.enrolled_at.isoformat() if latest_pair.enrolled_at else None,
+                },
                 "latestFailedQuizAssessmentAcrossCourses": latest_failed_quiz_across_courses,
                 "lastFailedQuizAssessment": last_failed_assessment,
-                "learnerContext": learner_context,
-                "message": "Loaded learner context from the latest enrolled published course.",
-                "nextStep": "analyze_weak_spots_parallel",
+                "latestFailedQuizForLatestCourseAlreadyRemediated": remediated_latest_failed_quiz,
+                "message": "Resolved the challenge course and collected failed quiz context.",
+                "nextStep": "recall_learner_course_difficulties",
             },
             success=True,
         )
     finally:
         db.close()
+
+
+def recall_learner_course_difficulties(step_input: StepInput) -> StepOutput:
+    previous_content = step_input.previous_step_content
+    if not isinstance(previous_content, dict):
+        return StepOutput(
+            content={
+                "success": False,
+                "workflowName": "solo-challenge-agent",
+                "action": "recall_learner_course_difficulties_failed",
+                "error": "Previous latest-course result is missing.",
+            },
+            success=False,
+            error="Previous latest-course result is missing.",
+        )
+
+    tenant_id = _clean_text(previous_content.get("tenantId"))
+    user_id = _clean_text(previous_content.get("userId"))
+    course_id = _clean_text(previous_content.get("courseId"))
+    if not tenant_id or not user_id or not course_id:
+        return StepOutput(
+            content={
+                **previous_content,
+                "success": False,
+                "action": "recall_learner_course_difficulties_failed",
+                "error": "Missing tenantId, userId, or courseId for learner-course recall.",
+            },
+            success=False,
+            error="Missing tenantId, userId, or courseId for learner-course recall.",
+        )
+
+    recall_result = _recall_user_course_memory(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        course_id=course_id,
+    )
+
+    _log("[Agno Solo Challenge Agent] Learner-course recall results for difficulties and wrong quiz answers:")
+    _log(
+        json.dumps(
+            {
+                "bankId": recall_result["bankId"],
+                "supportingMemories": recall_result["supportingMemories"],
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
+
+    return StepOutput(
+        content={
+            **previous_content,
+            "success": True,
+            "action": "learner_course_difficulties_recalled",
+            "status": "learner_course_recall_logged",
+            "learnerCourseRecall": recall_result,
+            "message": "Recalled and logged learner-course difficulty memories from Hindsight.",
+            "nextStep": "choose_solo_challenge_mode",
+        },
+        success=True,
+    )
+
+
+def choose_solo_challenge_mode(step_input: StepInput) -> StepOutput:
+    previous_content = step_input.previous_step_content
+    if not isinstance(previous_content, dict):
+        return StepOutput(
+            content={
+                "success": False,
+                "workflowName": "solo-challenge-agent",
+                "action": "choose_solo_challenge_mode_failed",
+                "error": "Previous learner-course recall result is missing.",
+            },
+            success=False,
+            error="Previous learner-course recall result is missing.",
+        )
+
+    tenant_id = _clean_text(previous_content.get("tenantId"))
+    course_id = _clean_text(previous_content.get("courseId"))
+    course_title = _clean_text(previous_content.get("courseTitle"))
+    learner_course_recall = previous_content.get("learnerCourseRecall")
+    learner_memories = (
+        learner_course_recall.get("supportingMemories")
+        if isinstance(learner_course_recall, dict)
+        else []
+    )
+    learner_memories = learner_memories if isinstance(learner_memories, list) else []
+    latest_failed_quiz = _select_latest_failed_quiz_source(previous_content)
+
+    if not tenant_id or not course_id:
+        return StepOutput(
+            content={
+                **previous_content,
+                "success": False,
+                "action": "choose_solo_challenge_mode_failed",
+                "error": "Missing tenantId or courseId for course-bank reflect.",
+            },
+            success=False,
+            error="Missing tenantId or courseId for course-bank reflect.",
+        )
+
+    reflect_result = _reflect_solo_challenge_mode(
+        tenant_id=tenant_id,
+        course_id=course_id,
+        course_title=course_title,
+        learner_memories=learner_memories,
+        latest_failed_quiz=latest_failed_quiz,
+    )
+
+    parsed_answer = reflect_result.get("parsedAnswer") if isinstance(reflect_result, dict) else None
+    if not isinstance(parsed_answer, dict):
+        return StepOutput(
+            content={
+                **previous_content,
+                "success": False,
+                "action": "choose_solo_challenge_mode_failed",
+                "error": "Course-bank reflect did not return a valid structured mode payload.",
+            },
+            success=False,
+            error="Course-bank reflect did not return a valid structured mode payload.",
+        )
+
+    mode = _clean_text(parsed_answer.get("mode")) or "unknown"
+    mode_reason = _clean_text(parsed_answer.get("mode_reason"))
+    _log("[Agno Solo Challenge Agent] Solo challenge operating mode decided:")
+    _log(
+        json.dumps(
+            {
+                "mode": mode,
+                "modeReason": mode_reason,
+                "courseId": course_id,
+                "courseTitle": course_title,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
+
+    return StepOutput(
+        content={
+            **previous_content,
+            "success": True,
+            "action": "solo_challenge_mode_selected",
+            "status": "challenge_mode_selected",
+            "challengeMode": mode,
+            "challengeModeReason": mode_reason or None,
+            "message": "Selected the solo challenge operating mode from course-bank reflect.",
+            "nextStep": "reflect_course_quiz_for_learner",
+        },
+        success=True,
+    )
+
+
+def reflect_course_quiz_for_learner(step_input: StepInput) -> StepOutput:
+    previous_content = step_input.previous_step_content
+    if not isinstance(previous_content, dict):
+        return StepOutput(
+            content={
+                "success": False,
+                "workflowName": "solo-challenge-agent",
+                "action": "reflect_course_quiz_for_learner_failed",
+                "error": "Previous mode-selection result is missing.",
+            },
+            success=False,
+            error="Previous mode-selection result is missing.",
+        )
+
+    tenant_id = _clean_text(previous_content.get("tenantId"))
+    course_id = _clean_text(previous_content.get("courseId"))
+    course_title = _clean_text(previous_content.get("courseTitle"))
+    mode = _clean_text(previous_content.get("challengeMode")) or "general_course_reinforcement"
+    mode_reason = _clean_text(previous_content.get("challengeModeReason"))
+    learner_course_recall = previous_content.get("learnerCourseRecall")
+    learner_memories = (
+        learner_course_recall.get("supportingMemories")
+        if isinstance(learner_course_recall, dict)
+        else []
+    )
+    learner_memories = learner_memories if isinstance(learner_memories, list) else []
+    latest_failed_quiz = _select_latest_failed_quiz_source(previous_content)
+
+    if not tenant_id or not course_id:
+        return StepOutput(
+            content={
+                **previous_content,
+                "success": False,
+                "action": "reflect_course_quiz_for_learner_failed",
+                "error": "Missing tenantId or courseId for question-generation reflect.",
+            },
+            success=False,
+            error="Missing tenantId or courseId for question-generation reflect.",
+        )
+
+    reflect_result = _generate_solo_challenge_from_mode(
+        tenant_id=tenant_id,
+        course_id=course_id,
+        course_title=course_title,
+        learner_memories=learner_memories,
+        latest_failed_quiz=latest_failed_quiz,
+        selected_mode=mode,
+        mode_reason=mode_reason,
+    )
+
+    parsed_answer = reflect_result.get("parsedAnswer") if isinstance(reflect_result, dict) else None
+    if not isinstance(parsed_answer, dict):
+        return StepOutput(
+            content={
+                **previous_content,
+                "success": False,
+                "action": "reflect_course_quiz_for_learner_failed",
+                "error": "Question-generation reflect did not return a valid structured quiz payload.",
+            },
+            success=False,
+            error="Question-generation reflect did not return a valid structured quiz payload.",
+        )
+
+    options_raw = parsed_answer.get("options")
+    question_text = _clean_text(parsed_answer.get("question"))
+    correct_answer = _clean_text(parsed_answer.get("correct_answer"))
+    challenge_title = _clean_text(parsed_answer.get("challenge_title")) or "Solo challenge"
+    intro = _clean_text(parsed_answer.get("intro"))
+    explanation = _clean_text(parsed_answer.get("explanation")) or None
+    failed_signature = _extract_failed_quiz_signature(latest_failed_quiz)
+
+    if not question_text or not isinstance(options_raw, list):
+        return StepOutput(
+            content={
+                **previous_content,
+                "success": False,
+                "action": "reflect_course_quiz_for_learner_failed",
+                "error": "Structured reflect payload is missing question/options.",
+            },
+            success=False,
+            error="Structured reflect payload is missing question/options.",
+        )
+
+    normalized_options = _normalize_public_options(options_raw)
+    correct_option_id = _resolve_correct_option_id(normalized_options, [correct_answer] if correct_answer else [])
+    if len(normalized_options) != 4 or not correct_option_id:
+        return StepOutput(
+            content={
+                **previous_content,
+                "success": False,
+                "action": "reflect_course_quiz_for_learner_failed",
+                "error": "Structured reflect payload did not produce a valid 4-option multiple-choice question.",
+            },
+            success=False,
+            error="Structured reflect payload did not produce a valid 4-option multiple-choice question.",
+        )
+
+    recreated_quiz = {
+        "courseId": course_id,
+        "courseTitle": course_title or None,
+        "lessonId": _clean_text(latest_failed_quiz.get("lessonId")) if isinstance(latest_failed_quiz, dict) else None,
+        "lessonTitle": _clean_text(latest_failed_quiz.get("lessonTitle")) if isinstance(latest_failed_quiz, dict) else None,
+        "assessmentId": _clean_text(latest_failed_quiz.get("assessmentId")) if isinstance(latest_failed_quiz, dict) else None,
+        "source": "hindsight_reflect_personalized",
+        "focusMode": mode,
+        "sourceFailedQuizAttemptId": failed_signature.get("attemptId") or None,
+        "sourceFailedQuestionId": failed_signature.get("questionId") or None,
+        "sourceFailedQuestion": failed_signature.get("question") or None,
+        "sourceFailedCorrectAnswer": failed_signature.get("correctAnswer") or None,
+        "sourceFailedCompletedAt": failed_signature.get("completedAt") or None,
+        "questionCount": 1,
+        "challengeTitle": challenge_title,
+        "challengeIntro": intro or None,
+        "modeReason": mode_reason or None,
+        "questions": [
+            {
+                "questionId": f"{mode}:{course_id}",
+                "text": question_text,
+                "questionType": "multiple_choice",
+                "displayOrder": 1,
+                "options": normalized_options,
+                "generationMode": mode,
+                "correctOptionId": correct_option_id,
+                "explanation": explanation,
+            }
+        ],
+    }
+
+    _log("[Agno Solo Challenge Agent] Generated personalized solo challenge quiz from course-bank reflect:")
+    _log_recreated_quiz(recreated_quiz)
+
+    return StepOutput(
+        content={
+            **previous_content,
+            "success": True,
+            "action": "course_quiz_generated_via_reflect",
+            "status": "challenge_ready",
+            "generatedQuiz": reflect_result,
+            "recreatedQuiz": recreated_quiz,
+            "message": "Generated and logged a personalized solo challenge quiz from course-bank reflect.",
+        },
+        success=True,
+    )
 
 
 def select_latest_failed_quiz_for_recreation(step_input: StepInput) -> StepOutput:
@@ -1008,6 +1795,7 @@ def recreate_quiz_from_last_failed_quiz(step_input: StepInput) -> StepOutput:
     source = _clean_text(selected_failed_quiz.get("source")) or "traditional"
     wrong_answers = selected_failed_quiz.get("wrongAnswers")
     wrong_answers = wrong_answers if isinstance(wrong_answers, list) else []
+    first_wrong_answer = next((item for item in wrong_answers if isinstance(item, dict)), {})
 
     dependencies = _load_dependencies()
     SessionLocal = dependencies["SessionLocal"]
@@ -1036,6 +1824,11 @@ def recreate_quiz_from_last_failed_quiz(step_input: StepInput) -> StepOutput:
             question_bank,
             wrong_answers=wrong_answers,
         )
+        _log_failed_quiz_source_questions(
+            selected_failed_quiz,
+            recreated_questions,
+            focus_mode=focus_mode,
+        )
 
         llm_recreated_questions: list[dict[str, Any]] = []
         for index, question in enumerate(recreated_questions, start=1):
@@ -1047,6 +1840,7 @@ def recreate_quiz_from_last_failed_quiz(step_input: StepInput) -> StepOutput:
                 regenerated_question = _build_fallback_recreated_question(
                     question,
                     display_order=index,
+                    lesson_title=_clean_text(selected_failed_quiz.get("lessonTitle")) or None,
                 )
             else:
                 regenerated_question["displayOrder"] = index
@@ -1077,6 +1871,11 @@ def recreate_quiz_from_last_failed_quiz(step_input: StepInput) -> StepOutput:
             "assessmentId": assessment_id or None,
             "source": source,
             "focusMode": focus_mode,
+            "sourceFailedQuizAttemptId": _clean_text(selected_failed_quiz.get("attemptId")) or None,
+            "sourceFailedQuestionId": _clean_text(first_wrong_answer.get("questionId")) or None,
+            "sourceFailedQuestion": _clean_text(first_wrong_answer.get("question")) or None,
+            "sourceFailedCorrectAnswer": _clean_text(first_wrong_answer.get("correctAnswer")) or None,
+            "sourceFailedCompletedAt": _clean_text(selected_failed_quiz.get("completedAt")) or None,
             "questionCount": len(public_questions),
             "questions": public_questions,
         }
@@ -1101,29 +1900,34 @@ def recreate_quiz_from_last_failed_quiz(step_input: StepInput) -> StepOutput:
 
 solo_challenge_workflow = Workflow(
     name="solo-challenge-agent",
-    description="Kick off the Solo Challenge agent workflow when a learner enters the learning experience.",
+    description="Collect learner context and let Hindsight reflect choose the best solo challenge mode for the latest course.",
     input_schema=SoloChallengeStartInput,
     telemetry=False,
     steps=[
         Step(
             name="kickoff-solo-challenge",
-            description="Start the Solo Challenge workflow and print the first terminal traces.",
+            description="Start the Solo Challenge workflow and print the initial terminal traces.",
             executor=kickoff_solo_challenge,
         ),
         Step(
             name="load-latest-enrolled-course-context",
-            description="Resolve the latest enrolled published course and load learner context for it.",
+            description="Resolve the latest enrolled published course and collect failed quiz context from the platform database.",
             executor=load_latest_enrolled_course_context,
         ),
         Step(
-            name="select-latest-failed-quiz-for-recreation",
-            description="Choose the learner's latest failed quiz so the solo challenge can target it.",
-            executor=select_latest_failed_quiz_for_recreation,
+            name="recall-learner-course-difficulties",
+            description="Recall the learner-course bank from Hindsight to inspect difficulties, confusion, and wrong quiz traces.",
+            executor=recall_learner_course_difficulties,
         ),
         Step(
-            name="recreate-quiz-from-last-failed-quiz",
-            description="Rebuild a fresh quiz payload from the learner's latest failed quiz and print it in the terminal.",
-            executor=recreate_quiz_from_last_failed_quiz,
+            name="choose-solo-challenge-mode",
+            description="Use a lightweight course-bank reflect plus the selector skill to choose the best challenge mode.",
+            executor=choose_solo_challenge_mode,
+        ),
+        Step(
+            name="reflect-course-quiz-for-learner",
+            description="Use course-bank reflect plus the detailed mode skill to generate one personalized question.",
+            executor=reflect_course_quiz_for_learner,
         ),
     ],
 )

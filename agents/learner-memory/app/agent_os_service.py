@@ -50,6 +50,8 @@ async def retain_lesson_event(payload: LearnerLessonMemoryInput) -> JSONResponse
             f"quizId={payload.quizId or payload.assessmentId or 'none'} "
             f"quizPassed={payload.quizPassed if payload.quizPassed is not None else 'none'} "
             f"quizScore={payload.quizScore if payload.quizScore is not None else 'none'} "
+            f"videoWatchPercent={payload.videoWatchPercent if payload.videoWatchPercent is not None else 'none'} "
+            f"videoCurrentTimeSeconds={payload.videoCurrentTimeSeconds if payload.videoCurrentTimeSeconds is not None else 'none'} "
             f"wrongAnswersCount={len(payload.wrongAnswers)}",
             file=os.sys.stderr,
         )
@@ -67,6 +69,11 @@ async def retain_lesson_event(payload: LearnerLessonMemoryInput) -> JSONResponse
             elif payload.eventType == "quiz_completed":
                 print(
                     f"{LOG_PREFIX} AgentOS retained quiz-result memory content:",
+                    file=os.sys.stderr,
+                )
+            elif payload.eventType == "video_progress_checkpoint":
+                print(
+                    f"{LOG_PREFIX} AgentOS retained video-progress memory content:",
                     file=os.sys.stderr,
                 )
             elif payload.eventType == "difficulty_signal_detected":

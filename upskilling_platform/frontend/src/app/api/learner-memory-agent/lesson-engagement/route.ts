@@ -19,6 +19,8 @@ type RequestBody = {
   quizId?: string | null;
   quizPassed?: boolean | null;
   quizScore?: number | null;
+  videoWatchPercent?: number | null;
+  videoCurrentTimeSeconds?: number | null;
   wrongAnswers?: Array<Record<string, unknown>>;
   lessonReferenceIds?: string[];
   supportReferences?: Array<{
@@ -28,8 +30,10 @@ type RequestBody = {
 };
 
 export async function POST(request: NextRequest) {
+  const body = (await request.json().catch(() => null)) as RequestBody | null;
+  const eventType = typeof body?.eventType === "string" ? body.eventType : "lesson_opened";
+
   try {
-    const body = (await request.json().catch(() => null)) as RequestBody | null;
     const tenantId = typeof body?.tenantId === "string" ? body.tenantId.trim() : "";
     const userId = typeof body?.userId === "string" ? body.userId.trim() : "";
     const courseId = typeof body?.courseId === "string" ? body.courseId.trim() : "";
@@ -38,10 +42,18 @@ export async function POST(request: NextRequest) {
     if (!tenantId || !userId || !courseId || !lessonId) {
       return NextResponse.json(
         {
-          success: false,
-          error: "tenantId, userId, courseId, and lessonId are required.",
+          success: eventType === "course_enrollment_completed",
+          skipped: eventType === "course_enrollment_completed",
+          error:
+            eventType === "course_enrollment_completed"
+              ? undefined
+              : "tenantId, userId, courseId, and lessonId are required.",
+          warning:
+            eventType === "course_enrollment_completed"
+              ? "Skipped course completion memory capture because required identifiers were missing."
+              : undefined,
         },
-        { status: 400 },
+        { status: eventType === "course_enrollment_completed" ? 200 : 400 },
       );
     }
 
@@ -59,6 +71,8 @@ export async function POST(request: NextRequest) {
           quizId: typeof body?.quizId === "string" ? body.quizId : null,
           quizPassed: typeof body?.quizPassed === "boolean" ? body.quizPassed : null,
           quizScore: typeof body?.quizScore === "number" ? body.quizScore : null,
+          videoWatchPercent: typeof body?.videoWatchPercent === "number" ? body.videoWatchPercent : null,
+          videoCurrentTimeSeconds: typeof body?.videoCurrentTimeSeconds === "number" ? body.videoCurrentTimeSeconds : null,
           wrongAnswersCount: Array.isArray(body?.wrongAnswers) ? body.wrongAnswers.length : 0,
           lessonReferenceIds: Array.isArray(body?.lessonReferenceIds) ? body?.lessonReferenceIds : [],
           supportReferenceCount: Array.isArray(body?.supportReferences) ? body.supportReferences.length : 0,
@@ -80,10 +94,13 @@ export async function POST(request: NextRequest) {
         typeof body?.lessonDurationMinutes === "number" ? body.lessonDurationMinutes : null,
       lessonOrder: typeof body?.lessonOrder === "number" ? body.lessonOrder : null,
       assessmentId: typeof body?.assessmentId === "string" ? body.assessmentId : null,
-      eventType: typeof body?.eventType === "string" ? body.eventType : "lesson_opened",
+      eventType,
       quizId: typeof body?.quizId === "string" ? body.quizId : null,
       quizPassed: typeof body?.quizPassed === "boolean" ? body.quizPassed : null,
       quizScore: typeof body?.quizScore === "number" ? body.quizScore : null,
+      videoWatchPercent: typeof body?.videoWatchPercent === "number" ? body.videoWatchPercent : null,
+      videoCurrentTimeSeconds:
+        typeof body?.videoCurrentTimeSeconds === "number" ? body.videoCurrentTimeSeconds : null,
       wrongAnswers: Array.isArray(body?.wrongAnswers)
         ? body.wrongAnswers.filter(
             (item): item is Record<string, unknown> => Boolean(item) && typeof item === "object",
@@ -111,12 +128,22 @@ export async function POST(request: NextRequest) {
       "[Agno Learner Memory Agent] Lesson engagement route failed:",
       error instanceof Error ? error.message : error,
     );
+    const message = error instanceof Error ? error.message : "Learner Memory Agent route failed.";
     return NextResponse.json(
+      eventType === "course_enrollment_completed"
+        ? {
+            success: true,
+            skipped: true,
+            warning: message,
+            action: "course_enrollment_completed_memory_capture_best_effort_failed",
+          }
+        : {
+            success: false,
+            error: message,
+          },
       {
-        success: false,
-        error: error instanceof Error ? error.message : "Learner Memory Agent route failed.",
+        status: eventType === "course_enrollment_completed" ? 200 : 500,
       },
-      { status: 500 },
     );
   }
 }

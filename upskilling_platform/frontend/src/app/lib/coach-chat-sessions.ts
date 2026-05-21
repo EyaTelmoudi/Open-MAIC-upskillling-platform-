@@ -2,7 +2,11 @@
 
 import type { Message } from "@/app/components/coach/ChatMessages";
 
-export type CoachSessionSource = "coach-page" | "course-page" | "course-lesson-coach";
+export type CoachSessionSource =
+  | "coach-page"
+  | "course-page"
+  | "course-lesson-coach"
+  | "hindsight-coach-page";
 
 export type CoachSessionListItem = {
   id: string;

@@ -2,7 +2,7 @@ import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
 
-const DEFAULT_SERVICE_URL = process.env.COURSE_MEMORY_AGENT_URL || "http://127.0.0.1:8011";
+const DEFAULT_SERVICE_URL = process.env.COURSE_MEMORY_AGENT_URL || "http://127.0.0.1:8016";
 const SERVICE_STATE_KEY = "__courseMemoryAgentServiceState";
 const DEFAULT_LEARNING_URL =
   process.env.NEXT_PUBLIC_LEARNING_URL || process.env.LEARNING_URL || "http://localhost:8002";
@@ -47,6 +47,14 @@ type CourseMemoryResult = {
 type HindsightDocumentListResponse = {
   items?: Array<{ document_id?: string }>;
   documents?: Array<{ document_id?: string }>;
+};
+
+type CourseMemoryRetentionStatus = "pending" | "processing" | "completed" | "failed";
+
+type HindsightOperationStatusResponse = {
+  operation_id?: string;
+  status?: string;
+  error_message?: string | null;
 };
 
 function parseSceneLikeContent(rawContent: unknown): Record<string, unknown> | null {
@@ -137,7 +145,7 @@ function resolveAgentWorkspace(repoRoot: string) {
 function pythonHasCourseMemoryRuntime(pythonExecutable: string) {
   const probe = spawnSync(
     pythonExecutable,
-    ["-c", "import agno, fastapi, httpx, pydantic, uvicorn"],
+    ["-c", "import agno, fastapi, httpx, minio, pydantic, uvicorn"],
     {
       stdio: "ignore",
       windowsHide: true,
@@ -321,7 +329,7 @@ export async function ensureCourseMemoryAgentService() {
     return true;
   }
 
-  for (const pid of getListenerPidsForPort(8011)) {
+  for (const pid of getListenerPidsForPort(getServicePort())) {
     if (state.process?.pid && pid === state.process.pid) {
       continue;
     }
@@ -424,6 +432,79 @@ function buildLegacyTenantCoursesBankId(tenantId: string) {
   return `tenant:${tenantId.trim()}:courses`;
 }
 
+async function updateCourseMemoryRetentionStatus(
+  authToken: string,
+  courseId: string,
+  status: CourseMemoryRetentionStatus,
+  error?: string | null,
+) {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${authToken}`,
+  };
+
+  const response = await fetch(`${DEFAULT_LEARNING_URL}/api/v1/courses/${courseId}/memory-retention`, {
+    method: "PATCH",
+    cache: "no-store",
+    headers,
+    body: JSON.stringify({
+      status,
+      error: error?.trim() || null,
+    }),
+  });
+
+  if (!response.ok) {
+    const payload = (await response.text().catch(() => "")).trim();
+    throw new Error(
+      `Failed to update course memory retention status to ${status} for course ${courseId}. ` +
+        `HTTP ${response.status}${payload ? `: ${payload}` : ""}`,
+    );
+  }
+}
+
+async function waitForHindsightOperations(bankId: string, operationIds: string[]) {
+  const pending = new Set(operationIds.filter((value) => value.trim()));
+  if (!pending.size) {
+    return;
+  }
+
+  const deadline = Date.now() + 30 * 60 * 1000;
+  while (pending.size > 0) {
+    if (Date.now() > deadline) {
+      throw new Error("Timed out while waiting for Hindsight retain operations to finish.");
+    }
+
+    for (const operationId of Array.from(pending)) {
+      const response = await fetch(
+        `${DEFAULT_HINDSIGHT_URL}/v1/default/banks/${encodeURIComponent(bankId)}/operations/${encodeURIComponent(operationId)}`,
+        {
+          method: "GET",
+          cache: "no-store",
+          headers: getHindsightHeaders(),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Hindsight operation status for ${operationId}.`);
+      }
+
+      const payload = (await response.json().catch(() => null)) as HindsightOperationStatusResponse | null;
+      const status = String(payload?.status || "").trim().toLowerCase();
+      if (status === "completed") {
+        pending.delete(operationId);
+        continue;
+      }
+      if (status === "failed" || status === "cancelled") {
+        throw new Error(payload?.error_message || `Hindsight operation ${operationId} failed.`);
+      }
+    }
+
+    if (pending.size > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+  }
+}
+
 export async function assemblePublishedCourseForMemory(
   request: Request,
   courseId: string,
@@ -438,15 +519,33 @@ export async function assemblePublishedCourseForMemory(
 ): Promise<CourseMemoryResult> {
   // Verbose start log is intentionally muted to keep publish output concise.
 
-  if (!(await ensureCourseMemoryAgentService())) {
-    throw new Error("The Course Memory AgentOS service is not available.");
-  }
-
   const authToken = getTokenFromRequest(request);
   if (!authToken) {
     throw new Error("The Course Memory Agent could not find the current auth token.");
   }
   const claims = decodeJwtClaims(authToken);
+
+  try {
+    await updateCourseMemoryRetentionStatus(authToken, courseId, "processing");
+  } catch (error) {
+    console.error(
+      `[Agno Course Memory Agent] Failed to mark course ${courseId} memory retention as processing: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    );
+  }
+
+  if (!(await ensureCourseMemoryAgentService())) {
+    try {
+      await updateCourseMemoryRetentionStatus(
+        authToken,
+        courseId,
+        "failed",
+        "The Course Memory AgentOS service is not available.",
+      );
+    } catch {}
+    throw new Error("The Course Memory AgentOS service is not available.");
+  }
 
   const payload: CourseMemoryPayload = {
     courseId,
@@ -465,26 +564,61 @@ export async function assemblePublishedCourseForMemory(
       })) || [],
   };
 
-  const response = await fetch(`${DEFAULT_SERVICE_URL}/v1/course-memory/assemble`, {
-    method: "POST",
-    cache: "no-store",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const response = await fetch(`${DEFAULT_SERVICE_URL}/v1/course-memory/assemble`, {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-  const data = await response.json().catch(() => null);
-  if (!response.ok || !data) {
-    throw new Error("The Course Memory Agent service did not return a valid response.");
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data) {
+      throw new Error("The Course Memory Agent service did not return a valid response.");
+    }
+
+    const result = data as CourseMemoryResult;
+    if (!result.success) {
+      throw new Error(result.error || "The Course Memory Agent workflow failed.");
+    }
+
+    if (result.isAsync && result.bankId && (result.operationIds?.length || result.operationId)) {
+      const operationIds = Array.from(
+        new Set(
+          [
+            ...(result.operationIds || []),
+            ...(result.operationId ? [result.operationId] : []),
+          ].map((value) => String(value || "").trim()).filter(Boolean),
+        ),
+      );
+      await waitForHindsightOperations(result.bankId, operationIds);
+    }
+
+    try {
+      await updateCourseMemoryRetentionStatus(authToken, courseId, "completed");
+    } catch (error) {
+      console.error(
+        `[Agno Course Memory Agent] Failed to mark course ${courseId} memory retention as completed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      );
+    }
+
+    // Verbose Hindsight result logs are intentionally muted to keep publish output concise.
+    return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "The Course Memory Agent workflow failed.";
+    try {
+      await updateCourseMemoryRetentionStatus(authToken, courseId, "failed", message);
+    } catch (statusError) {
+      console.error(
+        `[Agno Course Memory Agent] Failed to mark course ${courseId} memory retention as failed: ${
+          statusError instanceof Error ? statusError.message : "Unknown error"
+        }`,
+      );
+    }
+    throw error;
   }
-
-  const result = data as CourseMemoryResult;
-  if (!result.success) {
-    throw new Error(result.error || "The Course Memory Agent workflow failed.");
-  }
-
-  // Verbose Hindsight result logs are intentionally muted to keep publish output concise.
-
-  return result;
 }
 
 export async function deletePublishedCourseMemory(
@@ -620,4 +754,11 @@ export async function deletePublishedCourseMemory(
     deletedDocuments: Array.from(deletedDocuments),
     bankId: primaryBankId,
   };
+}
+function getServicePort() {
+  try {
+    return Number.parseInt(new URL(DEFAULT_SERVICE_URL).port || "8016", 10) || 8016;
+  } catch {
+    return 8016;
+  }
 }

@@ -71,6 +71,17 @@ body {
   background-attachment: fixed;
 }
 
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
 .font-mono {
   font-family: "JetBrains Mono", monospace !important;
 }

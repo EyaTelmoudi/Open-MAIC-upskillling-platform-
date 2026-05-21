@@ -15,6 +15,7 @@ export type SoloChallengeStartPayload = {
 
 export type SoloChallengeStartResult = {
   success: boolean;
+  challengeId?: string;
   workflowName: string;
   action: string;
   tenantId?: string | null;
@@ -41,7 +42,6 @@ export type SoloChallengeStartResult = {
       questionType: string;
       displayOrder: number;
       generationMode?: string;
-      correctOptionId?: string | null;
       explanation?: string | null;
       options: Array<{
         id: string;

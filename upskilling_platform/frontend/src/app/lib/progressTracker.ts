@@ -29,6 +29,13 @@ export class ProgressTracker {
   private textState: TextProgressState;
   private videoInterval: number | null = null;
   private textInterval: number | null = null;
+  private trackedVideoElement: HTMLVideoElement | null = null;
+  private videoHandlers: {
+    timeupdate: () => void;
+    seeked: () => void;
+    pause: () => void;
+    ended: () => void;
+  } | null = null;
   private lessonId: string;
   private userId: string;
   private contentType: "video" | "text" | "quiz";
@@ -60,6 +67,15 @@ export class ProgressTracker {
   ): void {
     if (this.contentType !== "video") return;
 
+    if (this.trackedVideoElement !== videoElement) {
+      this.detachVideoListeners();
+      this.trackedVideoElement = videoElement;
+    }
+
+    if (this.videoInterval) {
+      return;
+    }
+
     this.videoState.videoDuration = videoElement.duration || 0;
 
     const handleTimeUpdate = () => {
@@ -90,10 +106,18 @@ export class ProgressTracker {
       this.sendVideoHeartbeat();
     };
 
-    videoElement.addEventListener("timeupdate", handleTimeUpdate);
-    videoElement.addEventListener("seeked", handleSeek);
-    videoElement.addEventListener("pause", handlePause);
-    videoElement.addEventListener("ended", handleEnded);
+    if (!this.videoHandlers) {
+      this.videoHandlers = {
+        timeupdate: handleTimeUpdate,
+        seeked: handleSeek,
+        pause: handlePause,
+        ended: handleEnded,
+      };
+      videoElement.addEventListener("timeupdate", this.videoHandlers.timeupdate);
+      videoElement.addEventListener("seeked", this.videoHandlers.seeked);
+      videoElement.addEventListener("pause", this.videoHandlers.pause);
+      videoElement.addEventListener("ended", this.videoHandlers.ended);
+    }
 
     this.videoInterval = window.setInterval(async () => {
       if (!videoElement.paused) {
@@ -111,6 +135,19 @@ export class ProgressTracker {
       this.videoInterval = null;
     }
     this.sendVideoHeartbeat();
+  }
+
+  private detachVideoListeners(): void {
+    if (!this.trackedVideoElement || !this.videoHandlers) {
+      return;
+    }
+
+    this.trackedVideoElement.removeEventListener("timeupdate", this.videoHandlers.timeupdate);
+    this.trackedVideoElement.removeEventListener("seeked", this.videoHandlers.seeked);
+    this.trackedVideoElement.removeEventListener("pause", this.videoHandlers.pause);
+    this.trackedVideoElement.removeEventListener("ended", this.videoHandlers.ended);
+    this.videoHandlers = null;
+    this.trackedVideoElement = null;
   }
 
   async sendVideoHeartbeat(): Promise<{
@@ -251,6 +288,7 @@ export class ProgressTracker {
   destroy(): void {
     this.stopVideoTracking();
     this.stopTextTracking();
+    this.detachVideoListeners();
   }
 }
 

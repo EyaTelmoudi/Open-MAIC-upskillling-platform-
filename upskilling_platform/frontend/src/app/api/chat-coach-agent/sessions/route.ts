@@ -34,7 +34,7 @@ function getTokenFromRequest(request: Request) {
 }
 
 function normalizeSource(value: string | null): CoachSessionSource {
-  if (value === "course-page" || value === "course-lesson-coach") {
+  if (value === "course-page" || value === "course-lesson-coach" || value === "hindsight-coach-page") {
     return value;
   }
   return "coach-page";

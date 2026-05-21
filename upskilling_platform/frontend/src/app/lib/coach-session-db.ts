@@ -3,7 +3,11 @@ import "server-only";
 import { randomUUID } from "crypto";
 import { Pool } from "pg";
 
-export type CoachSessionSource = "coach-page" | "course-page" | "course-lesson-coach";
+export type CoachSessionSource =
+  | "coach-page"
+  | "course-page"
+  | "course-lesson-coach"
+  | "hindsight-coach-page";
 
 export type CoachSessionScope = {
   tenantId: string;
@@ -118,7 +122,7 @@ function truncateText(value: string | null | undefined, maxLength: number) {
 }
 
 function normalizeSource(value: string | null | undefined): CoachSessionSource {
-  if (value === "course-lesson-coach" || value === "course-page") {
+  if (value === "course-lesson-coach" || value === "course-page" || value === "hindsight-coach-page") {
     return value;
   }
   return "coach-page";

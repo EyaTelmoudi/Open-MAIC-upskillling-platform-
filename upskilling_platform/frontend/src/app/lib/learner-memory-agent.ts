@@ -39,6 +39,8 @@ export type LearnerLessonMemoryPayload = {
   quizId?: string | null;
   quizPassed?: boolean | null;
   quizScore?: number | null;
+  videoWatchPercent?: number | null;
+  videoCurrentTimeSeconds?: number | null;
   wrongAnswers?: Array<Record<string, unknown>>;
   lessonReferenceIds?: string[];
   supportReferences?: Array<{
@@ -360,6 +362,31 @@ export async function retainLearnerLessonMemory(
       ),
     );
   }
+  if ((payload.eventType || "") === "solo_challenge_answered") {
+    console.log(
+      lmMessage(
+        "[Agno Learner Memory Agent] Solo challenge result prepared: "
+          + `${oneLinePreview(JSON.stringify({
+            quizId: payload.quizId || payload.assessmentId || null,
+            quizPassed: payload.quizPassed ?? null,
+            quizScore: payload.quizScore ?? null,
+            wrongAnswersCount: Array.isArray(payload.wrongAnswers) ? payload.wrongAnswers.length : 0,
+          }))}`,
+      ),
+    );
+  }
+  if ((payload.eventType || "") === "video_progress_checkpoint") {
+    console.log(
+      lmMessage(
+        "[Agno Learner Memory Agent] Video progress checkpoint prepared: "
+          + `${oneLinePreview(JSON.stringify({
+            videoWatchPercent: payload.videoWatchPercent ?? null,
+            videoCurrentTimeSeconds: payload.videoCurrentTimeSeconds ?? null,
+            lessonId: payload.lessonId,
+          }))}`,
+      ),
+    );
+  }
 
   const response = await fetch(`${DEFAULT_SERVICE_URL}/v1/learner-memory/retain-lesson-event`, {
     method: "POST",
@@ -410,6 +437,10 @@ export async function retainLearnerLessonMemory(
   if (result.memoryContent) {
     if ((payload.eventType || "") === "coaching_discussion_message") {
       console.log(lmMessage("[Agno Learner Memory Agent] Coaching discussion fact extraction summary:"));
+    } else if ((payload.eventType || "") === "solo_challenge_answered") {
+      console.log(lmMessage("[Agno Learner Memory Agent] Retained solo challenge result memory content:"));
+    } else if ((payload.eventType || "") === "video_progress_checkpoint") {
+      console.log(lmMessage("[Agno Learner Memory Agent] Retained video-progress memory content:"));
     } else if ((payload.eventType || "") === "course_enrollment_completed") {
       console.log(lmMessage("[Agno Learner Memory Agent] Retained course-completion memory content:"));
     } else if ((payload.eventType || "") === "quiz_completed") {

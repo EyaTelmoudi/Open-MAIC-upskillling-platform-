@@ -59,6 +59,7 @@ DEFAULT_DISCUSSION_FACT_MODEL_API_KEY = (
 PREPARED_CONTEXT_REDIS_HOST = os.getenv("PREPARED_CONTEXT_REDIS_HOST", "127.0.0.1")
 PREPARED_CONTEXT_REDIS_PORT = int(os.getenv("PREPARED_CONTEXT_REDIS_PORT", "6379"))
 PREPARED_CONTEXT_REDIS_DB = int(os.getenv("PREPARED_CONTEXT_REDIS_DB", "0"))
+AI_COACHING_AGENT_2_RAW_SOURCE = "ai-coaching-agent-2-raw-retain"
 
 
 _DISCUSSION_FACT_AGENT: Agent | None = None
@@ -90,6 +91,8 @@ class LearnerLessonMemoryInput(BaseModel):
     quizId: str | None = None
     quizPassed: bool | None = None
     quizScore: float | None = None
+    videoWatchPercent: float | None = None
+    videoCurrentTimeSeconds: float | None = None
     wrongAnswers: list[dict[str, Any]] = Field(default_factory=list)
     lessonReferenceIds: list[str] = Field(default_factory=list)
     supportReferences: list[LessonReference] = Field(default_factory=list)
@@ -177,6 +180,10 @@ def _clean_text(value: Any) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def _should_use_raw_discussion_retain(payload: "LearnerLessonMemoryInput") -> bool:
+    return payload.eventType == "coaching_discussion_message" and _clean_text(payload.source) == AI_COACHING_AGENT_2_RAW_SOURCE
 
 
 def _encode_resp(parts: list[bytes]) -> bytes:
@@ -366,6 +373,54 @@ def _build_memory_content(payload: LearnerLessonMemoryInput, *, captured_at_iso:
             ]
         )
 
+    if payload.eventType == "solo_challenge_answered":
+        challenge_id = _clean_text(payload.quizId) or payload.lessonId
+        passed = bool(payload.quizPassed)
+        challenge_items = [item for item in (payload.wrongAnswers or []) if isinstance(item, dict)]
+        lines = [
+            f"[solo_challenge_result] Learner {payload.userId} answered solo challenge \"{challenge_id}\" in course \"{course_title}\".",
+            f"Result: {'correct' if passed else 'false'}",
+            f"Captured at: {captured_at_iso}",
+            f"Tenant ID: {payload.tenantId}",
+            f"User ID: {payload.userId}",
+            f"Course ID: {payload.courseId}",
+            f"Challenge ID: {challenge_id}",
+        ]
+        if payload.quizScore is not None:
+            lines.append(f"Challenge Score: {payload.quizScore}")
+        if challenge_items:
+            primary_item = challenge_items[0]
+            question = _clean_text(primary_item.get("question") or primary_item.get("text") or "")
+            user_answer = _clean_text(primary_item.get("userAnswer") or primary_item.get("user_answer") or primary_item.get("userAnswers") or "")
+            correct_answer = _clean_text(primary_item.get("correctAnswer") or primary_item.get("correct_answer") or primary_item.get("correctAnswers") or "")
+            source_question_id = _clean_text(primary_item.get("questionId") or primary_item.get("sourceQuestionId") or "")
+            if question:
+                lines.append(f"Challenge Question: {question}")
+            if source_question_id:
+                lines.append(f"Source Question ID: {source_question_id}")
+            if user_answer:
+                lines.append(f"Learner Answer: {user_answer}")
+            if correct_answer:
+                lines.append(f"Expected Answer: {correct_answer}")
+        if passed:
+            lines.append(
+                "Resolved Concept Signal: the learner answered this reinforcement challenge correctly, "
+                "so the same failed concept should not be selected again unless a new failure appears."
+            )
+        elif challenge_items:
+            lines.append("False Assessment:")
+            for wrong in challenge_items:
+                question = _clean_text(wrong.get("question") or wrong.get("text") or "")
+                user_answer = _clean_text(wrong.get("userAnswer") or wrong.get("user_answer") or wrong.get("userAnswers") or "")
+                correct_answer = _clean_text(wrong.get("correctAnswer") or wrong.get("correct_answer") or wrong.get("correctAnswers") or "")
+                if question:
+                    lines.append(f"- Question: {question}")
+                if user_answer:
+                    lines.append(f"  User Answer: {user_answer}")
+                if correct_answer:
+                    lines.append(f"  Correct Answer: {correct_answer}")
+        return "\n".join(lines)
+
     if payload.eventType == "difficulty_signal_detected":
         difficulty_signal = _clean_text(payload.difficultySignal) or "stuck"
         topic = _clean_text(payload.difficultyTopic)
@@ -379,6 +434,25 @@ def _build_memory_content(payload: LearnerLessonMemoryInput, *, captured_at_iso:
         ]
         if topic:
             lines.append(f"Topic: {topic}")
+        return "\n".join(lines)
+
+    if payload.eventType == "video_progress_checkpoint":
+        lesson_title = _clean_text(payload.lessonTitle) or f"Lesson {payload.lessonId}"
+        lines = [
+            f"[video_progress] Learner {payload.userId} watched part of lesson \"{lesson_title}\" in course \"{course_title}\".",
+            f"Captured at: {captured_at_iso}",
+            f"Tenant ID: {payload.tenantId}",
+            f"User ID: {payload.userId}",
+            f"Course ID: {payload.courseId}",
+            f"Lesson ID: {payload.lessonId}",
+        ]
+        if payload.videoWatchPercent is not None:
+            lines.append(f"Watch Percent Reached: {round(float(payload.videoWatchPercent), 2)}")
+        if payload.videoCurrentTimeSeconds is not None:
+            lines.append(f"Current Time Seconds: {round(float(payload.videoCurrentTimeSeconds), 2)}")
+        lines.append(
+            "Progress Signal: the learner is currently in progress in this lesson and has not necessarily completed it yet."
+        )
         return "\n".join(lines)
 
     if payload.eventType == "quiz_completed":
@@ -478,6 +552,8 @@ def _log_event_start(payload: LearnerLessonMemoryInput) -> None:
         if payload.eventType == "coaching_discussion_message"
         else "course completion memory capture"
         if payload.eventType == "course_enrollment_completed"
+        else "solo challenge result memory capture"
+        if payload.eventType == "solo_challenge_answered"
         else "difficulty signal memory capture"
         if payload.eventType == "difficulty_signal_detected"
         else "learner memory capture"
@@ -1747,7 +1823,7 @@ def _retain_discussion_fact_memories(payload: LearnerLessonMemoryInput) -> dict[
 
 
 def _retain_payload(payload: LearnerLessonMemoryInput) -> dict[str, Any]:
-    if payload.eventType == "coaching_discussion_message":
+    if payload.eventType == "coaching_discussion_message" and not _should_use_raw_discussion_retain(payload):
         return _retain_discussion_fact_memories(payload)
 
     hindsight_url = (payload.hindsightApiUrl or DEFAULT_HINDSIGHT_URL).rstrip("/")
@@ -1789,9 +1865,16 @@ def _retain_payload(payload: LearnerLessonMemoryInput) -> dict[str, Any]:
 
     try:
         if payload.eventType == "coaching_discussion_message":
-            _log("[Agno Learner Memory Agent] Retaining learner coaching-discussion event via Hindsight HTTP async retain.")
+            if _should_use_raw_discussion_retain(payload):
+                _log("[Agno Learner Memory Agent] Retaining raw learner coaching-discussion message via Hindsight HTTP async retain.")
+            else:
+                _log("[Agno Learner Memory Agent] Retaining learner coaching-discussion event via Hindsight HTTP async retain.")
         elif payload.eventType == "quiz_completed":
             _log("[Agno Learner Memory Agent] Retaining learner quiz-result event via Hindsight HTTP async retain.")
+        elif payload.eventType == "solo_challenge_answered":
+            _log("[Agno Learner Memory Agent] Retaining learner solo-challenge result via Hindsight HTTP async retain.")
+        elif payload.eventType == "video_progress_checkpoint":
+            _log("[Agno Learner Memory Agent] Retaining learner video-progress checkpoint via Hindsight HTTP async retain.")
         elif payload.eventType == "difficulty_signal_detected":
             _log("[Agno Learner Memory Agent] Retaining learner difficulty-signal event via Hindsight HTTP async retain.")
         elif payload.eventType == "course_enrollment_completed":
@@ -1872,9 +1955,16 @@ def _retain_payload(payload: LearnerLessonMemoryInput) -> dict[str, Any]:
         }
 
     if payload.eventType == "coaching_discussion_message":
-        _log("[Agno Learner Memory Agent] Collected learner coaching-discussion event:")
+        if _should_use_raw_discussion_retain(payload):
+            _log("[Agno Learner Memory Agent] Collected raw learner coaching-discussion event:")
+        else:
+            _log("[Agno Learner Memory Agent] Collected learner coaching-discussion event:")
     elif payload.eventType == "quiz_completed":
         _log("[Agno Learner Memory Agent] Collected learner quiz-result event:")
+    elif payload.eventType == "solo_challenge_answered":
+        _log("[Agno Learner Memory Agent] Collected learner solo-challenge result:")
+    elif payload.eventType == "video_progress_checkpoint":
+        _log("[Agno Learner Memory Agent] Collected learner video-progress checkpoint:")
     elif payload.eventType == "difficulty_signal_detected":
         _log("[Agno Learner Memory Agent] Collected learner difficulty-signal event:")
     elif payload.eventType == "course_enrollment_completed":
@@ -1896,7 +1986,9 @@ def _retain_payload(payload: LearnerLessonMemoryInput) -> dict[str, Any]:
         "capturedAt": captured_at_iso,
         "memoryContent": memory_content,
         "operationId": operation_id or None,
-        "retentionMode": "direct_hindsight_http_async",
+        "retentionMode": "raw_discussion_direct_hindsight_http_async"
+        if _should_use_raw_discussion_retain(payload)
+        else "direct_hindsight_http_async",
     }
 
 

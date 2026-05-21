@@ -1205,6 +1205,9 @@ export interface Course {
   duration: number;
   xp_reward: number;
   is_published: boolean;
+  memory_retention_status?: "pending" | "processing" | "completed" | "failed";
+  memory_retention_error?: string | null;
+  memory_retention_updated_at?: string | null;
   tenant_id?: string | null;
 }
 
@@ -1517,7 +1520,14 @@ export async function updateCourseById(
   return api.put<Course>(`/api/v1/learning/courses/${courseId}`, data);
 }
 
-export async function toggleCoursePublish(courseId: string): Promise<{ id: string; is_published: boolean; updated_at: string }> {
+export async function toggleCoursePublish(courseId: string): Promise<{
+  id: string;
+  is_published: boolean;
+  updated_at: string;
+  memory_retention_status?: "pending" | "processing" | "completed" | "failed";
+  memory_retention_error?: string | null;
+  memory_retention_updated_at?: string | null;
+}> {
   return api.patch(`/api/v1/learning/courses/${courseId}/publish`);
 }
 
@@ -1671,6 +1681,16 @@ export async function retainTraditionalCourseMemoryPdf(
     formData.append("tenantId", tenantId);
   }
   return api.postForm<{ success: boolean }>("/api/course-memory-agent/course-source-pdf", formData);
+}
+
+export async function retainPublishedCourseMemory(
+  courseId: string,
+  tenantId?: string | null,
+): Promise<{ success: boolean; result?: unknown }> {
+  return api.post<{ success: boolean; result?: unknown }>("/api/course-memory-agent/published-course", {
+    courseId,
+    tenantId,
+  });
 }
 
 export async function getAICourseDraftByPlatformCourseId(

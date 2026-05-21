@@ -10,7 +10,6 @@ import {
   Target,
   TimerReset,
   Trophy,
-  X,
   XCircle,
   Zap,
 } from "lucide-react";
@@ -21,7 +20,6 @@ type SoloChallengeQuestion = {
   questionType: string;
   displayOrder: number;
   generationMode?: string;
-  correctOptionId?: string | null;
   explanation?: string | null;
   options: Array<{
     id: string;
@@ -55,15 +53,90 @@ interface SoloChallengeWelcomePopupProps {
   onAccept: () => void;
   onSelectOption: (optionId: string) => void;
   onSubmitAnswer: () => void;
-  onRetryChallenge: () => void;
   onOpenCoach: () => void;
 }
 
 const FLOATING_TOKENS = [
-  { icon: Sparkles, left: "8%", top: "18%", delay: "0s", duration: "3.1s" },
-  { icon: Target, left: "18%", top: "76%", delay: "0.25s", duration: "3.4s" },
-  { icon: TimerReset, left: "78%", top: "16%", delay: "0.15s", duration: "3s" },
-  { icon: BrainCircuit, left: "86%", top: "72%", delay: "0.45s", duration: "3.3s" },
+  {
+    icon: Sparkles,
+    left: "6%",
+    top: "15%",
+    delay: "0s",
+    duration: "3.1s",
+    className: "text-emerald-300 drop-shadow-[0_0_18px_rgba(52,211,153,0.7)]",
+  },
+  {
+    icon: Target,
+    left: "14%",
+    top: "73%",
+    delay: "0.25s",
+    duration: "3.4s",
+    className: "text-rose-300 drop-shadow-[0_0_18px_rgba(253,164,175,0.7)]",
+  },
+  {
+    icon: TimerReset,
+    left: "78%",
+    top: "14%",
+    delay: "0.15s",
+    duration: "3s",
+    className: "text-sky-300 drop-shadow-[0_0_18px_rgba(125,211,252,0.75)]",
+  },
+  {
+    icon: BrainCircuit,
+    left: "87%",
+    top: "70%",
+    delay: "0.45s",
+    duration: "3.3s",
+    className: "text-fuchsia-300 drop-shadow-[0_0_18px_rgba(240,171,252,0.72)]",
+  },
+  {
+    icon: Zap,
+    left: "28%",
+    top: "9%",
+    delay: "0.1s",
+    duration: "2.8s",
+    className: "text-amber-300 drop-shadow-[0_0_20px_rgba(252,211,77,0.78)]",
+  },
+  {
+    icon: Trophy,
+    left: "91%",
+    top: "34%",
+    delay: "0.55s",
+    duration: "3.6s",
+    className: "text-orange-300 drop-shadow-[0_0_18px_rgba(253,186,116,0.72)]",
+  },
+  {
+    icon: Stars,
+    left: "11%",
+    top: "43%",
+    delay: "0.35s",
+    duration: "3.2s",
+    className: "text-cyan-300 drop-shadow-[0_0_18px_rgba(103,232,249,0.72)]",
+  },
+  {
+    icon: PartyPopper,
+    left: "74%",
+    top: "82%",
+    delay: "0.5s",
+    duration: "3.7s",
+    className: "text-violet-300 drop-shadow-[0_0_18px_rgba(196,181,253,0.72)]",
+  },
+  {
+    icon: Swords,
+    left: "37%",
+    top: "84%",
+    delay: "0.2s",
+    duration: "3.25s",
+    className: "text-lime-300 drop-shadow-[0_0_18px_rgba(190,242,100,0.72)]",
+  },
+  {
+    icon: BrainCircuit,
+    left: "63%",
+    top: "7%",
+    delay: "0.4s",
+    duration: "3.45s",
+    className: "text-pink-300 drop-shadow-[0_0_18px_rgba(249,168,212,0.72)]",
+  },
 ] as const;
 
 export function SoloChallengeWelcomePopup({
@@ -79,7 +152,6 @@ export function SoloChallengeWelcomePopup({
   onAccept,
   onSelectOption,
   onSubmitAnswer,
-  onRetryChallenge,
   onOpenCoach,
 }: SoloChallengeWelcomePopupProps) {
   if (!open) {
@@ -92,38 +164,29 @@ export function SoloChallengeWelcomePopup({
   const isFailure = answerResult === "incorrect";
 
   return (
-    <div className="fixed inset-0 z-[145] flex items-center justify-center px-4 py-6">
+    <div className="fixed inset-0 z-[145] flex items-center justify-center px-4 py-4 sm:py-6">
       <div
         className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(14,163,122,0.28),transparent_26%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.24),transparent_22%),rgba(15,23,42,0.66)] backdrop-blur-sm"
         onClick={onClose}
       />
-      {FLOATING_TOKENS.map(({ icon: Icon, left, top, delay, duration }) => (
+      {FLOATING_TOKENS.map(({ icon: Icon, left, top, delay, duration, className }) => (
         <div
           key={`${left}-${top}`}
-          className="pointer-events-none absolute text-white/70"
+          className={`pointer-events-none absolute ${className}`}
           style={{
             left,
             top,
             animation: `solo-challenge-float ${duration} ease-in-out ${delay} infinite`,
           }}
         >
-          <Icon className="h-7 w-7" />
+          <Icon className="h-7 w-7 sm:h-8 sm:w-8" />
         </div>
       ))}
-      <div className="relative w-full max-w-3xl overflow-hidden rounded-[34px] border border-white/40 bg-[linear-gradient(160deg,rgba(255,255,255,0.96),rgba(236,253,250,0.97)_38%,rgba(224,242,254,0.96)_72%,rgba(255,247,237,0.96)_100%)] shadow-[0_28px_80px_rgba(15,23,42,0.28)]">
+      <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-3xl overflow-hidden rounded-[34px] border border-white/40 bg-[linear-gradient(160deg,rgba(255,255,255,0.96),rgba(236,253,250,0.97)_38%,rgba(224,242,254,0.96)_72%,rgba(255,247,237,0.96)_100%)] shadow-[0_28px_80px_rgba(15,23,42,0.28)] sm:max-h-[calc(100vh-3rem)]">
         <div className="absolute inset-x-0 top-0 h-2 bg-[linear-gradient(90deg,#0ea37a_0%,#22c7b4_35%,#38bdf8_70%,#f59e0b_100%)]" />
         <div className="pointer-events-none absolute -left-14 top-12 h-40 w-40 rounded-full bg-emerald-300/35 blur-3xl" />
         <div className="pointer-events-none absolute -right-12 bottom-10 h-44 w-44 rounded-full bg-sky-300/35 blur-3xl" />
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-5 top-5 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-500 transition-colors hover:bg-white hover:text-slate-900"
-          aria-label="Dismiss solo challenge popup"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
+        <div className="max-h-[calc(100vh-2rem)] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:max-h-[calc(100vh-3rem)]">
         {!quiz ? (
           <div className="relative grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
@@ -161,7 +224,7 @@ export function SoloChallengeWelcomePopup({
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#0ea37a_0%,#22c7b4_58%,#14b8a6_100%)] px-5 py-3 text-sm font-black text-white shadow-[0_18px_44px_rgba(14,163,122,0.24)] transition-transform duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   <Zap className="h-4 w-4" />
-                  {isStarting ? "Challenge agent is waking up..." : "Bring it on"}
+                  {isStarting ? "Preparing your challenge..." : "Bring it on"}
                 </button>
                 <button
                   type="button"
@@ -174,7 +237,7 @@ export function SoloChallengeWelcomePopup({
               </div>
               {isStarting ? (
                 <p className="mt-3 text-sm font-medium text-emerald-700">
-                  Solo Challenge Agent is starting its workflow. Check the terminal logs.
+                  We are preparing a personalized challenge for you.
                 </p>
               ) : null}
               {errorMessage ? (
@@ -291,8 +354,8 @@ export function SoloChallengeWelcomePopup({
                   Not this time.
                 </h2>
                 <p className="mx-auto mt-3 max-w-2xl text-center text-base text-slate-700">
-                  Try to concentrate more next time. If there is still something you do not
-                  understand, ask the coaching agent to help you understand the course better.
+                  If this part is still unclear, tell the coaching agent exactly what you did not
+                  understand so it can explain the concept more clearly.
                 </p>
                 {question?.explanation ? (
                   <div className="mt-5 rounded-[24px] border border-amber-200/80 bg-amber-50/90 p-4 text-sm text-slate-700">
@@ -301,13 +364,6 @@ export function SoloChallengeWelcomePopup({
                   </div>
                 ) : null}
                 <div className="mt-6 flex flex-wrap justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={onRetryChallenge}
-                    className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                  >
-                    Try again
-                  </button>
                   <button
                     type="button"
                     onClick={onOpenCoach}
@@ -334,7 +390,7 @@ export function SoloChallengeWelcomePopup({
 
                   <div className="mt-5 rounded-[28px] border border-slate-200/80 bg-white/90 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">
-                      Reformulated question
+                      Question
                     </p>
                     <p className="mt-3 text-lg font-bold leading-8 text-slate-950">
                       {question?.text}
@@ -443,6 +499,7 @@ export function SoloChallengeWelcomePopup({
             )}
           </div>
         )}
+        </div>
       </div>
       <style jsx global>{`
         @keyframes solo-challenge-float {

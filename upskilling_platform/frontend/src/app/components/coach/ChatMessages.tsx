@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import type { ReactNode } from "react";
 import { cn } from "@/app/lib/utils";
 import { Bot, User, Sparkles } from "lucide-react";
 
@@ -16,6 +17,191 @@ export interface Message {
 interface ChatMessagesProps {
   messages: Message[];
   isTyping: boolean;
+}
+
+function splitTableRow(line: string) {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+}
+
+function isMarkdownTableDivider(line: string) {
+  const cells = splitTableRow(line);
+  return cells.length > 0 && cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+}
+
+function renderInlineMarkdown(text: string): ReactNode {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
+function renderMessageContent(content: string, isUser: boolean) {
+  const normalized = content.replace(/\r\n/g, "\n");
+  const lines = normalized.split("\n");
+  const blocks: ReactNode[] = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index] ?? "";
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      index += 1;
+      continue;
+    }
+
+    if (trimmed.startsWith("```")) {
+      const codeLines: string[] = [];
+      index += 1;
+      while (index < lines.length && !lines[index].trim().startsWith("```")) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+      if (index < lines.length && lines[index].trim().startsWith("```")) {
+        index += 1;
+      }
+      blocks.push(
+        <pre
+          key={`code-${index}`}
+          className="overflow-x-auto rounded-xl bg-background px-4 py-3 text-sm leading-6 text-text-primary"
+        >
+          <code>{codeLines.join("\n")}</code>
+        </pre>,
+      );
+      continue;
+    }
+
+    if (
+      trimmed.includes("|") &&
+      index + 1 < lines.length &&
+      isMarkdownTableDivider(lines[index + 1] ?? "")
+    ) {
+      const header = splitTableRow(line);
+      const rows: string[][] = [];
+      index += 2;
+      while (index < lines.length) {
+        const tableLine = lines[index] ?? "";
+        if (!tableLine.trim() || !tableLine.includes("|")) {
+          break;
+        }
+        rows.push(splitTableRow(tableLine));
+        index += 1;
+      }
+
+      blocks.push(
+        <div key={`table-${index}`} className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full min-w-[480px] border-collapse text-left text-sm">
+            <thead className="bg-background/80">
+              <tr>
+                {header.map((cell, cellIndex) => (
+                  <th
+                    key={`head-${cellIndex}`}
+                    className="border-b border-border px-4 py-3 font-semibold text-text-primary"
+                  >
+                    {renderInlineMarkdown(cell)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, rowIndex) => (
+                <tr key={`row-${rowIndex}`} className="align-top">
+                  {row.map((cell, cellIndex) => (
+                    <td
+                      key={`cell-${rowIndex}-${cellIndex}`}
+                      className="border-t border-border px-4 py-3 leading-6 text-text-primary"
+                    >
+                      {renderInlineMarkdown(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+      continue;
+    }
+
+    if (trimmed.startsWith("### ")) {
+      blocks.push(
+        <h3 key={`h3-${index}`} className="text-base font-semibold text-text-primary">
+          {renderInlineMarkdown(trimmed.slice(4))}
+        </h3>,
+      );
+      index += 1;
+      continue;
+    }
+
+    if (trimmed.startsWith("## ")) {
+      blocks.push(
+        <h2 key={`h2-${index}`} className="text-lg font-semibold text-text-primary">
+          {renderInlineMarkdown(trimmed.slice(3))}
+        </h2>,
+      );
+      index += 1;
+      continue;
+    }
+
+    if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+      const items: string[] = [];
+      while (index < lines.length) {
+        const listLine = (lines[index] ?? "").trim();
+        if (!(listLine.startsWith("- ") || listLine.startsWith("* "))) {
+          break;
+        }
+        items.push(listLine.slice(2));
+        index += 1;
+      }
+
+      blocks.push(
+        <ul key={`ul-${index}`} className="ml-5 list-disc space-y-2 text-text-primary">
+          {items.map((item, itemIndex) => (
+            <li key={`item-${itemIndex}`}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ul>,
+      );
+      continue;
+    }
+
+    if (/^\d+\.\s/.test(trimmed)) {
+      const items: string[] = [];
+      while (index < lines.length) {
+        const listLine = (lines[index] ?? "").trim();
+        if (!/^\d+\.\s/.test(listLine)) {
+          break;
+        }
+        items.push(listLine.replace(/^\d+\.\s/, ""));
+        index += 1;
+      }
+
+      blocks.push(
+        <ol key={`ol-${index}`} className="ml-5 list-decimal space-y-2 text-text-primary">
+          {items.map((item, itemIndex) => (
+            <li key={`item-${itemIndex}`}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ol>,
+      );
+      continue;
+    }
+
+    blocks.push(
+      <p key={`p-${index}`} className={isUser ? "" : "leading-7 text-text-primary"}>
+        {renderInlineMarkdown(line)}
+      </p>,
+    );
+    index += 1;
+  }
+
+  return blocks;
 }
 
 export function ChatMessages({ messages, isTyping }: ChatMessagesProps) {
@@ -81,40 +267,7 @@ export function ChatMessages({ messages, isTyping }: ChatMessagesProps) {
               )}
 
               <div className="space-y-3">
-                {message.content.split("\n").map((line, i) => {
-                  if (line.startsWith("```")) {
-                    return (
-                      <pre
-                        key={i}
-                        className="mt-2 overflow-x-auto rounded-lg bg-background p-3 text-sm"
-                      >
-                        <code>{line.replace(/```/g, "")}</code>
-                      </pre>
-                    );
-                  }
-                  if (line.startsWith("**") && line.endsWith("**")) {
-                    return (
-                      <p key={i} className="font-semibold">
-                        {line.replace(/\*\*/g, "")}
-                      </p>
-                    );
-                  }
-                  if (line.match(/^\d+\./)) {
-                    return (
-                      <p key={i} className="ml-2">
-                        {line}
-                      </p>
-                    );
-                  }
-                  return (
-                    <p
-                      key={i}
-                      className={message.role === "user" ? "" : "text-text-primary"}
-                    >
-                      {line}
-                    </p>
-                  );
-                })}
+                {renderMessageContent(message.content, message.role === "user")}
               </div>
 
               <p

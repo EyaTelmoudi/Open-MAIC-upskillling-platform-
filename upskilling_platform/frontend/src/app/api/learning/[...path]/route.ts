@@ -642,7 +642,7 @@ function buildLessonRetainPreviewLogs(publishedCourseData: Record<string, unknow
         );
         const extractedText = stripHtml(String(document.extractedText || ""));
         if (extractedText) {
-          supportLines.push(`  contenu extrait: ${extractedText}`);
+          supportLines.push(`  contenu extrait: hidden (${extractedText.length} chars)`);
         }
       }
     }
@@ -724,7 +724,9 @@ function buildSupplementalSourceRetainPreviewLogs(publishedCourseData: Record<st
       `document_id: course:${courseId}:source:${index + 1}`,
       "update_mode: replace",
       `titre: ${String(source.title || "Supplemental Source")}`,
-      `contenu: ${String(source.text || "").trim() || "No supplemental source content"}`,
+      String(source.text || "").trim()
+        ? `contenu: hidden (${String(source.text || "").trim().length} chars)`
+        : "contenu: No supplemental source content",
     ].join("\n"),
   }));
 }
@@ -1139,26 +1141,32 @@ async function syncCourseMemoryAfterMutation(
     );
   }
 
-  try {
-    const courseMemoryResult = await assemblePublishedCourseForMemory(
-      request,
-      courseId,
-      courseTenantId || null,
-      undefined,
-      undefined,
-      isEditMutation,
-    );
-    if (courseMemoryResult.skipCourseRetention) {
-      return;
-    }
-    return;
-  } catch (error) {
-    console.error(
-      `[Agno Course Memory Agent] Retain workflow failed for course ${courseId}: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`,
-    );
-  }
+  void assemblePublishedCourseForMemory(
+    request,
+    courseId,
+    courseTenantId || null,
+    undefined,
+    undefined,
+    isEditMutation,
+  )
+    .then((courseMemoryResult) => {
+      if (courseMemoryResult.skipCourseRetention) {
+        console.log(
+          `[Agno Course Memory Agent] Retain workflow skipped for course ${courseId} because memory already exists.`,
+        );
+        return;
+      }
+      console.log(
+        `[Agno Course Memory Agent] Background retain workflow completed for course ${courseId}. async=${Boolean(courseMemoryResult.isAsync)}`,
+      );
+    })
+    .catch((error) => {
+      console.error(
+        `[Agno Course Memory Agent] Background retain workflow failed for course ${courseId}: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      );
+    });
 }
 
 function isLessonCompletionMutation(pathSegments: string[], method: string) {

@@ -50,6 +50,7 @@ COURSE_CONTENT_BUCKETS = [
     "course-images",
     "course-files",
 ]
+VALID_MEMORY_RETENTION_STATUSES = {"pending", "processing", "completed", "failed"}
 
 
 def get_current_user(
@@ -102,6 +103,26 @@ def _require_course_edit_role(user: User) -> None:
 
 def _can_view_unpublished_course(user: User) -> bool:
     return user.role in DRAFT_VIEW_ROLES
+
+
+def _normalize_memory_retention_status(value: str | None) -> str:
+    normalized = str(value or "").strip().lower()
+    return normalized if normalized in VALID_MEMORY_RETENTION_STATUSES else "pending"
+
+
+def _serialize_memory_retention_fields(course: Course) -> dict[str, str | None]:
+    updated_at = course.memory_retention_updated_at
+    return {
+        "memory_retention_status": _normalize_memory_retention_status(course.memory_retention_status),
+        "memory_retention_error": course.memory_retention_error,
+        "memory_retention_updated_at": updated_at.isoformat() if updated_at else None,
+    }
+
+
+def _mark_course_memory_pending(course: Course) -> None:
+    course.memory_retention_status = "pending"
+    course.memory_retention_error = None
+    course.memory_retention_updated_at = datetime.utcnow()
 
 
 def _resolve_memory_assessment_id(
@@ -195,6 +216,7 @@ def list_courses(
                 "xp_reward": c.xp_reward,
                 "rating": c.rating,
                 "is_published": c.is_published,
+                **_serialize_memory_retention_fields(c),
                 "author_id": str(c.author_id) if c.author_id else None,
                 "tenant_id": str(c.tenant_id) if c.tenant_id else None,
                 "created_at": c.created_at.isoformat(),
@@ -246,6 +268,7 @@ def get_course(
         "xp_reward": course.xp_reward,
         "rating": course.rating,
         "is_published": course.is_published,
+        **_serialize_memory_retention_fields(course),
         "author_id": str(course.author_id) if course.author_id else None,
         "tenant_id": str(course.tenant_id) if course.tenant_id else None,
         "created_at": course.created_at.isoformat(),
@@ -358,6 +381,7 @@ def get_course_memory_curriculum(
                     "title": lesson.title,
                     "content": lesson.content,
                     "video_url": resolve_media_url(lesson.video_url),
+                    "video_source_ref": lesson.video_url,
                     "content_type": lesson.content_type,
                     "duration": lesson.duration,
                     "order": lesson.order,
@@ -389,6 +413,7 @@ def get_course_memory_curriculum(
         "xp_reward": course.xp_reward,
         "rating": course.rating,
         "is_published": course.is_published,
+        **_serialize_memory_retention_fields(course),
         "author_id": str(course.author_id) if course.author_id else None,
         "tenant_id": str(course.tenant_id) if course.tenant_id else None,
         "created_at": course.created_at.isoformat(),
@@ -506,7 +531,10 @@ def create_course(
         difficulty=course_data["difficulty"],
         duration=0,
         xp_reward=course_data.get("xp_reward", 100),
-        is_published=course_data.get("is_published", False),
+        is_published=False,
+        memory_retention_status="pending",
+        memory_retention_error=None,
+        memory_retention_updated_at=datetime.utcnow(),
         author_id=_normalize_uuid(course_data.get("author_id")) or UUID(current_user["sub"]),
         tenant_id=_normalize_uuid(tenant_id),
     )
@@ -527,6 +555,7 @@ def create_course(
         "xp_reward": course.xp_reward,
         "rating": course.rating,
         "is_published": course.is_published,
+        **_serialize_memory_retention_fields(course),
         "author_id": str(course.author_id) if course.author_id else None,
         "tenant_id": str(course.tenant_id) if course.tenant_id else None,
         "created_at": course.created_at.isoformat(),
@@ -555,6 +584,7 @@ def update_course(
             detail="Access denied: course belongs to another tenant"
         )
 
+    content_fields_changed = False
     for field in [
         "title",
         "description",
@@ -562,10 +592,14 @@ def update_course(
         "category",
         "difficulty",
         "xp_reward",
-        "is_published",
     ]:
         if field in course_data and course_data[field] is not None:
+            if field != "is_published" and getattr(course, field) != course_data[field]:
+                content_fields_changed = True
             setattr(course, field, course_data[field])
+
+    if content_fields_changed:
+        _mark_course_memory_pending(course)
 
     sync_course_duration(course.id, db)
     db.commit()
@@ -582,6 +616,7 @@ def update_course(
         "xp_reward": course.xp_reward,
         "rating": course.rating,
         "is_published": course.is_published,
+        **_serialize_memory_retention_fields(course),
         "author_id": str(course.author_id) if course.author_id else None,
         "tenant_id": str(course.tenant_id) if course.tenant_id else None,
         "created_at": course.created_at.isoformat(),
@@ -745,6 +780,19 @@ def toggle_course_publish(
 
     # Validate course has at least 1 module + 1 lesson if publishing
     if not course.is_published:
+        memory_status = _normalize_memory_retention_status(course.memory_retention_status)
+        if memory_status != "completed":
+            detail = "Course memory retention must complete successfully before publishing."
+            if memory_status == "failed" and course.memory_retention_error:
+                detail = (
+                    "Course memory retention failed. Resolve the memory pipeline issue before publishing. "
+                    f"Last error: {course.memory_retention_error}"
+                )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=detail,
+            )
+
         modules = db.query(Module).filter(Module.course_id == course_id).all()
         if not modules:
             raise HTTPException(
@@ -792,5 +840,51 @@ def toggle_course_publish(
         "id": str(course.id),
         "title": course.title,
         "is_published": course.is_published,
+        **_serialize_memory_retention_fields(course),
+        "updated_at": course.updated_at.isoformat(),
+    }
+
+
+@router.patch("/{course_id}/memory-retention", response_model=dict)
+def update_course_memory_retention_status(
+    course_id: UUID,
+    payload: dict,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    user_info = _get_user_from_payload(current_user, db)
+    _require_course_edit_role(user_info)
+
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
+        )
+
+    if user_info.role != "SuperAdmin" and course.tenant_id != user_info.tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: course belongs to another tenant"
+        )
+
+    requested_status = _normalize_memory_retention_status(payload.get("status"))
+    if requested_status not in VALID_MEMORY_RETENTION_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid memory retention status.",
+        )
+
+    course.memory_retention_status = requested_status
+    course.memory_retention_error = (
+        str(payload.get("error")).strip() if payload.get("error") else None
+    )
+    course.memory_retention_updated_at = datetime.utcnow()
+    course.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(course)
+
+    return {
+        "id": str(course.id),
+        **_serialize_memory_retention_fields(course),
         "updated_at": course.updated_at.isoformat(),
     }

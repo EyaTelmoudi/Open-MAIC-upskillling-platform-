@@ -125,6 +125,7 @@ export function AppShell({
   const [isSoloChallengeSubmitting, setIsSoloChallengeSubmitting] = useState(false);
   const [soloChallengeError, setSoloChallengeError] = useState<string | null>(null);
   const [soloChallengeQuiz, setSoloChallengeQuiz] = useState<{
+    challengeId?: string;
     courseId?: string | null;
     courseTitle?: string | null;
     lessonId?: string | null;
@@ -139,7 +140,6 @@ export function AppShell({
       questionType: string;
       displayOrder: number;
       generationMode?: string;
-      correctOptionId?: string | null;
       explanation?: string | null;
       options: Array<{
         id: string;
@@ -423,11 +423,19 @@ export function AppShell({
         );
       }
 
-      setSoloChallengeQuiz(data.recreatedQuiz ?? null);
+      setSoloChallengeQuiz(
+        data.recreatedQuiz
+          ? {
+              challengeId: typeof data.challengeId === "string" ? data.challengeId : undefined,
+              ...data.recreatedQuiz,
+            }
+          : null,
+      );
       setSoloChallengeSelectedOptionId(null);
       setSoloChallengeAnswerResult(null);
       if (!data.recreatedQuiz?.questions?.length) {
-        throw new Error("The Solo Challenge Agent did not return a quiz question.");
+        setIsSoloChallengeWelcomeOpen(false);
+        return;
       }
     } catch (error) {
       setSoloChallengeError(
@@ -448,18 +456,36 @@ export function AppShell({
       setSoloChallengeError("The solo challenge question is missing.");
       return;
     }
-    if (!activeQuestion.correctOptionId) {
-      setSoloChallengeError("The solo challenge answer key is missing.");
+    if (!soloChallengeQuiz.challengeId) {
+      setSoloChallengeError("The solo challenge session is missing.");
       return;
     }
-
-    const isCorrect = activeQuestion.correctOptionId === soloChallengeSelectedOptionId;
 
     setIsSoloChallengeSubmitting(true);
     setSoloChallengeError(null);
 
     try {
-      if (!isCorrect) {
+      const submitResponse = await fetch("/api/solo-challenge-agent/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          challengeId: soloChallengeQuiz.challengeId,
+          selectedOptionId: soloChallengeSelectedOptionId,
+          tenantId: user?.tenant_id,
+          userId: user?.id,
+        }),
+      });
+      const submitData = await submitResponse.json().catch(() => null);
+      if (!submitResponse.ok || !submitData?.success) {
+        throw new Error(
+          (submitData && typeof submitData.error === "string" && submitData.error) ||
+            "The solo challenge answer could not be checked.",
+        );
+      }
+
+      if (!submitData.isCorrect) {
         setSoloChallengeAnswerResult("incorrect");
         return;
       }
@@ -471,17 +497,11 @@ export function AppShell({
       setSoloChallengeAnswerResult("correct");
     } catch (error) {
       setSoloChallengeError(
-        error instanceof Error ? error.message : "The solo challenge reward could not be granted.",
+        error instanceof Error ? error.message : "The solo challenge answer could not be processed.",
       );
     } finally {
       setIsSoloChallengeSubmitting(false);
     }
-  };
-
-  const handleSoloChallengeRetry = () => {
-    setSoloChallengeSelectedOptionId(null);
-    setSoloChallengeAnswerResult(null);
-    setSoloChallengeError(null);
   };
 
   const handleSoloChallengeOpenCoach = () => {
@@ -976,7 +996,6 @@ export function AppShell({
         onAccept={handleSoloChallengePopupAccept}
         onSelectOption={setSoloChallengeSelectedOptionId}
         onSubmitAnswer={handleSoloChallengeSubmitAnswer}
-        onRetryChallenge={handleSoloChallengeRetry}
         onOpenCoach={handleSoloChallengeOpenCoach}
       />
       <style jsx global>{`
