@@ -32,6 +32,7 @@ from services.identity.schemas.tenant import (
     UnassignTenantAdminRequest,
     TestEntraResponse,
 )
+from services.identity.entra_config import get_platform_entra_redirect_uris
 from services.identity.middleware.rbac import require_role
 from services.identity.middleware.audit import log_superadmin_action
 from services.identity.user_defaults import get_default_user_timezone
@@ -40,6 +41,24 @@ router = APIRouter(prefix="/superadmin/tenants", tags=["tenants"])
 
 # Public router for tenant listing (no auth required)
 public_router = APIRouter(prefix="/tenants", tags=["public-tenants"])
+
+
+def normalize_entra_redirect_uris(
+    redirect_uris: Optional[list[str]],
+    *,
+    entra_configured: bool,
+) -> list[str]:
+    """Use the backend callback URI when tenant Entra credentials are configured."""
+    cleaned = [
+        str(value or "").strip()
+        for value in (redirect_uris or [])
+        if str(value or "").strip()
+    ]
+    if cleaned:
+        return cleaned
+    if entra_configured:
+        return get_platform_entra_redirect_uris()
+    return []
 
 
 @router.post("", response_model=TenantResponse, status_code=status.HTTP_201_CREATED)
@@ -57,6 +76,7 @@ def create_tenant(
             detail="Tenant with this slug already exists",
         )
 
+    entra_configured = bool(tenant_data.entra_client_id and tenant_data.entra_tenant_id)
     tenant = Tenant(
         name=tenant_data.name,
         slug=tenant_data.slug,
@@ -66,7 +86,10 @@ def create_tenant(
         status="pending",
         entra_client_id=tenant_data.entra_client_id,
         entra_tenant_id=tenant_data.entra_tenant_id,
-        entra_redirect_uris=tenant_data.entra_redirect_uris,
+        entra_redirect_uris=normalize_entra_redirect_uris(
+            tenant_data.entra_redirect_uris,
+            entra_configured=entra_configured,
+        ),
         seat_limit=tenant_data.seat_limit,
         created_by_id=current_user["sub"],
     )
@@ -392,7 +415,17 @@ def update_tenant(
     if tenant_data.entra_tenant_id is not None:
         tenant.entra_tenant_id = tenant_data.entra_tenant_id
     if tenant_data.entra_redirect_uris is not None:
-        tenant.entra_redirect_uris = tenant_data.entra_redirect_uris
+        tenant.entra_redirect_uris = normalize_entra_redirect_uris(
+            tenant_data.entra_redirect_uris,
+            entra_configured=bool(tenant.entra_client_id and tenant.entra_tenant_id),
+        )
+    elif (
+        (tenant_data.entra_client_id is not None or tenant_data.entra_tenant_id is not None)
+        and tenant.entra_client_id
+        and tenant.entra_tenant_id
+        and not tenant.entra_redirect_uris
+    ):
+        tenant.entra_redirect_uris = get_platform_entra_redirect_uris()
     if tenant_data.seat_limit is not None:
         tenant.seat_limit = tenant_data.seat_limit
 
@@ -567,6 +600,27 @@ async def test_entra_connection(
             success=False,
             message="Entra ID tenant ID is not configured",
         )
+    if not tenant.entra_client_id:
+        return TestEntraResponse(
+            success=False,
+            message="Entra ID client ID is not configured",
+        )
+
+    try:
+        UUID(str(tenant.entra_client_id))
+    except ValueError:
+        return TestEntraResponse(
+            success=False,
+            message="Entra ID client ID must be a valid Application (client) ID.",
+        )
+
+    redirect_uris = normalize_entra_redirect_uris(
+        tenant.entra_redirect_uris,
+        entra_configured=True,
+    )
+    if not tenant.entra_redirect_uris:
+        tenant.entra_redirect_uris = redirect_uris
+        db.commit()
 
     # Test the Entra ID configuration by calling the well-known OpenID configuration endpoint
     # This proves the tenant ID exists and is a valid Azure AD tenant
@@ -579,9 +633,21 @@ async def test_entra_connection(
             if response.status_code == 200:
                 data = response.json()
                 issuer = data.get("issuer", "")
+                authorization_endpoint = data.get("authorization_endpoint")
+                token_endpoint = data.get("token_endpoint")
+                if not authorization_endpoint or not token_endpoint:
+                    return TestEntraResponse(
+                        success=False,
+                        message="Microsoft metadata was found, but the tenant OIDC endpoints are incomplete.",
+                    )
                 return TestEntraResponse(
                     success=True,
-                    message=f"Connection successful! Found tenant: {issuer}",
+                    message=(
+                        "Entra ID configuration is ready for this tenant. "
+                        f"Tenant metadata: {issuer}. "
+                        f"Backend redirect URI: {redirect_uris[0]}. "
+                        "Make sure this exact redirect URI is registered in the Azure App Registration."
+                    ),
                 )
             else:
                 return TestEntraResponse(

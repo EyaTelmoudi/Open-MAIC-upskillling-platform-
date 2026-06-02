@@ -1,5 +1,7 @@
 """Module CRUD router for the Learning Platform service."""
 
+from datetime import datetime
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -52,6 +54,12 @@ def _validate_course_access(course_id: UUID, user: User, db: Session) -> Course:
             detail="Access denied: course belongs to another tenant"
         )
     return course
+
+
+def _mark_course_memory_pending(course: Course) -> None:
+    course.memory_retention_status = "pending"
+    course.memory_retention_error = None
+    course.memory_retention_updated_at = datetime.utcnow()
 
 
 @router.get("/course/{course_id}", response_model=list[dict])
@@ -140,6 +148,8 @@ def create_module(
         order=module_data["order"],
     )
     db.add(module)
+    course = _validate_course_access(course_id, user_info, db)
+    _mark_course_memory_pending(course)
     db.commit()
     db.refresh(module)
 
@@ -174,6 +184,8 @@ def update_module(
         if field in module_data and module_data[field] is not None:
             setattr(module, field, module_data[field])
 
+    course = _validate_course_access(module.course_id, user_info, db)
+    _mark_course_memory_pending(course)
     db.commit()
     db.refresh(module)
 
@@ -204,6 +216,8 @@ def delete_module(
     _validate_course_access(module.course_id, user_info, db)
 
     course_id = module.course_id
+    course = _validate_course_access(course_id, user_info, db)
+    _mark_course_memory_pending(course)
     db.delete(module)
     db.flush()
     sync_course_duration(course_id, db)

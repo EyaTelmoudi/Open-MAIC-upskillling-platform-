@@ -2,9 +2,8 @@
 
 import {useCallback, useEffect, useMemo, useState} from "react";
 import {useParams, useRouter} from "next/navigation";
-import {ArrowLeft, Save, Shield, Trash2} from "lucide-react";
+import {Building2, IdCard, Save, Shield, Trash2} from "lucide-react";
 import {AdminShell} from "@/app/components/layout/AdminShell";
-import {Badge} from "@/app/components/ui/Badge";
 import {Button} from "@/app/components/ui/Button";
 import {Input} from "@/app/components/ui/Input";
 import {Select} from "@/app/components/ui/Select";
@@ -16,6 +15,7 @@ import {
   getDepartmentsForTenant,
 } from "@/app/lib/departments";
 import {routes} from "@/app/lib/routes";
+import {UsersManagementNav} from "../UsersManagementNav";
 
 type UserDetail = {
   id: string;
@@ -178,126 +178,123 @@ export default function AdminUserDetailPage() {
   return (
     <AdminShell>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-4">
-            <button
-              type="button"
-              onClick={() => router.push(routes.adminUsers)}
-              className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to users
-            </button>
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-lg font-semibold text-white">
-                {(userDetail?.first_name?.charAt(0) || userDetail?.email?.charAt(0) || "U").toUpperCase()}
-              </div>
-              <div>
-                <h1 className="text-2xl font-semibold text-text-primary">
-                  {userDetail ? `${userDetail.first_name} ${userDetail.last_name}`.trim() : "User profile"}
-                </h1>
-                <p className="mt-1 text-sm text-text-secondary">
-                  Review and update company user information from a dedicated admin workspace.
-                </p>
-                {userDetail && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <Badge variant="outline">{userDetail.role}</Badge>
-                    <Badge variant="secondary">{userDetail.status}</Badge>
-                    <Badge variant="outline">{userDetail.department || "No department"}</Badge>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="rounded-xl border border-border bg-background/60 px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-text-secondary">Admin Scope</p>
-            <p className="mt-2 text-sm text-text-primary">You can manage this user because they belong to your company workspace.</p>
-          </div>
-        </div>
+        <UsersManagementNav
+          detailHref={userId ? routes.adminUserDetail(userId) : undefined}
+          detailLabel={userDetail ? `${userDetail.first_name} ${userDetail.last_name}`.trim() || userDetail.email : "Selected user profile"}
+        />
 
         {error && (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
             {error}
           </div>
         )}
         {success && (
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
             {success}
           </div>
         )}
 
         {isLoading || !form ? (
-          <div className="rounded-2xl border border-border bg-card p-8 text-sm text-text-secondary">
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-sm text-slate-600 shadow-sm">
             Loading user details...
           </div>
         ) : (
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_360px]">
-            <div className="space-y-6">
-              <div className="rounded-2xl border border-border bg-card p-6">
-                <div className="mb-5">
-                  <h2 className="text-lg font-semibold text-text-primary">Identity</h2>
-                  <p className="text-sm text-text-secondary">Maintain the user’s core profile and access role.</p>
-                </div>
+          <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_18px_55px_rgba(15,23,42,0.07)] sm:p-6">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_340px]">
+              <div className="space-y-8">
+                <section>
+                  <div className="mb-5 rounded-3xl border border-emerald-100 bg-[radial-gradient(circle_at_10%_15%,rgba(16,185,129,0.18),transparent_28%),linear-gradient(135deg,#f8fffd_0%,#ecfdf5_55%,#eef7ff_100%)] p-5 shadow-sm">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-700 text-white shadow-sm">
+                        <IdCard className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                          User Identity
+                        </p>
+                        <h2 className="mt-1 text-xl font-semibold text-slate-950">Identity</h2>
+                        <p className="mt-1 text-sm text-slate-600">
+                          Maintain the user&apos;s core profile and access role.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-text-secondary">First Name</label>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">First Name</label>
                     <Input
                       value={form.first_name}
                       onChange={(e) => setForm({...form, first_name: e.target.value})}
                       placeholder="First name"
+                      className="h-11 border-slate-300 bg-white text-slate-950 placeholder:text-slate-400 shadow-sm focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-text-secondary">Last Name</label>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">Last Name</label>
                     <Input
                       value={form.last_name}
                       onChange={(e) => setForm({...form, last_name: e.target.value})}
                       placeholder="Last name"
+                      className="h-11 border-slate-300 bg-white text-slate-950 placeholder:text-slate-400 shadow-sm focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-xs font-medium text-text-secondary">Email</label>
-                    <Input value={userDetail?.email || ""} readOnly className="bg-background/70 text-text-secondary" />
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">Email</label>
+                    <Input value={userDetail?.email || ""} readOnly className="h-11 border-slate-200 bg-slate-50 text-slate-700 shadow-sm" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-text-secondary">Role</label>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">Role</label>
                     <Select
                       options={ROLE_OPTIONS.map((role) => ({value: role, label: role}))}
                       value={form.role}
                       onChange={(e) => setForm({...form, role: e.target.value})}
-                      className="w-full"
+                      className="h-11 w-full border-slate-300 bg-white text-slate-950 shadow-sm focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-text-secondary">Status</label>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">Status</label>
                     <Select
                       options={STATUS_OPTIONS}
                       value={form.status}
                       onChange={(e) => setForm({...form, status: e.target.value})}
-                      className="w-full"
+                      className="h-11 w-full border-slate-300 bg-white text-slate-950 shadow-sm focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
                     />
                   </div>
                 </div>
-              </div>
+                </section>
 
-              <div className="rounded-2xl border border-border bg-card p-6">
-                <div className="mb-5">
-                  <h2 className="text-lg font-semibold text-text-primary">Workspace Profile</h2>
-                  <p className="text-sm text-text-secondary">Adjust the user’s department and learning context inside your company.</p>
-                </div>
+                <section className="border-t border-slate-100 pt-6">
+                  <div className="mb-5 rounded-3xl border border-sky-100 bg-[radial-gradient(circle_at_12%_18%,rgba(59,130,246,0.16),transparent_30%),linear-gradient(135deg,#f8fbff_0%,#eff6ff_48%,#ecfdf5_100%)] p-5 shadow-sm">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-700 text-white shadow-sm">
+                        <Building2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+                          Company Context
+                        </p>
+                        <h2 className="mt-1 text-xl font-semibold text-slate-950">
+                          Workspace Profile
+                        </h2>
+                        <p className="mt-1 text-sm text-slate-600">
+                          Adjust the user&apos;s department and learning context inside your company.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-text-secondary">Department</label>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">Department</label>
                     <Select
                       options={departmentOptions.map((department) => ({value: department, label: department}))}
                       value={form.department}
                       onChange={(e) => setForm({...form, department: e.target.value})}
-                      className="w-full"
+                      className="h-11 w-full border-slate-300 bg-white text-slate-950 shadow-sm focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
                     />
                     <button
                       type="button"
                       onClick={() => setShowAddDepartment((current) => !current)}
-                      className="text-xs text-primary hover:underline"
+                      className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 hover:underline"
                     >
                       {showAddDepartment ? "Cancel new department" : "Add new department"}
                     </button>
@@ -307,51 +304,58 @@ export default function AdminUserDetailPage() {
                           value={newDepartmentName}
                           onChange={(e) => setNewDepartmentName(e.target.value)}
                           placeholder="New department name"
+                          className="h-11 border-slate-300 bg-white text-slate-950 placeholder:text-slate-400 shadow-sm focus-visible:border-emerald-500 focus-visible:ring-emerald-100"
                         />
-                        <Button type="button" variant="outline" onClick={handleAddDepartment}>
+                        <Button type="button" variant="outline" onClick={handleAddDepartment} className="border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100">
                           Save
                         </Button>
                       </div>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-text-secondary">Skills</label>
-                    <div className="min-h-10 rounded-[10px] border border-border bg-background/70 px-3 py-2 text-sm text-text-primary">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">Skills</label>
+                    <div className="min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                       {userDetail?.skills?.length ? userDetail.skills.join(", ") : "No skills added yet."}
                     </div>
-                    <p className="text-[11px] text-text-secondary">Skills are managed by the user from their own profile.</p>
+                    <p className="text-[11px] text-slate-500">Skills are managed by the user from their own profile.</p>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="rounded-2xl border border-border bg-card p-6">
-                <h2 className="text-lg font-semibold text-text-primary">Admin Actions</h2>
-                <p className="mt-2 text-sm text-text-secondary">Save your changes directly to the company user record.</p>
-                <div className="mt-5 flex flex-col gap-3">
-                  <Button onClick={handleSave} disabled={isSaving || !hasChanges}>
-                    <Save className="h-4 w-4" />
-                    {isSaving ? "Saving..." : "Save Changes"}
-                  </Button>
-                  <Button variant="outline" onClick={() => router.push(routes.adminUsers)}>
-                    Back to user list
-                  </Button>
-                </div>
+                </section>
               </div>
 
-              <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-6">
-                <h2 className="text-lg font-semibold text-text-primary">Delete User</h2>
-                <p className="mt-2 text-sm text-text-secondary">
-                  Remove this user from your company workspace when the account is no longer needed.
-                </p>
-                <div className="mt-5">
-                  <Button variant="destructive" onClick={handleDeleteUser} disabled={isSaving}>
-                    <Trash2 className="h-4 w-4" />
-                    {isSaving ? "Deleting..." : "Delete User"}
-                  </Button>
+              <aside className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-4">
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-emerald-100 bg-white p-3 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <h2 className="text-sm font-semibold text-slate-950">Save changes</h2>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {hasChanges ? "Updates are ready to save." : "No unsaved changes."}
+                        </p>
+                      </div>
+                      <Button size="sm" onClick={handleSave} disabled={isSaving || !hasChanges}>
+                        <Save className="h-4 w-4" />
+                        {isSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <h2 className="text-sm font-semibold text-rose-950">Delete user</h2>
+                        <p className="mt-0.5 text-xs text-rose-700">
+                          Permanently remove this account.
+                        </p>
+                      </div>
+                      <Button size="sm" variant="destructive" onClick={handleDeleteUser} disabled={isSaving}>
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </aside>
             </div>
           </div>
         )}

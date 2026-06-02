@@ -34,7 +34,7 @@ class TestCSVImportEndpoint:
     def test_import_requires_admin(self, client, non_admin_token):
         """Test import rejects non-admin users."""
         response = client.post(
-            "/api/v1/users/import",
+            "/api/v1/identity/users/import",
             headers={"Authorization": f"Bearer {non_admin_token}"},
             files={
                 "file": ("test.csv", b"email,first_name,last_name,role", "text/csv")
@@ -45,7 +45,7 @@ class TestCSVImportEndpoint:
     def test_import_requires_auth(self, client):
         """Test import rejects unauthenticated requests."""
         response = client.post(
-            "/api/v1/users/import",
+            "/api/v1/identity/users/import",
             files={
                 "file": ("test.csv", b"email,first_name,last_name,role", "text/csv")
             },
@@ -55,7 +55,7 @@ class TestCSVImportEndpoint:
     def test_import_requires_csv_file(self, client, admin_token):
         """Test import rejects non-CSV files."""
         response = client.post(
-            "/api/v1/users/import",
+            "/api/v1/identity/users/import",
             headers={"Authorization": f"Bearer {admin_token}"},
             files={"file": ("test.txt", b"content", "text/plain")},
         )
@@ -67,7 +67,7 @@ class TestCSVImportEndpoint:
         """Test import with valid CSV content."""
         csv_content = "email,first_name,last_name,role,department\ntest1@example.com,Test,User,TeamMember,IT"
         response = client.post(
-            "/api/v1/users/import",
+            "/api/v1/identity/users/import",
             headers={"Authorization": f"Bearer {admin_token}"},
             files={"file": ("test.csv", csv_content.encode(), "text/csv")},
         )
@@ -84,7 +84,7 @@ class TestCSVImportEndpoint:
         """Test import validates email format."""
         csv_content = "email,first_name,last_name,role,department\ninvalid-email,Test,User,TeamMember,IT"
         response = client.post(
-            "/api/v1/users/import",
+            "/api/v1/identity/users/import",
             headers={"Authorization": f"Bearer {admin_token}"},
             files={"file": ("test.csv", csv_content.encode(), "text/csv")},
         )
@@ -99,7 +99,7 @@ class TestCSVImportEndpoint:
         """Test import validates role."""
         csv_content = "email,first_name,last_name,role,department\ntest@example.com,Test,User,InvalidRole,IT"
         response = client.post(
-            "/api/v1/users/import",
+            "/api/v1/identity/users/import",
             headers={"Authorization": f"Bearer {admin_token}"},
             files={"file": ("test.csv", csv_content.encode(), "text/csv")},
         )

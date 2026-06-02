@@ -51,6 +51,8 @@ export default function AcceptInvitePage() {
       localStorage.setItem("access_token", response.access_token);
       localStorage.setItem("refresh_token", response.refresh_token);
       localStorage.setItem("user", JSON.stringify(response.user));
+      document.cookie = `access_token=${response.access_token}; path=/; max-age=${response.expires_in || 900}; SameSite=Lax`;
+      document.cookie = `refresh_token=${response.refresh_token}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
       
       router.push("/dashboard");
     } catch (err: any) {

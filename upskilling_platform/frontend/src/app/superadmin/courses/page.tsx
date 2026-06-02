@@ -309,10 +309,21 @@ export default function SuperAdminCoursesPage() {
                         <td className="px-5 py-4 text-sm text-slate-700">{course.xp_reward}</td>
                         <td className="px-5 py-4">
                           <div className="flex flex-wrap items-center gap-2">
+                            {(() => {
+                              const canPublish =
+                                course.is_published || course.memory_retention_status === "completed";
+                              const publishBlockedReason =
+                                course.memory_retention_status === "failed"
+                                  ? course.memory_retention_error || "Course memory retention failed."
+                                  : course.memory_retention_status === "processing"
+                                    ? "The course is still being retained by Hindsight."
+                                    : "The course cannot be published until its memory retention is complete.";
+                              return (
                             <button
                               type="button"
                               onClick={() => void handleTogglePublish(course)}
-                              disabled={actionCourseId === course.id}
+                              disabled={actionCourseId === course.id || !canPublish}
+                              title={!canPublish ? publishBlockedReason : undefined}
                               className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               {actionCourseId === course.id
@@ -321,6 +332,8 @@ export default function SuperAdminCoursesPage() {
                                   ? "Unpublish"
                                   : "Publish"}
                             </button>
+                              );
+                            })()}
                             <button
                               type="button"
                               onClick={() => void handleDeleteCourse(course)}

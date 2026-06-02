@@ -50,7 +50,7 @@ async function downloadToBuffer(url: string): Promise<Buffer> {
 }
 
 function mediaServingUrl(baseUrl: string, classroomId: string, subPath: string): string {
-  return `${baseUrl}/api/classroom-media/${classroomId}/${subPath}`;
+  return `/api/classroom-media/${classroomId}/${subPath}`;
 }
 
 // ---------------------------------------------------------------------------

@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
 import { routes } from "../../lib/routes";
 import {
   deleteTenant,
   getTenants,
   type TenantResponse,
 } from "../../lib/api";
+import { CompaniesManagementNav } from "./CompaniesManagementNav";
 
 export default function SuperAdminTenants() {
   const router = useRouter();
@@ -58,15 +58,7 @@ export default function SuperAdminTenants() {
 
   return (
     <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex justify-end">
-          <Link
-            href={routes.superadminTenantNew}
-            className="inline-flex items-center gap-2 rounded-2xl bg-[#10B981] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#0ea371]"
-          >
-            <Plus className="h-4 w-4" />
-            Add Company
-          </Link>
-        </div>
+        <CompaniesManagementNav />
 
         <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(243,249,251,0.94)_100%)] shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
           <table className="w-full">

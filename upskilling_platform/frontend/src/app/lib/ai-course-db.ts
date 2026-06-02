@@ -503,6 +503,20 @@ function getTokenFromRequest(request: Request) {
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
+function getRequestScope(request: Request) {
+  const jwt = decodeJwtPayload(getTokenFromRequest(request));
+  return {
+    userId: jwt?.sub || null,
+    tenantId: jwt?.tenantId || null,
+    role: jwt?.role || null,
+    isSuperAdmin: jwt?.role === "SuperAdmin",
+  };
+}
+
+export function getAiCourseRequestScope(request: Request) {
+  return getRequestScope(request);
+}
+
 function extractTitleFromDraft(draft: StoredDraftPayload) {
   return draft.stage?.name || draft.editableScenes?.[0]?.status || "Generated course";
 }
@@ -532,10 +546,11 @@ export async function upsertAiCourseDraft(
     prompt?: string | null;
     sourcePdfName?: string | null;
     reviewStatus?: ReviewStatus | null;
+    tenantId?: string | null;
   },
 ) {
   await ensureTables();
-  const jwt = decodeJwtPayload(getTokenFromRequest(request));
+  const scope = getRequestScope(request);
   const client = await getPool().connect();
   try {
     const draft = payload.draft;
@@ -602,8 +617,8 @@ export async function upsertAiCourseDraft(
         JSON.stringify(draft),
         payload.finalCourse ? JSON.stringify(payload.finalCourse) : null,
         payload.finalCoursePathRelative || null,
-        jwt?.sub || null,
-        jwt?.tenantId || null,
+        scope.userId,
+        payload.tenantId || scope.tenantId,
       ],
     );
     return result.rows[0];
@@ -612,10 +627,21 @@ export async function upsertAiCourseDraft(
   }
 }
 
-export async function listAiCourseDrafts() {
+export async function listAiCourseDrafts(request: Request) {
   await ensureTables();
+  const scope = getRequestScope(request);
+  if (!scope.isSuperAdmin && !scope.tenantId) {
+    return [];
+  }
   const result = await getPool().query<DraftDbRow>(
-    `SELECT * FROM ai_course_drafts WHERE review_status <> 'draft_saved' ORDER BY updated_at DESC`,
+    `
+    SELECT *
+    FROM ai_course_drafts
+    WHERE review_status <> 'draft_saved'
+      AND ($1::boolean = TRUE OR tenant_id = $2::uuid)
+    ORDER BY updated_at DESC
+    `,
+    [scope.isSuperAdmin, scope.tenantId],
   );
   return result.rows.map((row: DraftDbRow) => ({
     draftId: row.external_draft_id,
@@ -633,19 +659,45 @@ export async function listAiCourseDrafts() {
   }));
 }
 
-export async function hasAnyAiCourseDraftRecords() {
+export async function hasAnyAiCourseDraftRecords(request?: Request) {
   await ensureTables();
+  if (request) {
+    const scope = getRequestScope(request);
+    if (!scope.isSuperAdmin && !scope.tenantId) {
+      return false;
+    }
+    const scopedResult = await getPool().query<{ total: string }>(
+      `
+      SELECT COUNT(*)::text AS total
+      FROM ai_course_drafts
+      WHERE ($1::boolean = TRUE OR tenant_id = $2::uuid)
+      `,
+      [scope.isSuperAdmin, scope.tenantId],
+    );
+    return Number(scopedResult.rows[0]?.total || 0) > 0;
+  }
+
   const result = await getPool().query<{ total: string }>(
     `SELECT COUNT(*)::text AS total FROM ai_course_drafts`,
   );
   return Number(result.rows[0]?.total || 0) > 0;
 }
 
-export async function getAiCourseDraft(draftId: string) {
+export async function getAiCourseDraft(request: Request, draftId: string) {
   await ensureTables();
+  const scope = getRequestScope(request);
+  if (!scope.isSuperAdmin && !scope.tenantId) {
+    return null;
+  }
   const result = await getPool().query<DraftDbRow>(
-    `SELECT * FROM ai_course_drafts WHERE external_draft_id = $1 LIMIT 1`,
-    [draftId],
+    `
+    SELECT *
+    FROM ai_course_drafts
+    WHERE external_draft_id = $1
+      AND ($2::boolean = TRUE OR tenant_id = $3::uuid)
+    LIMIT 1
+    `,
+    [draftId, scope.isSuperAdmin, scope.tenantId],
   );
   return result.rows[0] || null;
 }
@@ -709,11 +761,20 @@ export async function getAiCourseDraftByPlatformCourseId(
   }
 }
 
-export async function deleteAiCourseDraft(draftId: string) {
+export async function deleteAiCourseDraft(request: Request, draftId: string) {
   await ensureTables();
+  const scope = getRequestScope(request);
+  if (!scope.isSuperAdmin && !scope.tenantId) {
+    return null;
+  }
   const result = await getPool().query<DraftDbRow>(
-    `DELETE FROM ai_course_drafts WHERE external_draft_id = $1 RETURNING *`,
-    [draftId],
+    `
+    DELETE FROM ai_course_drafts
+    WHERE external_draft_id = $1
+      AND ($2::boolean = TRUE OR tenant_id = $3::uuid)
+    RETURNING *
+    `,
+    [draftId, scope.isSuperAdmin, scope.tenantId],
   );
   return result.rows[0] || null;
 }
@@ -774,6 +835,139 @@ export async function getAiPlatformLessonQuiz(
         order: row.display_order,
       })),
     };
+  } finally {
+    client.release();
+  }
+}
+
+export async function getAiPlatformLessonQuizForEditor(
+  request: Request,
+  lessonId: string,
+): Promise<(AiPlatformQuizSummary & { questions: AiPlatformQuizQuestion[] }) | null> {
+  await ensureTables();
+  const scope = getRequestScope(request);
+  if (!scope.userId || !["LearningExpert", "Manager", "Admin", "SuperAdmin"].includes(scope.role || "")) {
+    throw new Error("Not authorized to edit AI platform quiz content");
+  }
+
+  const client = await getPool().connect();
+  try {
+    const quizResult = await client.query<{
+      lesson_id: string;
+      course_id: string;
+      title: string;
+      passing_score: number;
+    }>(
+      `
+      SELECT q.lesson_id, q.course_id, q.title, q.passing_score
+      FROM ai_platform_lesson_quizzes q
+      JOIN courses c ON c.id = q.course_id
+      WHERE q.lesson_id = $1
+        AND ($2::boolean = TRUE OR c.tenant_id = $3::uuid)
+      LIMIT 1
+      `,
+      [lessonId, scope.isSuperAdmin, scope.tenantId],
+    );
+
+    const quiz = quizResult.rows[0];
+    if (!quiz) {
+      return null;
+    }
+
+    const questionsResult = await client.query<{
+      id: string;
+      lesson_id: string;
+      text: string;
+      question_type: string;
+      options: Array<{ value: string; label: string }>;
+      correct_answers: string[];
+      explanation: string | null;
+      display_order: number;
+    }>(
+      `
+      SELECT id, lesson_id, text, question_type, options, correct_answers, explanation, display_order
+      FROM ai_platform_lesson_quiz_questions
+      WHERE lesson_id = $1
+      ORDER BY display_order ASC
+      `,
+      [lessonId],
+    );
+
+    return {
+      lessonId: quiz.lesson_id,
+      courseId: quiz.course_id,
+      title: quiz.title,
+      passingScore: quiz.passing_score,
+      questions: questionsResult.rows.map((row) => ({
+        id: row.id,
+        lessonId: row.lesson_id,
+        text: row.text,
+        type: row.question_type,
+        options: row.options,
+        correctAnswers: normalizeCorrectAnswers(row.correct_answers),
+        allowMultiple: inferAllowMultiple(row.question_type, row.text),
+        explanation: row.explanation,
+        order: row.display_order,
+      })),
+    };
+  } finally {
+    client.release();
+  }
+}
+
+export async function updateAiPlatformLessonQuizForEditor(
+  request: Request,
+  lessonId: string,
+  questions: Array<{
+    id: string;
+    text: string;
+    type: string;
+    options: Array<{ value: string; label: string }>;
+    correctAnswers: string[];
+    explanation?: string | null;
+    order: number;
+  }>,
+): Promise<boolean> {
+  await ensureTables();
+  const scope = getRequestScope(request);
+  if (!scope.userId || !["LearningExpert", "Manager", "Admin", "SuperAdmin"].includes(scope.role || "")) {
+    throw new Error("Not authorized to edit AI platform quiz content");
+  }
+
+  const client = await getPool().connect();
+  try {
+    const quiz = await getAiPlatformLessonQuizForEditor(request, lessonId);
+    if (!quiz) {
+      return false;
+    }
+
+    for (const question of questions) {
+      await client.query(
+        `
+        UPDATE ai_platform_lesson_quiz_questions
+        SET text = $2,
+            question_type = $3,
+            options = $4::jsonb,
+            correct_answers = $5::jsonb,
+            explanation = $6,
+            display_order = $7
+        WHERE id = $1
+          AND lesson_id = $8
+        `,
+        [
+          question.id,
+          question.text,
+          question.type,
+          JSON.stringify(question.options),
+          JSON.stringify(question.correctAnswers),
+          question.explanation || null,
+          question.order,
+          lessonId,
+        ],
+      );
+    }
+
+    return true;
   } finally {
     client.release();
   }
@@ -987,16 +1181,26 @@ export async function saveAiCourseAsPlatformDraft(
   request: Request,
   draftId: string,
   approvedBy: string,
+  thumbnail?: string | null,
 ) {
   await ensureTables();
-  const jwt = decodeJwtPayload(getTokenFromRequest(request));
+  const scope = getRequestScope(request);
+  if (!scope.isSuperAdmin && !scope.tenantId) {
+    throw new Error("Tenant scope is required to save AI course drafts");
+  }
   const client = await getPool().connect();
   try {
     await client.query("BEGIN");
 
     const draftResult = await client.query<DraftDbRow>(
-      `SELECT * FROM ai_course_drafts WHERE external_draft_id = $1 LIMIT 1`,
-      [draftId],
+      `
+      SELECT *
+      FROM ai_course_drafts
+      WHERE external_draft_id = $1
+        AND ($2::boolean = TRUE OR tenant_id = $3::uuid)
+      LIMIT 1
+      `,
+      [draftId, scope.isSuperAdmin, scope.tenantId],
     );
     const record = draftResult.rows[0];
     if (!record || !record.final_course_payload) {
@@ -1011,6 +1215,8 @@ export async function saveAiCourseAsPlatformDraft(
       scenes.reduce((sum, scene) => sum + sceneDuration(scene as Record<string, unknown>), 0) ||
       Math.max(scenes.length * 5, 5);
     const xpReward = resolveAiCourseXpReward(record, totalDuration);
+    const resolvedThumbnail =
+      typeof thumbnail === "string" && thumbnail.trim().length > 0 ? thumbnail.trim() : null;
 
     let courseId = record.platform_course_id;
     if (courseId) {
@@ -1028,6 +1234,7 @@ export async function saveAiCourseAsPlatformDraft(
             difficulty = $5,
             duration = $6,
             xp_reward = $7,
+            thumbnail = COALESCE($10, thumbnail),
             is_published = TRUE,
             author_id = COALESCE($8, author_id),
             tenant_id = COALESCE($9, tenant_id),
@@ -1042,8 +1249,9 @@ export async function saveAiCourseAsPlatformDraft(
           "Intermediate",
           totalDuration,
           xpReward,
-          jwt?.sub || record.author_id,
-          jwt?.tenantId || record.tenant_id,
+          scope.userId || record.author_id,
+          scope.tenantId || record.tenant_id,
+          resolvedThumbnail,
         ],
       );
     } else {
@@ -1054,18 +1262,19 @@ export async function saveAiCourseAsPlatformDraft(
           id, title, description, thumbnail, category, difficulty, duration,
           xp_reward, rating, is_published, author_id, tenant_id, created_at, updated_at
         )
-        VALUES ($1,$2,$3,NULL,$4,$5,$6,$7,NULL,TRUE,$8,$9,(NOW() AT TIME ZONE 'UTC'),(NOW() AT TIME ZONE 'UTC'))
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,NULL,TRUE,$9,$10,(NOW() AT TIME ZONE 'UTC'),(NOW() AT TIME ZONE 'UTC'))
         `,
         [
           courseId,
           finalCourse.stage?.name || record.title,
           "AI-generated course draft created from OpenMAIC and saved for learning-expert review.",
+          resolvedThumbnail,
           "AI Generated",
           "Intermediate",
           totalDuration,
           xpReward,
-          jwt?.sub || record.author_id,
-          jwt?.tenantId || record.tenant_id,
+          scope.userId || record.author_id,
+          scope.tenantId || record.tenant_id,
         ],
       );
     }

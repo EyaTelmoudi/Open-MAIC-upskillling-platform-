@@ -2,7 +2,6 @@
 
 import { TenantSetupProgress } from "../../lib/api";
 import Link from "next/link";
-import { routes } from "../../lib/routes";
 
 interface SetupProgressProps {
   progress: TenantSetupProgress;
@@ -66,14 +65,14 @@ export function SetupProgress({ progress, tenantId }: SetupProgressProps) {
   };
 
   return (
-    <div className="bg-[#1A1D27] rounded-2xl border border-[#2A2D3E] p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-white">Setup Progress</h2>
+    <div className="rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <h2 className="text-xl font-semibold text-slate-950">Setup Progress</h2>
         <div className="flex items-center gap-3">
           <span className={`text-2xl font-bold ${getHealthColor(progress.completion_percentage)}`}>
             {progress.completion_percentage}%
           </span>
-          <div className="w-24 h-2 bg-[#2A2D3E] rounded-full overflow-hidden">
+          <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-200">
             <div
               className={`h-full ${getProgressBarColor(progress.completion_percentage)} transition-all duration-300`}
               style={{ width: `${progress.completion_percentage}%` }}
@@ -82,29 +81,29 @@ export function SetupProgress({ progress, tenantId }: SetupProgressProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {progress.steps.map((step) => (
           <div
             key={step.key}
-            className={`flex items-center gap-4 p-4 rounded-xl border ${
+            className={`flex items-center gap-4 rounded-2xl border p-4 ${
               step.status === "completed"
-                ? "border-green-500/30 bg-green-500/5"
+                ? "border-emerald-200 bg-emerald-50"
                 : step.status === "pending"
-                ? "border-yellow-500/30 bg-yellow-500/5"
-                : "border-red-500/30 bg-red-500/5"
+                ? "border-amber-200 bg-amber-50"
+                : "border-red-200 bg-red-50"
             }`}
           >
             {getStepIcon(step.status)}
             <div className="flex-1">
-              <p className="text-white font-medium">{step.label}</p>
-              <p className="text-gray-400 text-sm">
+              <p className="font-medium text-slate-950">{step.label}</p>
+              <p className="text-sm text-slate-600">
                 {step.value || (step.status === "not_configured" ? "Not configured" : "Pending")}
               </p>
             </div>
             {step.status !== "completed" && (
               <Link
                 href={getStepHref(step.key)}
-                className="px-3 py-1.5 text-sm rounded-lg bg-[#6C63FF] text-white hover:bg-[#5a52d4] transition-colors"
+                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
               >
                 Configure
               </Link>

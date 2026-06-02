@@ -10,6 +10,7 @@ from common.schemas import TokenResponse
 from sqlalchemy.orm import Session
 
 from services.identity.auth.jwt import generate_token_response
+from services.identity.entra_config import get_platform_entra_redirect_uri
 from services.identity.user_defaults import get_default_user_timezone
 
 GRAPH_API_URL = "https://graph.microsoft.com/v1.0"
@@ -18,9 +19,7 @@ COMPANY_EMAIL_DOMAIN = os.getenv("COMPANY_EMAIL_DOMAIN", "techcorp.com")
 AZURE_CLIENT_ID = os.getenv("AZURE_CLIENT_ID", "")
 AZURE_TENANT_ID = os.getenv("AZURE_TENANT_ID", "")
 AZURE_CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET", "")
-AZURE_REDIRECT_URI = os.getenv(
-    "AZURE_REDIRECT_URI", "http://localhost:3000/auth/callback"
-)
+AZURE_REDIRECT_URI = get_platform_entra_redirect_uri()
 
 
 def get_azure_auth_url() -> str:

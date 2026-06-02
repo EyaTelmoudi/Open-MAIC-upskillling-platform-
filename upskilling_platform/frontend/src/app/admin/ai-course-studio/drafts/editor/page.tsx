@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, FilePenLine, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 
 import { AdminShell } from "@/app/components/layout/AdminShell";
 import { Button } from "@/app/components/ui/Button";
-import { Card, CardContent } from "@/app/components/ui/Card";
 import { useAuth } from "@/app/context/AuthContext";
 import { routes } from "@/app/lib/routes";
 import { AiCourseStudioNav } from "../../ai-course-studio-nav";
+import { canAccessCourseAuthoring } from "../../permissions";
 
 type DraftStatus = "generating" | "draft" | "approved" | "finalized";
 
@@ -35,13 +35,13 @@ export default function AiCourseEditorPickerPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isLoading && user?.role !== "LearningExpert") {
+    if (!isLoading && !canAccessCourseAuthoring(user?.role)) {
       router.replace(routes.adminCourses);
     }
   }, [isLoading, router, user?.role]);
 
   useEffect(() => {
-    if (!isLoading && user?.role !== "LearningExpert") {
+    if (!isLoading && !canAccessCourseAuthoring(user?.role)) {
       return;
     }
 
@@ -80,7 +80,7 @@ export default function AiCourseEditorPickerPage() {
     router.push(routes.adminAiCourseEditor(selectedDraftId));
   };
 
-  if (!isLoading && user?.role !== "LearningExpert") {
+  if (!isLoading && !canAccessCourseAuthoring(user?.role)) {
     return null;
   }
 
@@ -89,63 +89,67 @@ export default function AiCourseEditorPickerPage() {
       <div className="space-y-6">
         <AiCourseStudioNav />
 
-        <section className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+        <section className="overflow-hidden rounded-3xl border border-[#2A5B4A] bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.22),_transparent_32%),radial-gradient(circle_at_76%_18%,_rgba(59,130,246,0.2),_transparent_26%),linear-gradient(135deg,_#102E2D_0%,_#132A3A_48%,_#0F172A_100%)] p-6 text-white shadow-[0_26px_70px_rgba(0,0,0,0.24)]">
           <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-100">
               Course Editor Workspace
             </p>
-            <h1 className="mt-3 text-2xl font-semibold text-slate-950">Choose a generated draft to edit</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
+            <h1 className="mt-2 text-xl font-semibold tracking-tight text-white">
+              Choose a generated draft to edit
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-200">
               Select a generated draft here to open its editor view. This keeps selection inside the page content instead of the workspace navigation.
             </p>
           </div>
 
           {error ? (
-            <div className="mt-6 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <div className="mt-6 rounded-xl border border-red-300/30 bg-red-500/15 px-4 py-3 text-sm text-red-100">
               {error}
             </div>
           ) : null}
 
-          <Card className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/80 shadow-none">
-            <CardContent className="p-5">
-              {loadingDrafts ? (
-                <div className="inline-flex items-center gap-2 text-sm text-slate-600">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading generated drafts...
+          <div className="mt-6 rounded-2xl border border-white/12 bg-white/10 p-5 backdrop-blur-sm">
+            {loadingDrafts ? (
+              <div className="inline-flex items-center gap-2 text-sm text-slate-200">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading generated drafts...
+              </div>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">
+                    Select Generated Draft
+                  </label>
+                  <select
+                    value={selectedDraftId}
+                    onChange={(event) => setSelectedDraftId(event.target.value)}
+                    className="w-full rounded-xl border border-white/20 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm"
+                  >
+                    <option value="">Choose a generated draft</option>
+                    {drafts.map((draft) => (
+                      <option key={draft.draftId} value={draft.draftId}>
+                        {draft.title} ({draft.status}, {draft.scenesCount} scenes)
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ) : (
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-                      Select Generated Draft
-                    </label>
-                    <select
-                      value={selectedDraftId}
-                      onChange={(event) => setSelectedDraftId(event.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
-                    >
-                      <option value="">Choose a generated draft</option>
-                      {drafts.map((draft) => (
-                        <option key={draft.draftId} value={draft.draftId}>
-                          {draft.title} ({draft.status}, {draft.scenesCount} scenes)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
 
-                  <div className="flex items-end">
-                    <Button onClick={openSelectedDraftEditor} disabled={!selectedDraftId}>
-                      <ArrowRight className="h-4 w-4" />
-                      Open Course Editor
-                    </Button>
-                  </div>
+                <div className="flex items-end">
+                  <Button
+                    onClick={openSelectedDraftEditor}
+                    disabled={!selectedDraftId}
+                    className="bg-white text-slate-950 hover:bg-emerald-50 disabled:bg-white/50 disabled:text-slate-500"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Open Course Editor
+                  </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </div>
 
           {!loadingDrafts && drafts.length === 0 ? (
-            <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-5 text-sm text-slate-500">
+            <div className="mt-6 rounded-xl border border-dashed border-white/20 bg-white/10 px-4 py-5 text-sm text-slate-200">
               No generated drafts are available yet.
             </div>
           ) : null}

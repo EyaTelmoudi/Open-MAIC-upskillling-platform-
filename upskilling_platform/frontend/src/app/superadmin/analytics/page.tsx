@@ -300,7 +300,7 @@ export default function SuperAdminAnalytics() {
                               </p>
                               <div className="mt-3 h-2 rounded-full bg-slate-200">
                                 <div
-                                  className="h-2 rounded-full bg-gradient-to-r from-[#6C63FF] to-[#00D4AA]"
+                                  className="h-2 rounded-full bg-gradient-to-r from-emerald-600 to-sky-500"
                                   style={{ width: widthPercent(getTenantCompletionRate(tenant)) }}
                                 />
                               </div>
@@ -438,7 +438,7 @@ export default function SuperAdminAnalytics() {
                           </div>
                           <div className="h-2 rounded-full bg-slate-200">
                             <div
-                              className="h-2 rounded-full bg-gradient-to-r from-[#6C63FF] to-[#A7A2FF]"
+                              className="h-2 rounded-full bg-gradient-to-r from-emerald-600 to-sky-500"
                               style={{ width: widthPercent(share) }}
                             />
                           </div>

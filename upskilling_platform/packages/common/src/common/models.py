@@ -54,6 +54,7 @@ class User(Base):
     bio = Column(Text, nullable=True)
     skills = Column(JSON, default=list)
     timezone = Column(String(100), nullable=False, default="Africa/Tunis")
+    timezone_manually_set = Column(Boolean, nullable=False, default=False)
     last_login = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(
@@ -108,6 +109,9 @@ class Course(Base):
     xp_reward = Column(Integer, nullable=False, default=100)
     rating = Column(Float, nullable=True)
     is_published = Column(Boolean, default=False)
+    memory_retention_status = Column(String, nullable=False, default="pending")
+    memory_retention_error = Column(Text, nullable=True)
+    memory_retention_updated_at = Column(DateTime, nullable=True)
     author_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)

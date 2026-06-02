@@ -5,12 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { AdminShell } from "@/app/components/layout/AdminShell";
 import { useAuth } from "@/app/context/AuthContext";
 import { Input } from "@/app/components/ui/Input";
-import { deleteTeam, getTeams, type Team } from "@/app/lib/api";
+import { deleteTeam, getTeams, getTenants, type Team, type TenantResponse } from "@/app/lib/api";
 import { routes } from "@/app/lib/routes";
+import { TeamsManagementNav } from "@/app/admin/teams/TeamsManagementNav";
 import {
   AlertCircle,
   ChevronRight,
-  Plus,
   Search,
   Trash2,
   Users,
@@ -19,11 +19,14 @@ import {
 export default function AdminTeamsPage() {
   const { user } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
+  const [tenants, setTenants] = useState<TenantResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const canManageTeams = !!user && (user.role === "Admin" || user.role === "Manager");
+  const canManageTeams =
+    !!user && (user.role === "Admin" || user.role === "Manager" || user.role === "SuperAdmin");
+  const isSuperAdmin = user?.role === "SuperAdmin";
 
   useEffect(() => {
     if (canManageTeams) {
@@ -37,8 +40,12 @@ export default function AdminTeamsPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await getTeams();
-      setTeams(data);
+      const [teamsData, tenantsData] = await Promise.all([
+        getTeams(),
+        isSuperAdmin ? getTenants(1, 100) : Promise.resolve(null),
+      ]);
+      setTeams(teamsData);
+      setTenants(tenantsData?.tenants || []);
     } catch (err) {
       console.error("Failed to load teams:", err);
       setError(err instanceof Error ? err.message : "Failed to load teams.");
@@ -78,7 +85,7 @@ export default function AdminTeamsPage() {
             <AlertCircle className="mx-auto h-12 w-12 text-rose-600" />
             <h1 className="mt-4 text-xl font-semibold text-slate-950">Access Denied</h1>
             <p className="mt-2 text-slate-600">
-              Only Admin or Manager can manage company teams.
+              Only Admin, Manager, or SuperAdmin can manage company teams.
             </p>
           </div>
         </div>
@@ -89,15 +96,7 @@ export default function AdminTeamsPage() {
   return (
     <AdminShell>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <Link
-            href={routes.adminTeamNew}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
-          >
-            <Plus className="h-4 w-4" />
-            Create Team
-          </Link>
-        </div>
+        <TeamsManagementNav />
 
         {error && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -105,14 +104,14 @@ export default function AdminTeamsPage() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <div className="flex justify-end">
+          <div className="relative w-full max-w-xs">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search teams by name or description"
-              className="border-slate-200 bg-white pl-10 text-slate-900 placeholder:text-slate-400"
+              placeholder="Search teams"
+              className="h-9 rounded-xl border-slate-200 bg-white pl-9 text-sm text-slate-900 shadow-sm placeholder:text-slate-400"
             />
           </div>
         </div>
@@ -148,6 +147,12 @@ export default function AdminTeamsPage() {
                     <p className="mt-1 line-clamp-2 text-sm text-slate-500">
                       {team.description || "No team description provided yet."}
                     </p>
+                    {isSuperAdmin ? (
+                      <p className="mt-3 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                        {tenants.find((tenant) => tenant.id === team.tenant_id)?.name ||
+                          "Company not assigned"}
+                      </p>
+                    ) : null}
                   </div>
                   <button
                     type="button"

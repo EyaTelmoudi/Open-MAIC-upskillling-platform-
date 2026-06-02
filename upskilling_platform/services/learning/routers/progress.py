@@ -12,6 +12,7 @@ from common.database import get_db
 from common.auth import decode_token
 from common.models import Enrollment, Lesson, Module, User, UserProgress
 from common.messaging import RabbitMQClient
+from services.learning.services.goal_tracking import sync_user_goals
 from services.learning.services.video_progress import VideoProgressService
 from services.learning.services.text_progress import TextProgressService
 from services.learning.services.learner_context import touch_lesson_context
@@ -171,6 +172,7 @@ def update_progress(
 
     db.commit()
     db.refresh(progress)
+    sync_user_goals(db, user_id)
 
     return {
         "id": str(progress.id),
@@ -274,6 +276,8 @@ def complete_lesson(
         mq.close()
     except Exception:
         pass
+
+    sync_user_goals(db, user_id)
 
     return {
         "message": "Lesson completed",

@@ -1,6 +1,10 @@
 import { buildOpenMAICUrl } from "@/app/lib/openmaic-proxy";
 import { runCourseRefinementAgentAction } from "@/app/lib/course-maker-agent";
-import { safeUpsertAiCourseDraft } from "@/app/lib/safe-ai-course-db";
+import {
+  safeGetAiCourseDraft,
+  safeGetAiCourseRequestScope,
+  safeUpsertAiCourseDraft,
+} from "@/app/lib/safe-ai-course-db";
 
 export async function POST(
   request: Request,
@@ -8,6 +12,15 @@ export async function POST(
 ) {
   try {
     const { draftId } = await params;
+    const scope = await safeGetAiCourseRequestScope(request);
+    const storedDraft = await safeGetAiCourseDraft(request, draftId);
+    if (!storedDraft && !scope?.isSuperAdmin) {
+      return Response.json(
+        { success: false, error: "Draft not found for this company." },
+        { status: 404 },
+      );
+    }
+
     console.log(
       `[Agno Course Refinement Agent] Starting action "generate_final_course" for draft ${draftId}.`,
     );

@@ -1,5 +1,6 @@
 """User management router for the Identity Service."""
 
+import json
 import secrets
 import string
 from typing import Optional
@@ -9,7 +10,7 @@ from common.auth import hash_password
 from common.database import get_db
 from common.enums import AuthProvider, UserRole, UserStatus
 from common.messaging import RabbitMQClient
-from common.models import IdentityAuditLog, RoleMappingRule, User
+from common.models import IdentityAuditLog, RoleMappingRule, Tenant, User
 from common.schemas import UserResponse
 from common.storage import download_file, upload_file
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -47,6 +48,73 @@ from services.identity.schemas.user import (
 from services.identity.user_defaults import get_default_user_timezone
 
 router = APIRouter(prefix="/identity/users", tags=["users"])
+
+
+def _normalize_email_domain(email: str) -> str:
+    return email.strip().lower().rsplit("@", 1)[-1] if "@" in email else ""
+
+
+def _normalize_tenant_domain(domain: Optional[str]) -> str:
+    return (domain or "").strip().lower().lstrip("@")
+
+
+def _get_tenant_allowed_domain(tenant: Tenant | None) -> str:
+    return _normalize_tenant_domain(tenant.email_domain if tenant else None)
+
+
+def _require_email_domain_for_tenant(email: str, tenant: Tenant | None) -> None:
+    email_domain = _normalize_email_domain(email)
+    tenant_domain = _get_tenant_allowed_domain(tenant)
+    if not tenant_domain:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Company email domain is not configured for this tenant",
+        )
+    if email_domain != tenant_domain:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"User email domain must match the company domain: {tenant_domain}",
+        )
+
+
+def _resolve_tenant_for_superadmin_user(email: str, tenant_id: Optional[str], db: Session) -> Tenant:
+    from uuid import UUID
+
+    email_domain = _normalize_email_domain(email)
+    tenant = None
+
+    if tenant_id:
+        try:
+            tenant_uuid = UUID(tenant_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid tenant_id",
+            )
+        tenant = db.query(Tenant).filter(Tenant.id == tenant_uuid).first()
+        if not tenant:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Tenant not found",
+            )
+        _require_email_domain_for_tenant(email, tenant)
+        return tenant
+
+    tenants = db.query(Tenant).filter(Tenant.email_domain.isnot(None)).all()
+    matching_tenant = next(
+        (
+            candidate
+            for candidate in tenants
+            if _get_tenant_allowed_domain(candidate) == email_domain
+        ),
+        None,
+    )
+    if not matching_tenant:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User email domain must belong to an existing 3S group company",
+        )
+    return matching_tenant
 
 
 @router.get("/", response_model=UserListResponse)
@@ -137,6 +205,14 @@ async def invite_user(
             detail="SuperAdmins cannot invite regular users",
         )
 
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tenant not found",
+        )
+    _require_email_domain_for_tenant(invite_data.email, tenant)
+
     existing = db.query(User).filter(User.email == invite_data.email).first()
     if existing:
         raise HTTPException(
@@ -191,6 +267,20 @@ def generate_temp_password(length: int = 12) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
+def _current_actor_id(current_user: dict) -> Optional[UUID]:
+    subject = current_user.get("sub")
+    if not subject:
+        return None
+    try:
+        return UUID(str(subject))
+    except ValueError:
+        return None
+
+
+def _current_actor_email(current_user: dict) -> Optional[str]:
+    return current_user.get("email") or current_user.get("preferred_username")
+
+
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(
     user_data: CreateUser,
@@ -210,8 +300,6 @@ def create_user(
     Raises:
         HTTPException 409 if email already exists.
     """
-    from uuid import UUID
-
     existing = db.query(User).filter(User.email == user_data.email).first()
     if existing:
         raise HTTPException(
@@ -219,12 +307,7 @@ def create_user(
             detail="A user with this email already exists",
         )
 
-    tenant_uuid = None
-    if user_data.tenant_id:
-        try:
-            tenant_uuid = UUID(user_data.tenant_id)
-        except ValueError:
-            pass
+    tenant = _resolve_tenant_for_superadmin_user(user_data.email, user_data.tenant_id, db)
     default_timezone = get_default_user_timezone(db)
 
     new_user = User(
@@ -238,12 +321,31 @@ def create_user(
         role=user_data.role,
         department=user_data.department,
         status=user_data.status or UserStatus.active.value,
-        tenant_id=tenant_uuid,
+        tenant_id=tenant.id,
         skills=[],
         timezone=default_timezone,
         onboarded=bool(user_data.password),
     )
     db.add(new_user)
+    db.flush()
+    db.add(
+        IdentityAuditLog(
+            tenant_id=tenant.id,
+            action="user.create",
+            actor_id=_current_actor_id(current_user),
+            actor_email=_current_actor_email(current_user),
+            target_user_id=new_user.id,
+            target_email=new_user.email,
+            details=json.dumps(
+                {
+                    "role": new_user.role,
+                    "department": new_user.department,
+                    "status": new_user.status,
+                    "created_by": "superadmin",
+                }
+            ),
+        )
+    )
     db.commit()
     db.refresh(new_user)
     return new_user
@@ -305,9 +407,27 @@ async def import_users_from_csv(
     invited_by_email = current_user.get("email", "admin")
     default_timezone = get_default_user_timezone(db)
     tenant_id = current_user.get("tenantId")
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tenant not found",
+        )
 
     for user_data in valid_users:
         row_num = valid_users.index(user_data) + 2
+
+        try:
+            _require_email_domain_for_tenant(user_data.email, tenant)
+        except HTTPException as exc:
+            import_errors.append(
+                {
+                    "row": row_num,
+                    "error": str(exc.detail),
+                    "email": user_data.email,
+                }
+            )
+            continue
 
         if user_data.role not in valid_roles:
             import_errors.append(
@@ -451,6 +571,8 @@ def update_current_user_profile(
     for field, value in update_dict.items():
         if value is not None:
             setattr(user, field, value)
+            if field == "timezone":
+                user.timezone_manually_set = True
 
     db.commit()
     db.refresh(user)
@@ -572,7 +694,7 @@ def _build_user_export_response(
     format: str,
     role: Optional[str],
     department: Optional[str],
-    status: Optional[str],
+    user_status: Optional[str],
     current_user: dict,
     db: Session = Depends(get_db),
 ):
@@ -589,8 +711,8 @@ def _build_user_export_response(
         query = query.filter(User.role == role)
     if department:
         query = query.filter(User.department == department)
-    if status:
-        query = query.filter(User.status == status)
+    if user_status:
+        query = query.filter(User.status == user_status)
 
     users = query.order_by(User.created_at.desc(), User.email.asc()).all()
 
@@ -635,6 +757,8 @@ def _build_user_export_response(
     if format == "xlsx":
         try:
             from openpyxl import Workbook
+            from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+            from openpyxl.utils import get_column_letter
         except ImportError:
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -669,6 +793,39 @@ def _build_user_export_response(
                     user.created_at.isoformat() if user.created_at else "",
                 ]
             )
+
+        header_fill = PatternFill("solid", fgColor="0F766E")
+        header_font = Font(color="FFFFFF", bold=True, size=13)
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        thin_border = Border(
+            left=Side(style="thin", color="CBD5E1"),
+            right=Side(style="thin", color="CBD5E1"),
+            top=Side(style="thin", color="CBD5E1"),
+            bottom=Side(style="thin", color="CBD5E1"),
+        )
+        even_row_fill = PatternFill("solid", fgColor="F8FAFC")
+
+        ws.freeze_panes = "A2"
+        ws.auto_filter.ref = ws.dimensions
+        ws.row_dimensions[1].height = 26
+
+        for cell in ws[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+            cell.border = thin_border
+
+        for row in ws.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = Alignment(vertical="center", wrap_text=True)
+                cell.border = thin_border
+                if cell.row % 2 == 0:
+                    cell.fill = even_row_fill
+
+        for column_cells in ws.columns:
+            column_letter = get_column_letter(column_cells[0].column)
+            max_length = max(len(str(cell.value or "")) for cell in column_cells)
+            ws.column_dimensions[column_letter].width = min(max(max_length + 4, 14), 36)
 
         import io
 
@@ -737,7 +894,7 @@ def export_users_static(
         format=format,
         role=role,
         department=department,
-        status=status,
+        user_status=status,
         current_user=current_user,
         db=db,
     )
@@ -824,9 +981,49 @@ def update_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Skills can only be updated by the user from their own profile",
         )
+    tracked_before = {
+        field: getattr(user, field)
+        for field in (
+            "first_name",
+            "last_name",
+            "department",
+            "role",
+            "status",
+            "timezone",
+        )
+        if field in update_dict
+    }
     for field, value in update_dict.items():
         if value is not None:
             setattr(user, field, value)
+            if field == "timezone":
+                user.timezone_manually_set = True
+
+    tracked_after = {
+        field: getattr(user, field)
+        for field in tracked_before
+        if tracked_before[field] != getattr(user, field)
+    }
+    if tracked_after:
+        db.add(
+            IdentityAuditLog(
+                tenant_id=user.tenant_id,
+                action="user.update",
+                actor_id=_current_actor_id(current_user),
+                actor_email=_current_actor_email(current_user),
+                target_user_id=user.id,
+                target_email=user.email,
+                details=json.dumps(
+                    {
+                        field: {
+                            "before": tracked_before[field],
+                            "after": tracked_after[field],
+                        }
+                        for field in tracked_after
+                    }
+                ),
+            )
+        )
 
     db.commit()
     db.refresh(user)
@@ -867,6 +1064,23 @@ def delete_user(
             detail="Super Admin accounts cannot be deleted from this endpoint",
         )
 
+    db.add(
+        IdentityAuditLog(
+            tenant_id=user.tenant_id,
+            action="user.delete",
+            actor_id=_current_actor_id(current_user),
+            actor_email=_current_actor_email(current_user),
+            target_email=user.email,
+            details=json.dumps(
+                {
+                    "deleted_user_id": str(user.id),
+                    "role": user.role,
+                    "department": user.department,
+                    "status": user.status,
+                }
+            ),
+        )
+    )
     db.delete(user)
     db.commit()
     return None
@@ -1058,7 +1272,7 @@ def export_users(
         format=format,
         role=role,
         department=department,
-        status=status,
+        user_status=status,
         current_user=current_user,
         db=db,
     )
@@ -1590,7 +1804,7 @@ def list_identity_audit_logs(
     page_size: int = Query(50, ge=1, le=100),
     action: Optional[str] = Query(None),
     user_id: Optional[UUID] = Query(None, alias="userId"),
-    current_user: dict = Depends(require_role("Admin")),
+    current_user: dict = Depends(require_role("Admin", "SuperAdmin")),
     db: Session = Depends(get_db),
 ):
     """List identity audit logs (Admin only).
@@ -1608,10 +1822,10 @@ def list_identity_audit_logs(
     Returns:
         List of audit events with pagination.
     """
-    tenant_id = current_user.get("tenant_id")
+    tenant_id = current_user.get("tenant_id") or current_user.get("tenantId")
     query = db.query(IdentityAuditLog)
 
-    if tenant_id:
+    if current_user.get("role") != "SuperAdmin" and tenant_id:
         query = query.filter(IdentityAuditLog.tenant_id == tenant_id)
     if action:
         query = query.filter(IdentityAuditLog.action == action)

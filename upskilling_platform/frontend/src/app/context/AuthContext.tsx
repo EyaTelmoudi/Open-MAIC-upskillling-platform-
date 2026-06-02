@@ -2,14 +2,29 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { api, IDENTITY_URL } from "@/app/lib/api";
+import { api, IDENTITY_URL, tryRefreshAccessToken } from "@/app/lib/api";
 import { routes } from "@/app/lib/routes";
 
+function sanitizeToken(token: string | null | undefined): string | null {
+  const value = String(token || "").trim();
+  if (!value || value === "undefined" || value === "null") {
+    return null;
+  }
+  return value.split(".").length === 3 ? value : null;
+}
+
 function decodeJwt(token: string): { sub: string; email: string; role: string; tenantId: string | null } | null {
+  const cleanToken = sanitizeToken(token);
+  if (!cleanToken) return null;
   try {
-    const parts = token.split(".");
+    const parts = cleanToken.split(".");
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1]));
+    const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(
+      normalized.length + ((4 - (normalized.length % 4)) % 4),
+      "=",
+    );
+    const payload = JSON.parse(atob(padded));
     return {
       sub: payload.sub,
       email: payload.email,
@@ -81,6 +96,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const SOLO_CHALLENGE_SESSION_PREFIX = "sf_solo_challenge_welcome_seen:";
 const LOGIN_SESSION_STORAGE_KEY = "sf_login_session_id";
 const SOLO_CHALLENGE_PENDING_LOGIN_KEY = "sf_solo_challenge_pending_login_session";
+const WORKSPACE_VIEW_COOKIE = "sf_workspace_view";
 
 function clearSoloChallengeSessionFlags() {
   if (typeof window === "undefined") {
@@ -105,6 +121,14 @@ function markNewLoginSession() {
   window.sessionStorage.setItem(SOLO_CHALLENGE_PENDING_LOGIN_KEY, sessionId);
 }
 
+function getCookieToken(name: "access_token" | "refresh_token") {
+  if (typeof document === "undefined") {
+    return null;
+  }
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
+  return sanitizeToken(match?.[1] ? decodeURIComponent(match[1]) : null);
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [tenantId, setTenantId] = useState<string | null>(null);
@@ -113,27 +137,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isAuthenticated = !!user;
 
+  const clearLocalSession = useCallback(() => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = `${WORKSPACE_VIEW_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  }, []);
+
   const fetchCurrentUser = useCallback(async () => {
     try {
-      const token = localStorage.getItem("access_token");
+      const token = sanitizeToken(localStorage.getItem("access_token")) || getCookieToken("access_token");
       if (token) {
         const decoded = decodeJwt(token);
         setTenantId(decoded?.tenantId || null);
+      } else {
+        setUser(null);
+        setTenantId(null);
+        setIsLoading(false);
+        return null;
       }
-       const userData = await api.get<User>("/api/v1/identity/users/me");
+      const userData = await api.get<User>("/api/v1/identity/users/me");
       setUser(userData);
-    } catch {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
+      return userData;
+    } catch (error) {
+      const status = (error as { status?: number } | null)?.status;
+      if (status === 401 || status === 403) {
+        const refreshed = await tryRefreshAccessToken();
+        if (refreshed) {
+          try {
+            const userData = await api.get<User>("/api/v1/identity/users/me");
+            setUser(userData);
+            return userData;
+          } catch {
+            // Fall through to clearing auth below.
+          }
+        }
+        clearLocalSession();
+      }
       setUser(null);
       setTenantId(null);
+      return null;
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [clearLocalSession]);
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
+    const token = sanitizeToken(localStorage.getItem("access_token")) || getCookieToken("access_token");
     if (token) {
       if (typeof window !== "undefined" && !window.sessionStorage.getItem(LOGIN_SESSION_STORAGE_KEY)) {
         markNewLoginSession();
@@ -145,9 +196,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchCurrentUser]);
 
   const persistTokens = (tokens: TokenResponse) => {
-    localStorage.setItem("access_token", tokens.access_token);
-    localStorage.setItem("refresh_token", tokens.refresh_token);
-    document.cookie = `access_token=${tokens.access_token}; path=/; max-age=900; SameSite=Lax`;
+    const accessToken = sanitizeToken(tokens.access_token);
+    const refreshToken = sanitizeToken(tokens.refresh_token);
+    if (!accessToken || !refreshToken) {
+      throw new Error("Login response did not include valid tokens");
+    }
+    localStorage.setItem("access_token", accessToken);
+    localStorage.setItem("refresh_token", refreshToken);
+    document.cookie = `access_token=${encodeURIComponent(accessToken)}; path=/; max-age=${tokens.expires_in || 900}; SameSite=Lax`;
+    document.cookie = `refresh_token=${encodeURIComponent(refreshToken)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
   };
 
   const loginLocal = async (email: string, password: string, tenant?: string) => {
@@ -171,7 +228,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     persistTokens(tokens);
     markNewLoginSession();
-    await fetchCurrentUser();
+    const verifiedUser = await fetchCurrentUser();
+    if (!verifiedUser) {
+      throw new Error("Login succeeded but the session could not be verified");
+    }
     const decoded = decodeJwt(tokens.access_token);
     router.push(
       decoded?.role === "SuperAdmin"
@@ -195,9 +255,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    clearLocalSession();
     clearSoloChallengeSessionFlags();
     if (typeof window !== "undefined") {
       window.sessionStorage.removeItem(LOGIN_SESSION_STORAGE_KEY);
@@ -208,21 +266,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push(routes.login);
   };
 
-   const refreshToken = async () => {
-    const refreshTokenValue = localStorage.getItem("refresh_token");
-    if (!refreshTokenValue) {
-      logout();
-      return;
-    }
-   try {
-      const tokens = await api.post<TokenResponse>(
-        "/api/v1/auth/refresh",
-        { refresh_token: refreshTokenValue }
-      );
-      localStorage.setItem("access_token", tokens.access_token);
-      localStorage.setItem("refresh_token", tokens.refresh_token);
-      document.cookie = `access_token=${tokens.access_token}; path=/; max-age=900; SameSite=Lax`;
-    } catch {
+  const refreshToken = async () => {
+    const refreshed = await tryRefreshAccessToken();
+    if (!refreshed) {
       logout();
     }
   };

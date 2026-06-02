@@ -10,7 +10,7 @@ import {
   safeDeleteAiCourseDraft,
 } from "@/app/lib/safe-ai-course-db";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const activeRun = await getActiveGenerationRun();
     if (!activeRun?.active) {
@@ -36,7 +36,7 @@ export async function POST() {
         method: "DELETE",
         cache: "no-store",
       }).catch(() => undefined);
-      await safeDeleteAiCourseDraft(draftId).catch(() => undefined);
+      await safeDeleteAiCourseDraft(request, draftId).catch(() => undefined);
     }
 
     await clearActiveGenerationRun();

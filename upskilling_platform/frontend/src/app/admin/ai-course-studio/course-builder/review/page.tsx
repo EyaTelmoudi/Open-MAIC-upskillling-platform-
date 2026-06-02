@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/app/components/ui/Card";
 import { useAuth } from "@/app/context/AuthContext";
 import { routes } from "@/app/lib/routes";
 import { AiCourseStudioNav } from "../../ai-course-studio-nav";
+import { canAccessCourseAuthoring } from "../../permissions";
 
 type DraftStatus = "generating" | "draft" | "approved" | "finalized";
 
@@ -35,13 +36,13 @@ export default function AiCourseReviewPickerPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isLoading && user?.role !== "LearningExpert") {
+    if (!isLoading && !canAccessCourseAuthoring(user?.role)) {
       router.replace(routes.adminCourses);
     }
   }, [isLoading, router, user?.role]);
 
   useEffect(() => {
-    if (!isLoading && user?.role !== "LearningExpert") {
+    if (!isLoading && !canAccessCourseAuthoring(user?.role)) {
       return;
     }
 
@@ -80,7 +81,7 @@ export default function AiCourseReviewPickerPage() {
     router.push(routes.adminAiCourseReview(selectedDraftId));
   };
 
-  if (!isLoading && user?.role !== "LearningExpert") {
+  if (!isLoading && !canAccessCourseAuthoring(user?.role)) {
     return null;
   }
 

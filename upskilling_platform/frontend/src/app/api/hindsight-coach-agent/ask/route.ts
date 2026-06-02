@@ -47,6 +47,7 @@ export async function POST(request: Request) {
       lessonId?: string | null;
       pagePath?: string | null;
       sessionId?: string | null;
+      messageCreatedAt?: string | null;
     };
 
     const token = getTokenFromRequest(request);
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
     const lessonId = cleanText(body.lessonId) || null;
     const pagePath = cleanText(body.pagePath) || "/coach-hindsight";
     const requestedSessionId = cleanText(body.sessionId) || null;
+    const messageCreatedAt = cleanText(body.messageCreatedAt) || null;
     const sessionSource: CoachSessionSource = "hindsight-coach-page";
 
     if (!tenantId) {
@@ -117,6 +119,8 @@ export async function POST(request: Request) {
       isRepeat: false,
       classificationMode: "hindsight_reflect",
       supportingMemories,
+      userMessageCreatedAt: messageCreatedAt,
+      agentAnswerCreatedAt: new Date().toISOString(),
     });
 
     return Response.json(

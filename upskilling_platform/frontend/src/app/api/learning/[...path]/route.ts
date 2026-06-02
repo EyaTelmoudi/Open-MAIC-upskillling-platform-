@@ -1253,11 +1253,17 @@ export async function POST(
   context: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await context.params;
-  const clonedRequest = request.clone();
-  const requestBody = (await clonedRequest.json().catch(() => null)) as Record<string, unknown> | null;
+  const shouldSyncLearnerMemory =
+    isLessonCompletionMutation(path, request.method) ||
+    isQuizSubmitMutation(path, request.method);
+  const requestBody = shouldSyncLearnerMemory
+    ? ((await request.clone().json().catch(() => null)) as Record<string, unknown> | null)
+    : null;
   const response = await proxyToLearning(request, path);
   await syncCourseMemoryAfterMutation(request, request.method, path, response);
-  await syncLearnerMemoryAfterMutation(request, request.method, path, response, requestBody);
+  if (shouldSyncLearnerMemory) {
+    await syncLearnerMemoryAfterMutation(request, request.method, path, response, requestBody);
+  }
   return response;
 }
 

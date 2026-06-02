@@ -105,7 +105,7 @@ export async function POST(request: Request) {
         title: file.name,
         text: extractedText,
       },
-    ]);
+    ], null, true);
 
     return Response.json({ success: true, result }, { status: 200 });
   } catch (error) {

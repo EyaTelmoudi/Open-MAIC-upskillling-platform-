@@ -11,9 +11,9 @@ import { Card } from "@/app/components/ui/Card";
 import { BookmarkButton } from "@/app/components/ui/BookmarkButton";
 import { api, getCourseBookmarks, getEnrollments } from "@/app/lib/api";
 import { useAuth } from "@/app/context/AuthContext";
+import { resolveStoredMediaUrl } from "@/app/lib/media";
 import {
   Search,
-  Filter,
   BookOpen,
   Clock,
   Star,
@@ -86,7 +86,6 @@ export default function CoursesPage() {
   const [difficulty, setDifficulty] = useState("All");
   const [category, setCategory] = useState("All");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [showFilters, setShowFilters] = useState(true);
   const [previewingCourse, setPreviewingCourse] = useState<string | null>(null);
   const [bookmarkedCourses, setBookmarkedCourses] = useState<Set<string>>(new Set());
   const [completedCourses, setCompletedCourses] = useState<Set<string>>(new Set());
@@ -184,64 +183,34 @@ export default function CoursesPage() {
     <AppShell>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <BookOpen className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-text-primary">Course Catalog</h1>
-              <p className="text-sm text-text-secondary">
-                Browse and enroll in available courses
-              </p>
-            </div>
+        <section className="overflow-hidden rounded-3xl border border-emerald-300/55 bg-[radial-gradient(circle_at_12%_18%,_rgba(52,211,153,0.46),_transparent_30%),radial-gradient(circle_at_76%_14%,_rgba(14,165,233,0.42),_transparent_28%),radial-gradient(circle_at_88%_82%,_rgba(242,165,27,0.24),_transparent_24%),linear-gradient(135deg,_#063B35_0%,_#075E63_42%,_#0B315F_72%,_#101827_100%)] p-5 text-white shadow-[0_30px_80px_rgba(6,78,59,0.36)] sm:p-6 lg:p-8">
+          <div className="max-w-3xl">
+            <h1 className="text-3xl font-semibold tracking-tight text-white drop-shadow-sm sm:text-4xl">
+              Course Catalog
+            </h1>
+            <p className="mt-4 text-sm leading-7 text-emerald-50 sm:text-base">
+              Browse and enroll in available courses.
+            </p>
           </div>
-        </div>
+        </section>
 
         {/* Search and Filters */}
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
+        <div className="rounded-2xl border border-emerald-100 bg-white/85 px-3 py-3 shadow-[0_14px_34px_rgba(15,23,42,0.06)] backdrop-blur">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+            <div className="relative min-w-0 flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search courses..."
-                className="pl-10"
+                className="h-10 border-slate-200 bg-white pl-10"
               />
             </div>
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className={showFilters ? "bg-primary/10" : ""}
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-            <div className="flex rounded-lg border border-border">
-              <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {showFilters && (
-            <div className="mt-4 flex flex-wrap gap-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <select
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value)}
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
+                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition-colors focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
               >
                 {difficulties.map((d) => (
                   <option key={d} value={d}>
@@ -252,7 +221,7 @@ export default function CoursesPage() {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
+                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition-colors focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
               >
                 {categories.map((c) => (
                   <option key={c} value={c}>
@@ -269,20 +238,32 @@ export default function CoursesPage() {
                     setCategory("All");
                     setSearch("");
                   }}
+                  className="h-10 px-3 text-slate-600 hover:bg-slate-100"
                 >
-                  <X className="h-4 w-4 mr-1" />
+                  <X className="mr-1 h-4 w-4" />
                   Clear
                 </Button>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Results count */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-text-secondary">
-            {isLoading ? "Loading..." : `${filteredCourses.length} course${filteredCourses.length !== 1 ? "s" : ""} found`}
-          </p>
+            <div className="flex h-10 shrink-0 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+              <Button
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className="h-8 w-8 p-0"
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="h-8 w-8 p-0"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* Course Grid */}
@@ -300,7 +281,7 @@ export default function CoursesPage() {
                     <div className="relative h-40 rounded-t-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden">
                       {course.thumbnail ? (
                         <img
-                          src={course.thumbnail}
+                          src={resolveStoredMediaUrl(course.thumbnail)}
                           alt={course.title}
                           className="h-full w-full object-cover rounded-t-xl"
                         />
@@ -397,7 +378,7 @@ export default function CoursesPage() {
                       <div className="relative h-24 w-40 flex-shrink-0 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center overflow-hidden">
                         {course.thumbnail ? (
                           <img
-                            src={course.thumbnail}
+                            src={resolveStoredMediaUrl(course.thumbnail)}
                             alt={course.title}
                             className="h-full w-full object-cover rounded-lg"
                           />

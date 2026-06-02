@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from common.database import get_db
-from common.models import SystemConfig
+from common.models import SystemConfig, User
 from services.identity.schemas.checklist import (
     GeneralSettings,
     SecuritySettings,
@@ -65,6 +65,29 @@ def _get_security_settings(config: SystemConfig) -> dict:
     }
 
 
+def _propagate_default_timezone(
+    db: Session, old_timezone: str | None, new_timezone: str
+) -> int:
+    """Apply a new platform timezone to users who still follow the default."""
+    if not new_timezone or new_timezone == old_timezone:
+        return 0
+
+    if old_timezone:
+        db.query(User).filter(
+            User.timezone_manually_set.is_(False),
+            User.timezone != old_timezone,
+        ).update(
+            {User.timezone_manually_set: True},
+            synchronize_session=False,
+        )
+
+    return (
+        db.query(User)
+        .filter(User.timezone_manually_set.is_(False))
+        .update({User.timezone: new_timezone}, synchronize_session=False)
+    )
+
+
 @router.get("/health")
 async def settings_health():
     return {"status": "ok", "route": "settings"}
@@ -117,10 +140,19 @@ async def update_general_settings(
     if not config:
         raise HTTPException(status_code=404, detail="System config not found")
 
+    old_default_timezone = config.default_timezone
     update_data = settings.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         if value is not None:
             setattr(config, field, value)
+
+    timezone_users_updated = 0
+    if settings.default_timezone is not None:
+        timezone_users_updated = _propagate_default_timezone(
+            db,
+            old_default_timezone,
+            settings.default_timezone,
+        )
 
     if settings.platform_name is not None:
         config.group_name = settings.platform_name
@@ -137,11 +169,18 @@ async def update_general_settings(
         actor_email=current_user.get("email", "superadmin"),
         target_type="settings",
         target_id="general",
-        details=update_data,
+        details={
+            **update_data,
+            "timezone_users_updated": timezone_users_updated,
+        },
         request=request,
     )
 
-    return {"success": True, "general": update_data}
+    return {
+        "success": True,
+        "general": update_data,
+        "timezone_users_updated": timezone_users_updated,
+    }
 
 
 @router.put("/security")

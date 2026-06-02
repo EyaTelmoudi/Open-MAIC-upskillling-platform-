@@ -130,19 +130,22 @@ class TestCSVImportResult:
     def test_result_creation(self):
         """Test creating import result."""
         result = CSVImportResult(
-            success_count=5,
+            provisioned_count=3,
+            pending_count=2,
             skipped_count=2,
             errors=[{"row": 1, "error": "Error"}],
             total_rows=7,
         )
-        assert result.success_count == 5
+        assert result.provisioned_count == 3
+        assert result.pending_count == 2
         assert result.skipped_count == 2
         assert result.total_rows == 7
 
     def test_result_with_no_errors(self):
         """Test creating result with no errors."""
         result = CSVImportResult(
-            success_count=10,
+            provisioned_count=7,
+            pending_count=3,
             skipped_count=0,
             errors=[],
             total_rows=10,

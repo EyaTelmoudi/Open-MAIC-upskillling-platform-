@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronRight, Circle, Loader2 } from "lucide-react";
+import { Check, ChevronRight, Loader2 } from "lucide-react";
+import { api } from "@/app/lib/api";
 import { routes } from "@/app/lib/routes";
 
 interface ChecklistItem {
@@ -33,21 +34,7 @@ export function GettingStartedChecklist() {
   const fetchChecklist = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("access_token");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8000"}/api/v1/superadmin/checklist`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch checklist");
-      }
-
-      const data = await response.json();
+      const data = await api.get<ChecklistState>("/api/v1/superadmin/checklist");
       setChecklist(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load checklist");
@@ -58,24 +45,9 @@ export function GettingStartedChecklist() {
 
   const markComplete = async (itemId: string) => {
     try {
-      const token = localStorage.getItem("access_token");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8000"}/api/v1/superadmin/checklist`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ item_id: itemId }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to update checklist");
-      }
-
-      const data = await response.json();
+      const data = await api.put<ChecklistState>("/api/v1/superadmin/checklist", {
+        item_id: itemId,
+      });
       setChecklist(data);
     } catch (err) {
       console.error("Failed to update checklist:", err);
@@ -201,20 +173,8 @@ export function GettingStartedChecklistMini() {
 
   const fetchChecklist = async () => {
     try {
-      const token = localStorage.getItem("access_token");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_GATEWAY_URL || "http://localhost:8000"}/api/v1/superadmin/checklist`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setChecklist(data);
-      }
+      const data = await api.get<ChecklistState>("/api/v1/superadmin/checklist");
+      setChecklist(data);
     } catch (err) {
       console.error("Failed to fetch checklist:", err);
     } finally {

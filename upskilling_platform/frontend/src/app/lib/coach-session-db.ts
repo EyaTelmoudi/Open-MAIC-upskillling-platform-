@@ -1,7 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "crypto";
-import { Pool } from "pg";
+import { Pool, type PoolClient, types } from "pg";
 
 export type CoachSessionSource =
   | "coach-page"
@@ -43,6 +43,7 @@ export type CoachSessionTurnRecord = {
   isRepeat: boolean;
   classificationMode: string | null;
   createdAt: string;
+  agentAnsweredAt: string;
   supportingMemories: Array<Record<string, unknown>>;
 };
 
@@ -78,11 +79,16 @@ type SessionTurnRow = {
   is_repeat: boolean;
   classification_mode: string | null;
   created_at: Date | string;
+  agent_answered_at: Date | string | null;
   supporting_memories: Array<Record<string, unknown>> | null;
 };
 
-let pool: any = null;
+let pool: Pool | null = null;
 let tablesReady = false;
+
+const POSTGRES_TIMESTAMP_WITHOUT_TIMEZONE_OID = 1114;
+
+types.setTypeParser(POSTGRES_TIMESTAMP_WITHOUT_TIMEZONE_OID, (value: string) => value);
 
 function normalizePgUrl(raw: string) {
   return raw.replace("postgresql+pg8000://", "postgresql://");
@@ -107,7 +113,30 @@ function getPool() {
 }
 
 function toIsoString(value: Date | string) {
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+  if (value instanceof Date) {
+    return new Date(
+      Date.UTC(
+        value.getFullYear(),
+        value.getMonth(),
+        value.getDate(),
+        value.getHours(),
+        value.getMinutes(),
+        value.getSeconds(),
+        value.getMilliseconds(),
+      ),
+    ).toISOString();
+  }
+
+  const normalized = value.trim().replace(" ", "T");
+  const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalized);
+  return new Date(hasTimezone ? normalized : `${normalized}Z`).toISOString();
+}
+
+function toDatabaseUtcTimestamp(value?: string | null) {
+  const date = value ? new Date(value) : new Date();
+  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+
+  return safeDate.toISOString().replace("T", " ").replace("Z", "");
 }
 
 function truncateText(value: string | null | undefined, maxLength: number) {
@@ -158,6 +187,7 @@ function mapTurnRow(row: SessionTurnRow): CoachSessionTurnRecord {
     isRepeat: Boolean(row.is_repeat),
     classificationMode: row.classification_mode,
     createdAt: toIsoString(row.created_at),
+    agentAnsweredAt: toIsoString(row.agent_answered_at || row.created_at),
     supportingMemories: Array.isArray(row.supporting_memories) ? row.supporting_memories : [],
   };
 }
@@ -205,8 +235,13 @@ async function ensureTables() {
         is_repeat BOOLEAN NOT NULL DEFAULT FALSE,
         classification_mode VARCHAR(50) NULL,
         supporting_memories JSONB NOT NULL DEFAULT '[]'::jsonb,
+        agent_answered_at TIMESTAMP NULL,
         created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
       )
+    `);
+    await client.query(`
+      ALTER TABLE coach_session_turns
+      ADD COLUMN IF NOT EXISTS agent_answered_at TIMESTAMP NULL
     `);
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_coach_session_turns_session_time
@@ -219,7 +254,7 @@ async function ensureTables() {
   tablesReady = true;
 }
 
-async function findSessionById(client: any, sessionId: string, userId: string) {
+async function findSessionById(client: PoolClient, sessionId: string, userId: string) {
   const result = (await client.query(
     `
       SELECT
@@ -244,7 +279,7 @@ async function findSessionById(client: any, sessionId: string, userId: string) {
 }
 
 async function deactivateScopeSessions(
-  client: any,
+  client: PoolClient,
   scope: CoachSessionScope,
   excludeSessionId?: string,
 ) {
@@ -514,6 +549,8 @@ export async function appendCoachTurn(input: {
   isRepeat?: boolean;
   classificationMode?: string | null;
   supportingMemories?: Array<Record<string, unknown>>;
+  userMessageCreatedAt?: string | null;
+  agentAnswerCreatedAt?: string | null;
 }) {
   await ensureTables();
   const client = await getPool().connect();
@@ -536,9 +573,11 @@ export async function appendCoachTurn(input: {
           topic,
           is_repeat,
           classification_mode,
-          supporting_memories
+          supporting_memories,
+          created_at,
+          agent_answered_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::timestamp, $11::timestamp)
       `,
       [
         randomUUID(),
@@ -550,6 +589,8 @@ export async function appendCoachTurn(input: {
         Boolean(input.isRepeat),
         input.classificationMode || null,
         JSON.stringify(input.supportingMemories || []),
+        toDatabaseUtcTimestamp(input.userMessageCreatedAt),
+        toDatabaseUtcTimestamp(input.agentAnswerCreatedAt),
       ],
     );
 

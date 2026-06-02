@@ -1,11 +1,12 @@
 """Course CRUD router for the Learning Platform service."""
 
 from datetime import datetime
+import os
 import re
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy import delete, or_, update
 from sqlalchemy.orm import Session
@@ -51,6 +52,10 @@ COURSE_CONTENT_BUCKETS = [
     "course-files",
 ]
 VALID_MEMORY_RETENTION_STATUSES = {"pending", "processing", "completed", "failed"}
+COURSE_MEMORY_SERVICE_TOKEN = os.getenv(
+    "COURSE_MEMORY_SERVICE_TOKEN",
+    "dev-course-memory-service-token",
+)
 
 
 def get_current_user(
@@ -66,6 +71,10 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return payload
+
+
+def _is_valid_course_memory_service_token(token: str | None) -> bool:
+    return bool(COURSE_MEMORY_SERVICE_TOKEN and token == COURSE_MEMORY_SERVICE_TOKEN)
 
 
 def _get_user_from_payload(payload: dict, db: Session) -> User:
@@ -520,6 +529,24 @@ def create_course(
 
     if user_info.role == "SuperAdmin":
         tenant_id = course_data.get("tenant_id")
+        if not tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="SuperAdmins must choose the company tenant for this course",
+            )
+        try:
+            tenant_uuid = _normalize_uuid(tenant_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid tenant_id",
+            )
+        tenant = db.query(Tenant).filter(Tenant.id == tenant_uuid).first()
+        if not tenant:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Tenant not found",
+            )
     else:
         tenant_id = user_info.tenant_id
 
@@ -849,11 +876,22 @@ def toggle_course_publish(
 def update_course_memory_retention_status(
     course_id: UUID,
     payload: dict,
-    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
+    course_memory_service_token: str | None = Header(default=None, alias="X-Course-Memory-Service-Token"),
 ):
-    user_info = _get_user_from_payload(current_user, db)
-    _require_course_edit_role(user_info)
+    is_service_callback = _is_valid_course_memory_service_token(course_memory_service_token)
+    user_info = None
+    if not is_service_callback:
+        if credentials is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Not authenticated",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        current_user = get_current_user(credentials)
+        user_info = _get_user_from_payload(current_user, db)
+        _require_course_edit_role(user_info)
 
     course = db.query(Course).filter(Course.id == course_id).first()
     if not course:
@@ -861,7 +899,11 @@ def update_course_memory_retention_status(
             status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
         )
 
-    if user_info.role != "SuperAdmin" and course.tenant_id != user_info.tenant_id:
+    if (
+        user_info is not None
+        and user_info.role != "SuperAdmin"
+        and course.tenant_id != user_info.tenant_id
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied: course belongs to another tenant"

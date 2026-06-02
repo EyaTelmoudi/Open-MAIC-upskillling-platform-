@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Bot,
   BookOpen,
-  FileStack,
   PanelLeftClose,
   PanelLeftOpen,
   Users,
@@ -24,20 +22,14 @@ const adminNavItems = [
     href: routes.adminUsers,
   },
   {
-    label: "Courses",
+    label: "Course Management",
     description: "Authoring and publishing",
     icon: BookOpen,
     href: routes.adminCourses,
   },
   {
-    label: "Content",
-    description: "Course media and files",
-    icon: FileStack,
-    href: routes.adminContent,
-  },
-  {
     label: "Teams",
-    description: "Team structure and assignments",
+    description: "Company teams and assignments",
     icon: Workflow,
     href: routes.adminTeams,
   },
@@ -55,12 +47,6 @@ export function AdminSidebar({
   const isLearningExpert = user?.role === "LearningExpert";
   const visibleNavItems = isLearningExpert
     ? [
-        {
-          label: "AI Course Studio",
-          description: "AI authoring workspace",
-          icon: Bot,
-          href: routes.adminAiCourseStudio,
-        },
         {
           label: "Course Management",
           description: "Authoring and publishing",

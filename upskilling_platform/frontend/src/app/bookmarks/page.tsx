@@ -8,6 +8,7 @@ import { Badge } from "@/app/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/Tabs";
 import { Button } from "@/app/components/ui/Button";
 import { getCourseBookmarks, getLessonBookmarks, deleteBookmark, api } from "@/app/lib/api";
+import { resolveStoredMediaUrl } from "@/app/lib/media";
 import {
   BookOpen,
   Clock,
@@ -177,7 +178,7 @@ export default function BookmarksPage() {
                       >
                         {course.thumbnail ? (
                           <img
-                            src={course.thumbnail}
+                            src={resolveStoredMediaUrl(course.thumbnail)}
                             alt={course.title}
                             className="w-full h-full object-cover"
                           />

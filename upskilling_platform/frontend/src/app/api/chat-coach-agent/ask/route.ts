@@ -294,6 +294,7 @@ export async function POST(request: Request) {
       pagePath?: string | null;
       conversationTurns?: number | null;
       sessionId?: string | null;
+      messageCreatedAt?: string | null;
     };
 
     const token = getTokenFromRequest(request);
@@ -304,10 +305,10 @@ export async function POST(request: Request) {
     const question = body.question?.trim();
     const sessionSource: CoachSessionSource =
       body.source === "course-lesson-coach" || body.source === "course-page" ? body.source : "coach-page";
-    const source = sessionSource === "course-lesson-coach" ? "course-lesson-coach" : "coach-page";
     const lessonId = body.lessonId?.trim() || null;
     const pagePath = body.pagePath?.trim() || null;
     const requestedSessionId = body.sessionId?.trim() || null;
+    const messageCreatedAt = cleanText(body.messageCreatedAt) || null;
 
     if (!tenantId) {
       return Response.json(
@@ -495,6 +496,8 @@ export async function POST(request: Request) {
       isRepeat,
       classificationMode: cleanText(result.questionIntent?.classification_mode) || null,
       supportingMemories,
+      userMessageCreatedAt: messageCreatedAt,
+      agentAnswerCreatedAt: new Date().toISOString(),
     });
     const sessionTurns = buildWorkflowSessionTurns(
       (persistedSession?.turns || []) as PersistedSessionTurn[],

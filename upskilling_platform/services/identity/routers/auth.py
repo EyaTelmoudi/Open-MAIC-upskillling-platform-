@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from common.database import get_db
@@ -10,6 +10,7 @@ from common.models import User
 from common.schemas import AzureLoginRequest, LoginRequest, TokenResponse
 from services.identity.schemas.auth import SetPasswordRequest
 from services.identity.schemas.user import RefreshTokenRequest
+from services.identity.entra_config import pick_entra_redirect_uri
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -29,6 +30,7 @@ def resolve_tenant_by_slug(db: Session, slug: str) -> Optional[dict]:
             "slug": tenant.slug,
             "entra_client_id": tenant.entra_client_id,
             "entra_tenant_id": tenant.entra_tenant_id,
+            "entra_redirect_uris": tenant.entra_redirect_uris or [],
         }
     return None
 
@@ -52,6 +54,7 @@ def resolve_tenant_by_email(db: Session, email: str) -> Optional[dict]:
                 "slug": tenant.slug,
                 "entra_client_id": tenant.entra_client_id,
                 "entra_tenant_id": tenant.entra_tenant_id,
+                "entra_redirect_uris": tenant.entra_redirect_uris or [],
             }
 
     # Second: fallback to tenant email_domain lookup
@@ -67,6 +70,7 @@ def resolve_tenant_by_email(db: Session, email: str) -> Optional[dict]:
             "slug": tenant.slug,
             "entra_client_id": tenant.entra_client_id,
             "entra_tenant_id": tenant.entra_tenant_id,
+            "entra_redirect_uris": tenant.entra_redirect_uris or [],
         }
 
     return None
@@ -163,7 +167,7 @@ def azure_login(
     token_response = authenticate_azure_with_roles(
         db,
         request.code,
-        request.redirect_uri,
+        pick_entra_redirect_uri(tenant_config.get("entra_redirect_uris")),
         azure_roles=[],
         tenant_id=tenant_config.get("id"),
         tenant_config={
@@ -213,7 +217,8 @@ def superadmin_login(
 
 @router.post("/refresh", response_model=TokenResponse)
 def refresh_token(
-    request: RefreshTokenRequest,
+    request: Optional[RefreshTokenRequest] = Body(None),
+    refresh_token_query: Optional[str] = Query(None, alias="refresh_token"),
     tenant_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
@@ -232,7 +237,16 @@ def refresh_token(
     """
     from services.identity.auth.jwt import refresh_access_token, validate_refresh_token
 
-    validated_user_id = validate_refresh_token(request.refresh_token)
+    refresh_token_value = (
+        request.refresh_token if request and request.refresh_token else refresh_token_query
+    )
+    if not refresh_token_value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing refresh token",
+        )
+
+    validated_user_id = validate_refresh_token(refresh_token_value)
     if validated_user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -259,7 +273,7 @@ def refresh_token(
         "status": user.status,
         "onboarded": bool(user.onboarded),
     }
-    token_response = refresh_access_token(request.refresh_token, user_data)
+    token_response = refresh_access_token(refresh_token_value, user_data)
     if token_response is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

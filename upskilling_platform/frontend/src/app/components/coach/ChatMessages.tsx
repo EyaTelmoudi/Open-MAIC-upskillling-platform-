@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
+import { useAuth } from "@/app/context/AuthContext";
 import { cn } from "@/app/lib/utils";
 import { Bot, User, Sparkles } from "lucide-react";
 
@@ -207,6 +208,7 @@ function renderMessageContent(content: string, isUser: boolean) {
 export function ChatMessages({ messages, isTyping }: ChatMessagesProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const bottomAnchorRef = useRef<HTMLDivElement | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     bottomAnchorRef.current?.scrollIntoView({
@@ -217,7 +219,22 @@ export function ChatMessages({ messages, isTyping }: ChatMessagesProps) {
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const timezone = user?.timezone || undefined;
+
+    try {
+      return new Intl.DateTimeFormat(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+        timeZone: timezone,
+      }).format(date);
+    } catch {
+      return new Intl.DateTimeFormat(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      }).format(date);
+    }
   };
 
   return (

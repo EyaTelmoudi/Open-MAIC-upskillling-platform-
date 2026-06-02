@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/app/components/layout/AppShell";
 import { Button } from "@/app/components/ui/Button";
 import { Input } from "@/app/components/ui/Input";
@@ -8,41 +8,36 @@ import { useAuth } from "@/app/context/AuthContext";
 import {
   createGoal,
   createTeamGoal,
-  deleteGoal,
+  getTeamAvailableUsers,
   getEnrollments,
   getGamificationProfile,
   getGoals,
   getTeamGoals,
   getTeams,
   getUserProgress,
-  updateGoal,
-  updateTeamGoal,
   type EnrollmentResponse,
   type GamificationProfileResponse,
   type Goal,
+  type TeamAvailableUser,
   type Team,
   type TeamGoal,
   type UserProgressResponse,
 } from "@/app/lib/api";
 import {
-  buildGoalInsight,
   buildGoalMetricsSummary,
+  getGoalHealth,
+  getGoalNextAction,
   getGoalTypeLabel,
+  getGoalTypeUnit,
   GOAL_TYPE_OPTIONS,
-  serializeGoalDescription,
+  parseGoalDescription,
   type GoalType,
   type GoalMetricsSummary,
 } from "@/app/lib/goal-utils";
 import {
   AlertTriangle,
-  BellRing,
-  CheckCircle2,
   Flag,
   Loader2,
-  Sparkles,
-  Target,
-  TrendingUp,
-  Trophy,
   Users,
   Zap,
 } from "lucide-react";
@@ -56,11 +51,21 @@ const emptyGoalForm = {
   goal_type: "lessons_completed" as GoalType,
 };
 
+type GoalFormErrors = {
+  user_id?: string;
+  team_id?: string;
+  goal_type?: string;
+  title?: string;
+  target_count?: string;
+  xp_reward?: string;
+};
+
 export default function GoalsPage() {
   const { user } = useAuth();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [teamGoals, setTeamGoals] = useState<TeamGoal[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<TeamAvailableUser[]>([]);
   const [personalForm, setPersonalForm] = useState(emptyGoalForm);
   const [teamForm, setTeamForm] = useState({
     title: "",
@@ -69,9 +74,8 @@ export default function GoalsPage() {
     target_count: 1,
     xp_reward: 0,
     team_id: "",
+    goal_type: "lessons_completed" as GoalType,
   });
-  const [personalProgress, setPersonalProgress] = useState<Record<string, number>>({});
-  const [teamProgress, setTeamProgress] = useState<Record<string, number>>({});
   const [metrics, setMetrics] = useState<GoalMetricsSummary>({
     lessonsCompleted: 0,
     coursesCompleted: 0,
@@ -79,25 +83,31 @@ export default function GoalsPage() {
     totalXp: 0,
     currentStreak: 0,
   });
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [personalErrors, setPersonalErrors] = useState<GoalFormErrors>({});
+  const [teamErrors, setTeamErrors] = useState<GoalFormErrors>({});
 
-  const canManageTeamGoals = !!user && user.role === "TeamManager";
+  const canManageGoals =
+    !!user &&
+    ["TeamManager", "Manager", "Admin", "SuperAdmin"].includes(user.role);
   const canViewTeamGoals =
     !!user &&
-    (canManageTeamGoals ||
+    (canManageGoals ||
       ["TeamMember", "TeamIntern", "LearningExpert"].includes(user.role));
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setError(null);
-      const [personalGoals, availableTeams, currentTeamGoals, enrollments, progress, profile] =
+      const [personalGoals, availableTeams, currentTeamGoals, availableUsers, enrollments, progress, profile] =
         await Promise.all([
-          getGoals(),
-          canManageTeamGoals ? getTeams().catch(() => []) : Promise.resolve([]),
+          getGoals(user?.id),
+          canManageGoals ? getTeams().catch(() => []) : Promise.resolve([]),
           canViewTeamGoals ? getTeamGoals().catch(() => []) : Promise.resolve([]),
+          canManageGoals ? getTeamAvailableUsers().catch(() => []) : Promise.resolve([]),
           user ? getEnrollments(user.id).catch(() => []) : Promise.resolve([] as EnrollmentResponse[]),
           user ? getUserProgress(user.id).catch(() => []) : Promise.resolve([] as UserProgressResponse[]),
           getGamificationProfile().catch(() => null as GamificationProfileResponse | null),
@@ -108,59 +118,62 @@ export default function GoalsPage() {
       setGoals(personalGoals);
       setTeams(availableTeams);
       setTeamGoals(currentTeamGoals);
+      setAvailableUsers(availableUsers);
       setMetrics(resolvedMetrics);
-      setPersonalProgress(
-        Object.fromEntries(personalGoals.map((goal) => [goal.id, goal.progress]))
-      );
-      setTeamProgress(
-        Object.fromEntries(currentTeamGoals.map((goal) => [goal.id, goal.progress]))
-      );
-
-      if (!teamForm.team_id && availableTeams.length > 0) {
-        setTeamForm((current) => ({ ...current, team_id: availableTeams[0].id }));
-      }
-
-      // Keep auto-tracked goals aligned with real activity without asking the user
-      // to mark them complete manually.
-      await Promise.all(
-        personalGoals.map(async (goal) => {
-          const insight = buildGoalInsight(goal, resolvedMetrics);
-          if (!insight.isAutoTracked) {
-            return;
-          }
-          if (
-            insight.currentProgress !== goal.progress ||
-            (insight.health === "completed" && goal.status !== "completed")
-          ) {
-            const updated = await updateGoal(goal.id, {
-              progress: insight.currentProgress,
-              status: insight.health === "completed" ? "completed" : "active",
-            });
-            setGoals((current) =>
-              current.map((item) => (item.id === goal.id ? updated : item))
-            );
-          }
-        })
-      );
     } catch (err) {
       console.error("Failed to load goals:", err);
       setError(err instanceof Error ? err.message : "Failed to load goals");
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [canManageGoals, canViewTeamGoals, user]);
 
   useEffect(() => {
     void loadData();
-  }, [canManageTeamGoals, canViewTeamGoals, user?.id]);
+  }, [loadData]);
+
+  useEffect(() => {
+    if (!teamForm.team_id && teams.length > 0) {
+      setTeamForm((current) => ({ ...current, team_id: teams[0].id }));
+    }
+  }, [teams, teamForm.team_id]);
+
+  useEffect(() => {
+    if (user?.id && !selectedUserId) {
+      setSelectedUserId(user.id);
+    }
+  }, [user?.id, selectedUserId]);
+
+  const buildGoalView = (goal: Goal | TeamGoal) => {
+    const { goalType, cleanDescription, isAutoTracked } = parseGoalDescription(goal.description);
+    const currentProgress = Number(goal.progress || 0);
+    const completionRate = Number(goal.completion_rate || 0);
+    const remaining = Math.max(goal.target_count - currentProgress, 0);
+    const health = getGoalHealth(goal, currentProgress);
+
+    return {
+      goalType,
+      cleanDescription,
+      isAutoTracked,
+      currentProgress,
+      completionRate,
+      remaining,
+      health,
+      helperText: isAutoTracked
+        ? "Tracked automatically from your real learning activity."
+        : "Goal status is managed by the platform.",
+      unitLabel: getGoalTypeUnit(goalType),
+      nextAction: getGoalNextAction(goalType, remaining),
+    };
+  };
 
   const personalGoalViews = useMemo(
     () =>
       goals.map((goal) => ({
         goal,
-        insight: buildGoalInsight(goal, metrics),
+        insight: buildGoalView(goal),
       })),
-    [goals, metrics]
+    [goals]
   );
 
   const personalStats = useMemo(() => {
@@ -184,41 +197,54 @@ export default function GoalsPage() {
     };
   }, [teamGoals]);
 
-  const focusGoal = useMemo(() => {
-    const incomplete = personalGoalViews.filter((entry) => entry.insight.health !== "completed");
-    incomplete.sort((left, right) => {
-      const priority = (value: string) => {
-        if (value === "overdue") return 0;
-        if (value === "at_risk") return 1;
-        return 2;
-      };
-      const priorityGap = priority(left.insight.health) - priority(right.insight.health);
-      if (priorityGap !== 0) return priorityGap;
-      return left.insight.remaining - right.insight.remaining;
-    });
-    return incomplete[0] || null;
-  }, [personalGoalViews]);
-
   async function handleCreateGoal() {
+    const targetUserId = canManageGoals ? selectedUserId || user?.id || "" : user?.id || "";
+    const nextErrors: GoalFormErrors = {};
+    if (!user?.id) {
+      nextErrors.user_id = "Your session is still loading. Please try again in a moment.";
+    }
+    if (canManageGoals && !targetUserId) {
+      nextErrors.user_id = "Choose the learner who will receive this goal.";
+    }
+    if (!personalForm.goal_type) {
+      nextErrors.goal_type = "Choose what the platform should track.";
+    }
+    if (!personalForm.title.trim()) {
+      nextErrors.title = "Add a clear goal title.";
+    }
+    if (!Number.isFinite(Number(personalForm.target_count)) || Number(personalForm.target_count) < 1) {
+      nextErrors.target_count = "Target value must be at least 1.";
+    }
+    if (!Number.isFinite(Number(personalForm.xp_reward)) || Number(personalForm.xp_reward) < 0) {
+      nextErrors.xp_reward = "XP reward cannot be negative.";
+    }
+    setPersonalErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setError("Complete the highlighted fields before creating the goal.");
+      setSuccess(null);
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
     setSuccess(null);
     try {
       const created = await createGoal({
+        user_id: targetUserId,
+        goal_type: personalForm.goal_type,
         title: personalForm.title,
-        description: serializeGoalDescription(personalForm.description, personalForm.goal_type),
+        description: personalForm.description || null,
         target_date: personalForm.target_date || null,
         target_count: personalForm.target_count,
         xp_reward: personalForm.xp_reward,
-        progress: 0,
       });
       setGoals((current) => [created, ...current]);
-      setPersonalProgress((current) => ({ ...current, [created.id]: created.progress }));
       setPersonalForm(emptyGoalForm);
+      setPersonalErrors({});
       setSuccess(
-        GOAL_TYPE_OPTIONS.find((option) => option.value === personalForm.goal_type)?.value === "manual"
-          ? "Personal goal created successfully."
-          : "Smart goal created. The platform will now track it automatically."
+        canManageGoals
+          ? "Goal assigned successfully. Progress will update automatically."
+          : "Goal created successfully. Progress will update automatically.",
       );
       await loadData();
     } catch (err) {
@@ -229,52 +255,41 @@ export default function GoalsPage() {
     }
   }
 
-  async function handleUpdateGoal(goal: Goal) {
-    setError(null);
-    setSuccess(null);
-    try {
-      const updated = await updateGoal(goal.id, {
-        progress: Number(personalProgress[goal.id] ?? goal.progress),
-      });
-      setGoals((current) =>
-        current.map((item) => (item.id === goal.id ? updated : item))
-      );
-      setSuccess("Personal goal updated successfully.");
-    } catch (err) {
-      console.error("Failed to update goal:", err);
-      setError(err instanceof Error ? err.message : "Failed to update goal");
-    }
-  }
-
-  async function handleDeleteGoal(goalId: string) {
-    setError(null);
-    setSuccess(null);
-    try {
-      await deleteGoal(goalId);
-      setGoals((current) => current.filter((goal) => goal.id !== goalId));
-      setSuccess("Personal goal deleted successfully.");
-    } catch (err) {
-      console.error("Failed to delete goal:", err);
-      setError(err instanceof Error ? err.message : "Failed to delete goal");
-    }
-  }
-
   async function handleCreateTeamGoal() {
+    const nextErrors: GoalFormErrors = {};
     if (!teamForm.team_id) {
-      setError("Select a team first.");
+      nextErrors.team_id = "Select the team that should receive this goal.";
+    }
+    if (!teamForm.goal_type) {
+      nextErrors.goal_type = "Choose what the platform should track for the team.";
+    }
+    if (!teamForm.title.trim()) {
+      nextErrors.title = "Add a clear team goal title.";
+    }
+    if (!Number.isFinite(Number(teamForm.target_count)) || Number(teamForm.target_count) < 1) {
+      nextErrors.target_count = "Target count must be at least 1.";
+    }
+    if (!Number.isFinite(Number(teamForm.xp_reward)) || Number(teamForm.xp_reward) < 0) {
+      nextErrors.xp_reward = "XP reward cannot be negative.";
+    }
+    setTeamErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setError("Complete the highlighted team goal fields before creating the goal.");
+      setSuccess(null);
       return;
     }
+
     setIsSubmitting(true);
     setError(null);
     setSuccess(null);
     try {
       const created = await createTeamGoal({
         ...teamForm,
+        goal_type: teamForm.goal_type,
         description: teamForm.description || null,
         target_date: teamForm.target_date || null,
       });
       setTeamGoals((current) => [created, ...current]);
-      setTeamProgress((current) => ({ ...current, [created.id]: created.progress }));
       setTeamForm({
         title: "",
         description: "",
@@ -282,7 +297,9 @@ export default function GoalsPage() {
         target_count: 1,
         xp_reward: 0,
         team_id: teamForm.team_id,
+        goal_type: "lessons_completed",
       });
+      setTeamErrors({});
       setSuccess("Team goal created successfully.");
     } catch (err) {
       console.error("Failed to create team goal:", err);
@@ -292,43 +309,14 @@ export default function GoalsPage() {
     }
   }
 
-  async function handleUpdateTeamGoal(goal: TeamGoal) {
-    setError(null);
-    setSuccess(null);
-    try {
-      const updated = await updateTeamGoal(goal.id, {
-        progress: Number(teamProgress[goal.id] ?? goal.progress),
-      });
-      setTeamGoals((current) =>
-        current.map((item) => (item.id === goal.id ? updated : item))
-      );
-      setSuccess("Team goal updated successfully.");
-    } catch (err) {
-      console.error("Failed to update team goal:", err);
-      setError(err instanceof Error ? err.message : "Failed to update team goal");
-    }
-  }
-
   function GoalCard({
     goal,
-    progressValue,
-    onProgressChange,
-    onSave,
-    onDelete,
     subtitle,
-    readOnly = false,
-    autoTracked = false,
   }: {
     goal: Goal | TeamGoal;
-    progressValue: number;
-    onProgressChange: (value: number) => void;
-    onSave: () => void;
-    onDelete?: () => void;
     subtitle?: string;
-    readOnly?: boolean;
-    autoTracked?: boolean;
   }) {
-    const insight = buildGoalInsight(goal, metrics);
+    const insight = buildGoalView(goal);
     const statusTone =
       insight.health === "completed"
         ? "bg-green-500/10 text-green-600"
@@ -355,11 +343,11 @@ export default function GoalsPage() {
             {insight.cleanDescription && (
               <p className="mt-2 text-sm text-text-secondary">{insight.cleanDescription}</p>
             )}
-            <p className="mt-3 text-sm text-primary">{insight.nextAction}</p>
-          </div>
-          <div className="text-right text-sm">
-            <p className="font-medium text-primary">+{goal.xp_reward} XP</p>
-            <p className="text-text-secondary">
+          <p className="mt-3 text-sm text-primary">{insight.nextAction}</p>
+        </div>
+        <div className="text-right text-sm">
+          <p className="font-medium text-primary">+{goal.xp_reward} XP</p>
+          <p className="text-text-secondary">
               {insight.currentProgress}/{goal.target_count} {insight.unitLabel}
             </p>
           </div>
@@ -387,40 +375,8 @@ export default function GoalsPage() {
         </div>
 
         <div className="mt-4 rounded-2xl border border-border bg-background px-4 py-3 text-sm text-text-secondary">
-          {autoTracked || insight.isAutoTracked
-            ? insight.helperText
-            : "Use manual updates only for goals that the platform cannot measure for you."}
+          {insight.helperText}
         </div>
-
-        {!readOnly && !insight.isAutoTracked && (
-          <div className="mt-4 flex flex-wrap items-end gap-3">
-            <div className="w-28">
-              <label className="mb-1 block text-xs font-medium text-text-secondary">
-                Progress
-              </label>
-              <Input
-                type="number"
-                min={0}
-                value={progressValue}
-                onChange={(e) => onProgressChange(parseInt(e.target.value, 10) || 0)}
-              />
-            </div>
-            <Button onClick={onSave}>Save Progress</Button>
-            {onDelete && (
-              <Button variant="outline" onClick={onDelete}>
-                Delete
-              </Button>
-            )}
-          </div>
-        )}
-
-        {!readOnly && insight.isAutoTracked && onDelete && (
-          <div className="mt-4 flex justify-end">
-            <Button variant="outline" onClick={onDelete}>
-              Delete
-            </Button>
-          </div>
-        )}
       </div>
     );
   }
@@ -428,22 +384,17 @@ export default function GoalsPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div className="rounded-3xl border border-border bg-[radial-gradient(circle_at_top_left,rgba(14,163,122,0.2),transparent_32%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.14),transparent_28%),radial-gradient(circle_at_18%_82%,rgba(242,165,27,0.12),transparent_22%),linear-gradient(135deg,rgba(245,252,248,0.96),rgba(231,245,247,0.94),rgba(221,234,241,0.96))] p-6 text-text-primary shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-8">
-          <div className="flex items-start gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,rgba(14,163,122,0.16),rgba(34,199,180,0.14),rgba(242,165,27,0.12))] shadow-sm">
-              <Target className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80">
-                Goals
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">
-                Make your goals drive your learning, not sit beside it.
-              </h1>
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-700">
-                Smart goals are now best when they track real activity automatically. Use manual goals only for outcomes the platform cannot measure.
-              </p>
-            </div>
+        <div className="overflow-hidden rounded-3xl border border-emerald-300/55 bg-[radial-gradient(circle_at_12%_18%,_rgba(52,211,153,0.46),_transparent_30%),radial-gradient(circle_at_76%_14%,_rgba(14,165,233,0.42),_transparent_28%),radial-gradient(circle_at_88%_82%,_rgba(242,165,27,0.24),_transparent_24%),linear-gradient(135deg,_#063B35_0%,_#075E63_42%,_#0B315F_72%,_#101827_100%)] p-5 text-white shadow-[0_30px_80px_rgba(6,78,59,0.36)] sm:p-6 lg:p-8">
+          <div className="max-w-4xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-100/90">
+              Goals
+            </p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
+              Make your goals drive your learning, not sit beside it.
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm leading-6 text-emerald-50/90 sm:text-base">
+              Smart goals are now best when they track real activity automatically. Use manual goals only for outcomes the platform cannot measure.
+            </p>
           </div>
         </div>
 
@@ -467,207 +418,195 @@ export default function GoalsPage() {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                <p className="text-sm text-text-secondary">Personal Goals</p>
-                <p className="mt-2 text-3xl font-bold text-text-primary">{personalStats.total}</p>
-              </div>
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                <p className="text-sm text-text-secondary">Completed</p>
-                <p className="mt-2 text-3xl font-bold text-green-600">{personalStats.completed}</p>
-              </div>
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                <p className="text-sm text-text-secondary">Need Attention</p>
-                <p className="mt-2 text-3xl font-bold text-amber-600">
-                  {personalStats.atRisk + personalStats.overdue}
-                </p>
-              </div>
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                <p className="text-sm text-text-secondary">Current Streak</p>
-                <p className="mt-2 text-3xl font-bold text-text-primary">{metrics.currentStreak}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 xl:grid-cols-3">
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <BellRing className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-semibold text-text-primary">Today’s Focus</h2>
-                </div>
-                {focusGoal ? (
-                  <div className="mt-4 space-y-2">
-                    <p className="text-sm font-semibold text-text-primary">{focusGoal.goal.title}</p>
-                    <p className="text-sm text-text-secondary">{focusGoal.insight.nextAction}</p>
-                    <p className="text-xs text-primary">
-                      {focusGoal.insight.currentProgress}/{focusGoal.goal.target_count} {focusGoal.insight.unitLabel}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="mt-4 text-sm text-text-secondary">
-                    No active personal goal needs attention right now.
-                  </p>
-                )}
-              </div>
-
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-semibold text-text-primary">Real Learning Signals</h2>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-2xl border border-border bg-background p-3">
-                    <p className="text-text-secondary">Lessons</p>
-                    <p className="mt-1 text-xl font-semibold text-text-primary">{metrics.lessonsCompleted}</p>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-background p-3">
-                    <p className="text-text-secondary">Courses</p>
-                    <p className="mt-1 text-xl font-semibold text-text-primary">{metrics.coursesCompleted}</p>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-background p-3">
-                    <p className="text-text-secondary">Study Minutes</p>
-                    <p className="mt-1 text-xl font-semibold text-text-primary">{metrics.studyMinutes}</p>
-                  </div>
-                  <div className="rounded-2xl border border-border bg-background p-3">
-                    <p className="text-text-secondary">XP</p>
-                    <p className="mt-1 text-xl font-semibold text-text-primary">{metrics.totalXp}</p>
-                  </div>
+            <div className="rounded-3xl border border-emerald-200/80 bg-[linear-gradient(135deg,#ffffff_0%,#f0fdfa_48%,#eff6ff_100%)] p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)] sm:p-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-950">Your current goal status</h2>
                 </div>
               </div>
-
-              <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-semibold text-text-primary">Why this is better</h2>
-                </div>
-                <ul className="mt-4 space-y-3 text-sm text-text-secondary">
-                  <li>Auto goals update from real lessons, XP, streaks, and completed courses.</li>
-                  <li>You no longer need to mark measurable goals as done manually.</li>
-                  <li>The platform can now remind you what needs attention when you open it.</li>
-                </ul>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                  { label: "Personal Goals", value: personalStats.total, tone: "text-slate-950" },
+                  { label: "Completed", value: personalStats.completed, tone: "text-emerald-700" },
+                  { label: "Need Attention", value: personalStats.atRisk + personalStats.overdue, tone: "text-amber-700" },
+                  { label: "Current Streak", value: metrics.currentStreak, tone: "text-sky-700" },
+                ].map((item) => (
+                  <div key={item.label} className="border-t border-emerald-200/70 pt-3 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0 first:sm:border-l-0 first:sm:pl-0">
+                    <p className="text-sm font-medium text-slate-600">{item.label}</p>
+                    <p className={`mt-1 text-3xl font-bold ${item.tone}`}>{item.value}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
               <div className="space-y-4">
-                <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                  <div className="mb-4 flex items-center gap-2">
-                    <Flag className="h-5 w-5 text-primary" />
-                    <h2 className="text-lg font-semibold text-text-primary">Create Personal Goal</h2>
+                <div className="rounded-3xl border border-emerald-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fffd_100%)] p-5 shadow-sm sm:p-6">
+                  <div className="mb-5 border-b border-emerald-100 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Flag className="h-5 w-5 text-primary" />
+                      <h2 className="text-lg font-semibold text-text-primary">
+                        {canManageGoals ? "Assign Personal Goal" : "Create Personal Goal"}
+                      </h2>
+                    </div>
+                    <p className="mt-2 text-sm text-text-secondary">
+                      Define one measurable target. The platform will update progress automatically from real activity.
+                    </p>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div className="md:col-span-2">
-                      <label className="mb-1 block text-xs font-medium text-text-secondary">Tracking Type</label>
-                      <select
-                        value={personalForm.goal_type}
-                        onChange={(e) =>
-                          setPersonalForm((current) => ({
-                            ...current,
-                            goal_type: e.target.value as GoalType,
-                          }))
-                        }
-                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
-                      >
-                        {GOAL_TYPE_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="mt-2 text-xs text-text-secondary">
-                        {
-                          GOAL_TYPE_OPTIONS.find((option) => option.value === personalForm.goal_type)
-                            ?.description
-                        }
-                      </p>
-                    </div>
+                    {canManageGoals && (
+                      <div className="md:col-span-2">
+                        <label className="mb-1 block text-xs font-medium text-text-secondary">Assign to learner</label>
+                        <select
+                          value={selectedUserId}
+                          onChange={(e) => {
+                            setSelectedUserId(e.target.value);
+                            setPersonalErrors((current) => ({ ...current, user_id: undefined }));
+                          }}
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
+                        >
+                          {availableUsers.map((person) => (
+                            <option key={person.id} value={person.id}>
+                              {person.display_name || `${person.first_name} ${person.last_name}`.trim()} ({person.role})
+                            </option>
+                          ))}
+                        </select>
+                        {personalErrors.user_id && (
+                          <p className="mt-1 text-xs font-medium text-destructive">{personalErrors.user_id}</p>
+                        )}
+                      </div>
+                    )}
 
-                    <div className="md:col-span-2">
-                      <label className="mb-1 block text-xs font-medium text-text-secondary">Title</label>
-                      <Input
-                        value={personalForm.title}
-                        onChange={(e) => setPersonalForm((current) => ({ ...current, title: e.target.value }))}
-                        placeholder={
-                          personalForm.goal_type === "manual"
-                            ? "Finish my React portfolio revision"
-                            : "Reach my next learning milestone"
-                        }
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="mb-1 block text-xs font-medium text-text-secondary">Why this matters</label>
-                      <textarea
-                        value={personalForm.description}
-                        onChange={(e) => setPersonalForm((current) => ({ ...current, description: e.target.value }))}
-                        rows={3}
-                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
-                        placeholder="Add context that will help you stay committed to this goal"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-text-secondary">Target Value</label>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={personalForm.target_count}
-                        onChange={(e) => setPersonalForm((current) => ({ ...current, target_count: parseInt(e.target.value, 10) || 1 }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-text-secondary">XP Reward</label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={personalForm.xp_reward}
-                        onChange={(e) => setPersonalForm((current) => ({ ...current, xp_reward: parseInt(e.target.value, 10) || 0 }))}
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="mb-1 block text-xs font-medium text-text-secondary">Deadline</label>
-                      <Input
-                        type="date"
-                        value={personalForm.target_date}
-                        onChange={(e) => setPersonalForm((current) => ({ ...current, target_date: e.target.value }))}
-                      />
-                    </div>
+                      <div className="md:col-span-2">
+                        <label className="mb-1 block text-xs font-medium text-text-secondary">Goal Type</label>
+                        <select
+                          value={personalForm.goal_type}
+                          onChange={(e) =>
+                            setPersonalForm((current) => ({
+                              ...current,
+                              goal_type: e.target.value as GoalType,
+                            }))
+                          }
+                          onBlur={() => setPersonalErrors((current) => ({ ...current, goal_type: undefined }))}
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
+                        >
+                          {GOAL_TYPE_OPTIONS.filter((option) => option.value !== "manual").map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="mt-2 text-xs text-text-secondary">
+                          {
+                            GOAL_TYPE_OPTIONS.find((option) => option.value === personalForm.goal_type)
+                              ?.description
+                          }
+                        </p>
+                        {personalErrors.goal_type && (
+                          <p className="mt-1 text-xs font-medium text-destructive">{personalErrors.goal_type}</p>
+                        )}
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="mb-1 block text-xs font-medium text-text-secondary">Title</label>
+                        <Input
+                          value={personalForm.title}
+                          onChange={(e) => {
+                            setPersonalForm((current) => ({ ...current, title: e.target.value }));
+                            setPersonalErrors((current) => ({ ...current, title: undefined }));
+                          }}
+                          placeholder="Reach the next learning milestone"
+                        />
+                        {personalErrors.title && (
+                          <p className="mt-1 text-xs font-medium text-destructive">{personalErrors.title}</p>
+                        )}
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="mb-1 block text-xs font-medium text-text-secondary">Context</label>
+                        <textarea
+                          value={personalForm.description}
+                          onChange={(e) => setPersonalForm((current) => ({ ...current, description: e.target.value }))}
+                          rows={3}
+                          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
+                          placeholder="Short context for the learner"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-text-secondary">Target Value</label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={personalForm.target_count}
+                          onChange={(e) => {
+                            setPersonalForm((current) => ({ ...current, target_count: parseInt(e.target.value, 10) || 1 }));
+                            setPersonalErrors((current) => ({ ...current, target_count: undefined }));
+                          }}
+                        />
+                        {personalErrors.target_count && (
+                          <p className="mt-1 text-xs font-medium text-destructive">{personalErrors.target_count}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-text-secondary">XP Reward</label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={personalForm.xp_reward}
+                          onChange={(e) => {
+                            setPersonalForm((current) => ({ ...current, xp_reward: parseInt(e.target.value, 10) || 0 }));
+                            setPersonalErrors((current) => ({ ...current, xp_reward: undefined }));
+                          }}
+                        />
+                        {personalErrors.xp_reward && (
+                          <p className="mt-1 text-xs font-medium text-destructive">{personalErrors.xp_reward}</p>
+                        )}
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="mb-1 block text-xs font-medium text-text-secondary">Deadline</label>
+                        <Input
+                          type="date"
+                          value={personalForm.target_date}
+                          onChange={(e) => setPersonalForm((current) => ({ ...current, target_date: e.target.value }))}
+                        />
+                      </div>
                   </div>
                   <div className="mt-4">
-                    <Button onClick={handleCreateGoal} disabled={isSubmitting || !personalForm.title.trim()}>
-                      Create Goal
+                    <Button
+                      onClick={handleCreateGoal}
+                      disabled={
+                        isSubmitting ||
+                        !user?.id
+                      }
+                    >
+                      {canManageGoals ? "Assign Goal" : "Create Goal"}
                     </Button>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   {personalGoalViews.length === 0 ? (
-                    <div className="rounded-2xl border border-border bg-card p-6 text-sm text-text-secondary">
-                      No personal goals yet. Create your first goal above.
+                    <div className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/50 p-6 text-sm text-emerald-800">
+                      No personal goals yet. Create your first goal above, or choose one of the recommended goals.
                     </div>
                   ) : (
-                    personalGoalViews.map(({ goal, insight }) => (
-                      <GoalCard
-                        key={goal.id}
-                        goal={goal}
-                        autoTracked={insight.isAutoTracked}
-                        progressValue={personalProgress[goal.id] ?? goal.progress}
-                        onProgressChange={(value) =>
-                          setPersonalProgress((current) => ({ ...current, [goal.id]: value }))
-                        }
-                        onSave={() => handleUpdateGoal(goal)}
-                        onDelete={() => handleDeleteGoal(goal.id)}
-                      />
-                    ))
+                    personalGoalViews.map(({ goal }) => <GoalCard key={goal.id} goal={goal} />)
                   )}
                 </div>
               </div>
 
               <div className="space-y-4">
-                <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-primary" />
-                    <h2 className="text-lg font-semibold text-text-primary">Recommended Smart Goals</h2>
+                <div className="rounded-3xl border border-sky-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-5 shadow-sm sm:p-6">
+                  <div className="border-b border-sky-100 pb-4">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-primary" />
+                      <h2 className="text-lg font-semibold text-text-primary">Recommended Smart Goals</h2>
+                    </div>
+                    <p className="mt-2 text-sm text-text-secondary">
+                      Pick a template to fill the personal goal form with a measurable target.
+                    </p>
                   </div>
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-5 space-y-3">
                     {[
                       {
                         title: "Finish 5 lessons this week",
@@ -709,18 +648,44 @@ export default function GoalsPage() {
 
                 {canViewTeamGoals && (
                   <>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-                        <p className="text-sm text-text-secondary">Team Goals</p>
-                        <p className="mt-2 text-3xl font-bold text-text-primary">{teamStats.total}</p>
+                    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-primary" />
+                        <h2 className="text-lg font-semibold text-text-primary">Team Goals</h2>
                       </div>
-                      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-                        <p className="text-sm text-text-secondary">Completed Team Goals</p>
-                        <p className="mt-2 text-3xl font-bold text-green-600">{teamStats.completed}</p>
+                      <div className="mt-4 grid grid-cols-2 gap-4">
+                        <div className="border-l-2 border-primary/40 pl-4">
+                          <p className="text-sm text-text-secondary">Total</p>
+                          <p className="mt-1 text-2xl font-bold text-text-primary">{teamStats.total}</p>
+                        </div>
+                        <div className="border-l-2 border-green-500/50 pl-4">
+                          <p className="text-sm text-text-secondary">Completed</p>
+                          <p className="mt-1 text-2xl font-bold text-green-600">{teamStats.completed}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        {teamGoals.length === 0 ? (
+                          <p className="rounded-2xl border border-dashed border-border bg-background px-4 py-3 text-sm text-text-secondary">
+                            {canManageGoals
+                              ? "No team goals yet. Create one for a managed team below."
+                              : "No team goals have been assigned to your team yet."}
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {teamGoals.map((goal) => (
+                              <div key={goal.id} className="rounded-2xl border border-border bg-background px-4 py-3">
+                                <p className="font-medium text-text-primary">{goal.title}</p>
+                                <p className="mt-1 text-xs text-text-secondary">
+                                  {goal.team_name} - {goal.completed_members}/{goal.total_members} members completed
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {canManageTeamGoals && (
+                    {canManageGoals && (
                       <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
                         <div className="mb-4 flex items-center gap-2">
                           <Users className="h-5 w-5 text-primary" />
@@ -731,7 +696,10 @@ export default function GoalsPage() {
                             <label className="mb-1 block text-xs font-medium text-text-secondary">Team</label>
                             <select
                               value={teamForm.team_id}
-                              onChange={(e) => setTeamForm((current) => ({ ...current, team_id: e.target.value }))}
+                              onChange={(e) => {
+                                setTeamForm((current) => ({ ...current, team_id: e.target.value }));
+                                setTeamErrors((current) => ({ ...current, team_id: undefined }));
+                              }}
                               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
                             >
                               <option value="">Select team</option>
@@ -741,17 +709,46 @@ export default function GoalsPage() {
                                 </option>
                               ))}
                             </select>
+                            {teamErrors.team_id && (
+                              <p className="mt-1 text-xs font-medium text-destructive">{teamErrors.team_id}</p>
+                            )}
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="mb-1 block text-xs font-medium text-text-secondary">Goal Type</label>
+                            <select
+                              value={teamForm.goal_type}
+                              onChange={(e) => {
+                                setTeamForm((current) => ({ ...current, goal_type: e.target.value as GoalType }));
+                                setTeamErrors((current) => ({ ...current, goal_type: undefined }));
+                              }}
+                              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
+                            >
+                              {GOAL_TYPE_OPTIONS.filter((option) => option.value !== "manual").map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                            {teamErrors.goal_type && (
+                              <p className="mt-1 text-xs font-medium text-destructive">{teamErrors.goal_type}</p>
+                            )}
                           </div>
                           <div className="md:col-span-2">
                             <label className="mb-1 block text-xs font-medium text-text-secondary">Title</label>
                             <Input
                               value={teamForm.title}
-                              onChange={(e) => setTeamForm((current) => ({ ...current, title: e.target.value }))}
+                              onChange={(e) => {
+                                setTeamForm((current) => ({ ...current, title: e.target.value }));
+                                setTeamErrors((current) => ({ ...current, title: undefined }));
+                              }}
                               placeholder="Finish onboarding plan as a team"
                             />
+                            {teamErrors.title && (
+                              <p className="mt-1 text-xs font-medium text-destructive">{teamErrors.title}</p>
+                            )}
                           </div>
                           <div className="md:col-span-2">
-                            <label className="mb-1 block text-xs font-medium text-text-secondary">Description</label>
+                            <label className="mb-1 block text-xs font-medium text-text-secondary">Context</label>
                             <textarea
                               value={teamForm.description}
                               onChange={(e) => setTeamForm((current) => ({ ...current, description: e.target.value }))}
@@ -765,8 +762,14 @@ export default function GoalsPage() {
                               type="number"
                               min={1}
                               value={teamForm.target_count}
-                              onChange={(e) => setTeamForm((current) => ({ ...current, target_count: parseInt(e.target.value, 10) || 1 }))}
+                              onChange={(e) => {
+                                setTeamForm((current) => ({ ...current, target_count: parseInt(e.target.value, 10) || 1 }));
+                                setTeamErrors((current) => ({ ...current, target_count: undefined }));
+                              }}
                             />
+                            {teamErrors.target_count && (
+                              <p className="mt-1 text-xs font-medium text-destructive">{teamErrors.target_count}</p>
+                            )}
                           </div>
                           <div>
                             <label className="mb-1 block text-xs font-medium text-text-secondary">XP Reward</label>
@@ -774,8 +777,14 @@ export default function GoalsPage() {
                               type="number"
                               min={0}
                               value={teamForm.xp_reward}
-                              onChange={(e) => setTeamForm((current) => ({ ...current, xp_reward: parseInt(e.target.value, 10) || 0 }))}
+                              onChange={(e) => {
+                                setTeamForm((current) => ({ ...current, xp_reward: parseInt(e.target.value, 10) || 0 }));
+                                setTeamErrors((current) => ({ ...current, xp_reward: undefined }));
+                              }}
                             />
+                            {teamErrors.xp_reward && (
+                              <p className="mt-1 text-xs font-medium text-destructive">{teamErrors.xp_reward}</p>
+                            )}
                           </div>
                           <div className="md:col-span-2">
                             <label className="mb-1 block text-xs font-medium text-text-secondary">Deadline</label>
@@ -787,40 +796,17 @@ export default function GoalsPage() {
                           </div>
                         </div>
                         <div className="mt-4">
-                          <Button onClick={handleCreateTeamGoal} disabled={isSubmitting || !teamForm.title.trim()}>
+                          <Button onClick={handleCreateTeamGoal} disabled={isSubmitting}>
                             Create Team Goal
                           </Button>
                         </div>
                       </div>
                     )}
 
-                    <div className="space-y-4">
-                      {teamGoals.length === 0 ? (
-                        <div className="rounded-2xl border border-border bg-card p-6 text-sm text-text-secondary">
-                          {canManageTeamGoals
-                            ? "No team goals yet. Create one for a managed team above."
-                            : "No team goals have been assigned to your team yet."}
-                        </div>
-                      ) : (
-                        teamGoals.map((goal) => (
-                          <GoalCard
-                            key={goal.id}
-                            goal={goal}
-                            subtitle={`${goal.team_name} - ${goal.completed_members}/${goal.total_members} members completed`}
-                            progressValue={teamProgress[goal.id] ?? goal.progress}
-                            onProgressChange={(value) =>
-                              setTeamProgress((current) => ({ ...current, [goal.id]: value }))
-                            }
-                            onSave={() => handleUpdateTeamGoal(goal)}
-                            readOnly={!canManageTeamGoals}
-                          />
-                        ))
-                      )}
-                    </div>
                   </>
                 )}
 
-                {!canManageTeamGoals && (
+                {!canManageGoals && (
                   <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-5 w-5 text-primary" />

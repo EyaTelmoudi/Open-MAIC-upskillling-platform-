@@ -1,5 +1,7 @@
 """Lesson CRUD router for the Learning Platform service."""
 
+from datetime import datetime
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -75,6 +77,12 @@ def _get_course_by_module_id(module_id: UUID, db: Session) -> Course:
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     return course
+
+
+def _mark_course_memory_pending(course: Course) -> None:
+    course.memory_retention_status = "pending"
+    course.memory_retention_error = None
+    course.memory_retention_updated_at = datetime.utcnow()
 
 
 def _validate_assessment_for_lesson(
@@ -197,6 +205,7 @@ def create_lesson(
     db.add(lesson)
     db.flush()
     course = _get_course_by_module_id(module_id, db)
+    _mark_course_memory_pending(course)
     sync_course_duration(course.id, db)
     db.commit()
     db.refresh(lesson)
@@ -245,6 +254,7 @@ def update_lesson(
         )
 
     course = _get_course_by_module_id(lesson.module_id, db)
+    _mark_course_memory_pending(course)
     sync_course_duration(course.id, db)
     db.commit()
     db.refresh(lesson)
@@ -280,6 +290,7 @@ def delete_lesson(
         )
 
     course = _get_course_by_module_id(lesson.module_id, db)
+    _mark_course_memory_pending(course)
     db.delete(lesson)
     db.flush()
     sync_course_duration(course.id, db)

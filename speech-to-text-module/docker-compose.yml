@@ -1,0 +1,26 @@
+services:
+  stt-cpu:
+    image: fedirz/faster-whisper-server:latest-cpu
+    container_name: openmaic-stt-cpu
+    profiles: ["cpu"]
+    ports:
+      - "${STT_PORT:-8001}:8000"
+    environment:
+      WHISPER__MODEL: "${STT_MODEL:-Systran/faster-whisper-small}"
+    volumes:
+      - ./hf-cache:/root/.cache/huggingface
+    restart: unless-stopped
+
+  stt-gpu:
+    image: fedirz/faster-whisper-server:latest-cuda
+    container_name: openmaic-stt-gpu
+    profiles: ["gpu"]
+    ports:
+      - "${STT_PORT:-8001}:8000"
+    environment:
+      WHISPER__MODEL: "${STT_MODEL:-Systran/faster-whisper-small}"
+    volumes:
+      - ./hf-cache:/root/.cache/huggingface
+    gpus: all
+    restart: unless-stopped
+

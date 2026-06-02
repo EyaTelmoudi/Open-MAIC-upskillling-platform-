@@ -8,7 +8,7 @@ RUN pip install --no-cache-dir /app/packages/common
 
 # Copy and install service dependencies
 COPY services/identity /app/services/identity
-RUN pip install --no-cache-dir fastapi uvicorn sqlalchemy python-jose[cryptography] bcrypt pg8000 pika minio python-multipart httpx email-validator
+RUN pip install --no-cache-dir fastapi uvicorn sqlalchemy python-jose[cryptography] bcrypt pg8000 pika minio python-multipart httpx email-validator openpyxl
 
 # Copy services __init__.py for package resolution
 COPY services/__init__.py /app/services/__init__.py

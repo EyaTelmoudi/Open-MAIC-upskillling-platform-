@@ -129,7 +129,7 @@ export async function deleteManagedCourse(request: Request, courseId: string) {
     );
 
     if (upstreamDraftDelete.ok) {
-      await safeDeleteAiCourseDraft(linkedDraft.external_draft_id).catch(() => null);
+      await safeDeleteAiCourseDraft(request, linkedDraft.external_draft_id).catch(() => null);
     } else {
       console.warn(
         `[Course deletion] Failed to delete linked OpenMAIC draft ${linkedDraft.external_draft_id} for course ${courseId}. status=${upstreamDraftDelete.status}`,

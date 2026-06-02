@@ -37,9 +37,9 @@ export default function SuperAdminLoginPage() {
       
       // Store tokens in cookies for middleware (without Secure flag for localhost)
       const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
-      const cookieOptions = `path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax${isProduction ? '; Secure' : ''}`;
+      const cookieOptions = `path=/; max-age=${data.expires_in || 900}; SameSite=Lax${isProduction ? '; Secure' : ''}`;
       document.cookie = `access_token=${data.access_token}; ${cookieOptions}`;
-      document.cookie = `refresh_token=${data.refresh_token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
+      document.cookie = `refresh_token=${data.refresh_token}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
 
       // Force hard redirect to superadmin dashboard
       window.location.replace("/superadmin");

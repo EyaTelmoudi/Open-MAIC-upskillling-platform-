@@ -2,29 +2,69 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users } from "lucide-react";
+import {
+  PanelLeftClose,
+  PanelLeftOpen,
+  Workflow,
+} from "lucide-react";
 
 import { routes } from "@/app/lib/routes";
 import { cn } from "@/app/lib/utils";
 
 const teamManagerNavItems = [
   {
-    label: "Teams Workspace",
-    description: "Company teams, members, and assignments",
-    icon: Users,
+    label: "Teams",
+    description: "Company teams and assignments",
+    icon: Workflow,
     href: routes.teamManagerTeams,
   },
 ];
 
-export function TeamManagerSidebar() {
+export function TeamManagerSidebar({
+  isCompact,
+  onToggleCompact,
+}: {
+  isCompact: boolean;
+  onToggleCompact: () => void;
+}) {
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-[76px] flex h-[calc(100vh-76px)] w-[292px] shrink-0 flex-col border-r border-border bg-[radial-gradient(circle_at_top,rgba(20,184,166,0.12),transparent_24%),linear-gradient(180deg,rgba(241,251,247,0.97)_0%,rgba(232,246,247,0.95)_54%,rgba(226,238,243,0.97)_100%)] backdrop-blur-sm">
-      <nav className="flex-1 overflow-y-auto px-4 py-5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-[0.24em] text-text-secondary">
-          Team Operations
-        </p>
+    <aside
+      className={cn(
+        "sticky top-[76px] flex h-[calc(100vh-76px)] shrink-0 flex-col border-r border-border bg-[radial-gradient(circle_at_top,rgba(14,163,122,0.18),transparent_26%),radial-gradient(circle_at_20%_78%,rgba(242,165,27,0.1),transparent_18%),linear-gradient(180deg,rgba(238,251,245,0.98)_0%,rgba(227,245,245,0.96)_54%,rgba(219,233,241,0.98)_100%)] backdrop-blur-sm transition-[width] duration-200",
+        isCompact ? "w-[88px]" : "w-[292px]"
+      )}
+    >
+      <div className={cn("shrink-0 border-b border-border/70", isCompact ? "px-3 py-4" : "px-4 py-4")}>
+        <div className={cn("flex items-center", isCompact ? "justify-center" : "justify-between gap-3")}>
+          {!isCompact ? (
+            <p className="px-2 text-xs font-semibold uppercase tracking-[0.24em] text-slate-700">
+              Administration
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={onToggleCompact}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white/78 text-slate-700 shadow-sm transition-colors hover:bg-white hover:text-slate-950"
+            aria-label={isCompact ? "Expand sidebar" : "Collapse sidebar"}
+            title={isCompact ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCompact ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      <nav
+        className={cn(
+          "flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+          isCompact ? "px-3 py-4" : "px-4 py-5"
+        )}
+      >
         <div className="space-y-2">
           {teamManagerNavItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href);
@@ -34,30 +74,34 @@ export function TeamManagerSidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "group flex items-start gap-3 rounded-2xl border px-4 py-3 transition-all",
+                  "group flex rounded-2xl border transition-all",
+                  isCompact ? "justify-center px-2 py-3" : "items-start gap-3 px-4 py-3",
                   isActive
-                    ? "border-primary/25 bg-[linear-gradient(135deg,rgba(15,159,119,0.16),rgba(20,184,166,0.1))] shadow-[0_18px_36px_rgba(15,23,42,0.08)]"
+                    ? "border-primary/25 bg-[linear-gradient(135deg,rgba(14,163,122,0.18),rgba(34,199,180,0.12),rgba(242,165,27,0.08))] shadow-[0_18px_36px_rgba(15,23,42,0.08)]"
                     : "border-transparent hover:border-border hover:bg-white/42"
                 )}
+                title={isCompact ? item.label : undefined}
               >
                 <div
                   className={cn(
                     "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
                     isActive
                       ? "bg-primary/12 text-primary"
-                      : "bg-white/42 text-text-secondary group-hover:text-text-primary"
+                      : "bg-white/42 text-slate-600 group-hover:text-slate-900"
                   )}
                 >
                   <item.icon className="h-5 w-5" />
                 </div>
-                <div className="min-w-0">
-                  <p className={cn("text-sm font-semibold", isActive ? "text-text-primary" : "text-text-secondary")}>
-                    {item.label}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-text-secondary">
-                    {item.description}
-                  </p>
-                </div>
+                {!isCompact ? (
+                  <div className="min-w-0">
+                    <p className={cn("text-sm font-semibold", isActive ? "text-slate-950" : "text-slate-800")}>
+                      {item.label}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-600">
+                      {item.description}
+                    </p>
+                  </div>
+                ) : null}
               </Link>
             );
           })}

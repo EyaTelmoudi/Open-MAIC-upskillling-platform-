@@ -1,20 +1,31 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 import os
 import re
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 from pydantic import BaseModel
 
 from agno.workflow import Step, StepInput, StepOutput, Workflow
 
+COMMON_SRC = Path(__file__).resolve().parents[3] / "upskilling_platform" / "packages" / "common" / "src"
+if str(COMMON_SRC) not in sys.path:
+    sys.path.insert(0, str(COMMON_SRC))
+
+from common.storage import upload_file_tenant
+
 
 DEFAULT_HINDSIGHT_URL = os.getenv("HINDSIGHT_API_URL", "http://127.0.0.1:8888")
 DEFAULT_HINDSIGHT_API_KEY = os.getenv("HINDSIGHT_API_KEY", "")
+DEFAULT_STT_URL = os.getenv("FASTER_WHISPER_SERVER_URL", "http://127.0.0.1:8011")
+DEFAULT_STT_MODEL = os.getenv("FASTER_WHISPER_MODEL", "Systran/faster-whisper-small")
 
 
 class CourseMemoryAssemblyInput(BaseModel):
@@ -62,6 +73,140 @@ def _sanitize_string_dict(source: dict[str, Any]) -> dict[str, str]:
         if text:
             result[key] = text
     return result
+
+
+def _slugify(value: str) -> str:
+    normalized = re.sub(r"[^a-zA-Z0-9]+", "-", str(value or "").strip().lower())
+    return normalized.strip("-") or "item"
+
+
+def _guess_filename_from_url(url: str, fallback_stem: str) -> str:
+    parsed = urlparse(url)
+    candidate = Path(parsed.path).name.strip()
+    if candidate:
+        return candidate
+    return f"{fallback_stem}.bin"
+
+
+def _pdf_escape(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def _wrap_pdf_lines(value: str, max_chars: int = 92) -> list[str]:
+    wrapped: list[str] = []
+    for raw_line in str(value or "").splitlines() or [""]:
+        line = raw_line.strip()
+        if not line:
+            wrapped.append("")
+            continue
+
+        current = ""
+        for word in line.split():
+            next_line = word if not current else f"{current} {word}"
+            if len(next_line) <= max_chars:
+                current = next_line
+                continue
+            if current:
+                wrapped.append(current)
+            current = word
+        if current:
+            wrapped.append(current)
+    return wrapped or [""]
+
+
+def _build_transcript_pdf(
+    *,
+    course_title: str,
+    lesson_title: str,
+    transcript_text: str,
+    source_url: str,
+) -> bytes:
+    lines = [
+        f"Course Transcript: {course_title or 'Untitled course'}",
+        f"Lesson: {lesson_title or 'Untitled lesson'}",
+        f"Generated At: {datetime.now(timezone.utc).isoformat()}",
+        f"Video Source: {source_url or 'Unknown'}",
+        "",
+    ]
+    lines.extend(_wrap_pdf_lines(transcript_text))
+
+    page_line_capacity = 42
+    pages = [
+        lines[index : index + page_line_capacity]
+        for index in range(0, len(lines), page_line_capacity)
+    ] or [[]]
+
+    pdf_objects: list[bytes] = []
+
+    def add_object(payload: str | bytes) -> int:
+        data = payload.encode("latin-1", errors="replace") if isinstance(payload, str) else payload
+        pdf_objects.append(data)
+        return len(pdf_objects)
+
+    font_id = add_object("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+
+    page_ids: list[int] = []
+    content_ids: list[int] = []
+    pages_id_placeholder = 0
+
+    for page_lines in pages:
+        content_stream_lines = ["BT", "/F1 10 Tf", "50 790 Td", "14 TL"]
+        first_line = True
+        for line in page_lines:
+            escaped_line = _pdf_escape(line)
+            if first_line:
+                content_stream_lines.append(f"({_pdf_escape(line)}) Tj")
+                first_line = False
+            else:
+                content_stream_lines.append("T*")
+                content_stream_lines.append(f"({escaped_line}) Tj")
+        if first_line:
+            content_stream_lines.append("( ) Tj")
+        content_stream_lines.append("ET")
+        content_stream = "\n".join(content_stream_lines).encode("latin-1", errors="replace")
+        content_id = add_object(
+            b"<< /Length " + str(len(content_stream)).encode("ascii") + b" >>\nstream\n" + content_stream + b"\nendstream"
+        )
+        content_ids.append(content_id)
+        page_ids.append(0)
+
+    pages_id_placeholder = len(pdf_objects) + 1
+    add_object("<< /Type /Pages /Kids [] /Count 0 >>")
+
+    for index, content_id in enumerate(content_ids):
+        page_object = (
+            f"<< /Type /Page /Parent {pages_id_placeholder} 0 R /MediaBox [0 0 595 842] "
+            f"/Resources << /Font << /F1 {font_id} 0 R >> >> /Contents {content_id} 0 R >>"
+        )
+        page_ids[index] = add_object(page_object)
+
+    kids = " ".join(f"{page_id} 0 R" for page_id in page_ids)
+    pdf_objects[pages_id_placeholder - 1] = (
+        f"<< /Type /Pages /Kids [{kids}] /Count {len(page_ids)} >>".encode("latin-1")
+    )
+
+    catalog_id = add_object(f"<< /Type /Catalog /Pages {pages_id_placeholder} 0 R >>")
+
+    output = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets = [0]
+    for object_id, payload in enumerate(pdf_objects, start=1):
+        offsets.append(len(output))
+        output.extend(f"{object_id} 0 obj\n".encode("ascii"))
+        output.extend(payload)
+        output.extend(b"\nendobj\n")
+
+    xref_offset = len(output)
+    output.extend(f"xref\n0 {len(pdf_objects) + 1}\n".encode("ascii"))
+    output.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        output.extend(f"{offset:010d} 00000 n \n".encode("ascii"))
+    output.extend(
+        (
+            f"trailer\n<< /Size {len(pdf_objects) + 1} /Root {catalog_id} 0 R >>\n"
+            f"startxref\n{xref_offset}\n%%EOF"
+        ).encode("ascii")
+    )
+    return bytes(output)
 
 
 def _extract_global_learning_objectives(cleaned_payload: dict[str, Any]) -> list[str]:
@@ -171,7 +316,7 @@ def _format_lesson_preview(document: dict[str, Any], lesson: dict[str, Any], cou
             )
             extracted_text = _normalize_text(document_item.get("extractedText") or "")
             if extracted_text:
-                lines.append(f"  contenu extrait: {extracted_text}")
+                lines.append(f"  contenu extrait: hidden ({len(extracted_text)} chars)")
 
     return "\n".join(lines)
 
@@ -234,13 +379,18 @@ def _format_quiz_preview(document: dict[str, Any], lesson: dict[str, Any], cours
 
 
 def _format_supplemental_source_preview(document: dict[str, Any], source: dict[str, Any], course_id: str, index: int) -> str:
+    source_text = _normalize_text(source.get("text") or "")
     return "\n".join(
         [
             "Supplemental Source",
             f"document_id: {document.get('document_id') or f'course:{course_id}:source:{index + 1}'}",
             f"update_mode: {document.get('update_mode') or 'replace'}",
             f"titre: {_normalize_text(source.get('title') or '') or f'Supplemental Source {index + 1}'}",
-            f"contenu: {_normalize_text(source.get('text') or '') or 'No supplemental source content'}",
+            (
+                f"contenu: hidden ({len(source_text)} chars)"
+                if source_text
+                else "contenu: No supplemental source content"
+            ),
         ]
     )
 
@@ -303,6 +453,142 @@ def _build_course_bank_body(
 
 def _build_learning_endpoint(learning_api_url: str, suffix: str) -> str:
     return f"{learning_api_url.rstrip('/')}/{suffix.lstrip('/')}"
+
+
+def _build_source_retain_document(
+    *,
+    course_id: str,
+    course_title: str,
+    tenant_id: str,
+    source: dict[str, Any],
+    source_index: int,
+) -> dict[str, Any] | None:
+    source_title = _normalize_text(source.get("title") or "") or f"Supplemental Source {source_index}"
+    source_kind = _normalize_text(source.get("kind") or "") or "supplemental_course_source"
+    source_text = _normalize_text(source.get("text") or "")
+    if not source_text:
+        return None
+
+    return {
+        "content": "\n".join(
+            [
+                f"Course Title: {course_title}",
+                f"Supplemental Course Source: {source_title}",
+                source_text,
+            ]
+        ),
+        "context": "supplemental course source knowledge",
+        "document_id": f"course:{course_id}:source:{source_index}",
+        "update_mode": "replace",
+        "metadata": _sanitize_string_dict(
+            {
+                "tenantId": tenant_id,
+                "courseId": course_id,
+                "courseTitle": course_title,
+                "sourceTitle": source_title,
+                "contentType": source_kind,
+            }
+        ),
+        "tags": [
+            f"tenant:{tenant_id}",
+            f"course:{course_id}",
+            "content:supplemental_course_source",
+        ],
+    }
+
+
+def _build_lesson_retain_document(
+    *,
+    course_id: str,
+    course_title: str,
+    tenant_id: str,
+    lesson: dict[str, Any],
+) -> dict[str, Any]:
+    lesson_id = str(lesson.get("lessonId") or lesson.get("id") or "").strip()
+    lesson_title = str(lesson.get("title") or "").strip()
+    return {
+        "content": _build_lesson_retain_content(lesson),
+        "context": "published course lesson knowledge",
+        "document_id": f"course:{course_id}:lesson:{lesson_id}",
+        "update_mode": "replace",
+        "metadata": _sanitize_string_dict(
+            {
+                "tenantId": tenant_id,
+                "courseId": course_id,
+                "courseTitle": course_title,
+                "lessonId": lesson_id,
+                "lessonTitle": lesson_title,
+                "moduleId": lesson.get("moduleId"),
+                "moduleTitle": lesson.get("moduleTitle"),
+                "assessmentId": lesson.get("assessmentId"),
+                "contentType": str(lesson.get("contentType") or "lesson_knowledge"),
+            }
+        ),
+        "tags": [
+            f"tenant:{tenant_id}",
+            f"course:{course_id}",
+            f"lesson:{lesson_id}",
+            "content:lesson_knowledge",
+        ],
+    }
+
+
+def _ensure_hindsight_course_banks(
+    *,
+    client: httpx.Client,
+    hindsight_url: str,
+    headers: dict[str, str],
+    tenant_id: str,
+    course_id: str,
+    requester_user_id: str = "",
+) -> None:
+    bank_id = _build_course_bank_id(tenant_id, course_id)
+    bank_response = client.put(
+        f"{hindsight_url}/v1/default/banks/{bank_id}",
+        json=_build_course_bank_body(tenant_id=tenant_id, course_id=course_id),
+        headers=headers,
+    )
+    bank_response.raise_for_status()
+
+    if requester_user_id:
+        user_scoped_bank_id = _build_user_course_bank_id(tenant_id, requester_user_id, course_id)
+        user_bank_response = client.put(
+            f"{hindsight_url}/v1/default/banks/{user_scoped_bank_id}",
+            json=_build_course_bank_body(tenant_id=tenant_id, course_id=course_id),
+            headers=headers,
+        )
+        user_bank_response.raise_for_status()
+
+
+def _retain_documents_now(
+    *,
+    client: httpx.Client,
+    hindsight_url: str,
+    headers: dict[str, str],
+    tenant_id: str,
+    course_id: str,
+    documents: list[dict[str, Any]],
+) -> list[str]:
+    if not documents:
+        return []
+
+    bank_id = _build_course_bank_id(tenant_id, course_id)
+    retain_response = client.post(
+        f"{hindsight_url}/v1/default/banks/{bank_id}/memories",
+        json={"items": documents, "async": True},
+        headers=headers,
+    )
+    retain_response.raise_for_status()
+    payload = retain_response.json()
+    operation_ids: list[str] = []
+    if payload.get("operation_id"):
+        operation_ids.append(str(payload["operation_id"]))
+    operation_ids.extend(
+        str(operation_id).strip()
+        for operation_id in (payload.get("operation_ids") or [])
+        if str(operation_id).strip()
+    )
+    return list(dict.fromkeys(operation_ids))
 
 
 def _normalize_supplemental_sources(raw_sources: Any) -> list[dict[str, str]]:
@@ -477,6 +763,239 @@ def _load_existing_supplemental_sources(
             return recovered_sources
     except (httpx.HTTPError, ValueError):
         return []
+
+
+def _transcribe_video_lesson(
+    *,
+    client: httpx.Client,
+    lesson: dict[str, Any],
+    course_title: str,
+    course_id: str,
+    tenant_id: str,
+    lesson_index: int,
+    total_videos: int,
+) -> tuple[dict[str, Any], dict[str, str] | None]:
+    video_url = str(lesson.get("videoUrl") or lesson.get("video_url") or "").strip()
+    video_source_ref = str(
+        lesson.get("videoSourceRef") or lesson.get("video_source_ref") or video_url
+    ).strip()
+    lesson_id = str(lesson.get("id") or lesson.get("lessonId") or "").strip() or f"lesson-{lesson_index}"
+    lesson_title = _normalize_text(lesson.get("title") or "") or f"Lesson {lesson_index}"
+
+    if not video_url:
+        return lesson, None
+
+    _log(
+        f"[Agno Course Memory Agent] Video {lesson_index}/{total_videos} transcription started: lesson={lesson_id} title={lesson_title}"
+    )
+
+    media_response = client.get(video_url, follow_redirects=True)
+    media_response.raise_for_status()
+    media_bytes = media_response.content
+    file_name = _guess_filename_from_url(video_url, _slugify(lesson_title))
+    media_type = media_response.headers.get("content-type") or mimetypes.guess_type(file_name)[0] or "video/mp4"
+
+    transcript_response = client.post(
+        f"{DEFAULT_STT_URL.rstrip('/')}/v1/audio/transcriptions",
+        files={"file": (file_name, media_bytes, media_type)},
+        data={"response_format": "verbose_json", "model": DEFAULT_STT_MODEL},
+        timeout=1800.0,
+    )
+    transcript_response.raise_for_status()
+    transcript_payload = transcript_response.json()
+    transcript_text = _normalize_text(transcript_payload.get("text") or "")
+    if not transcript_text:
+        raise RuntimeError(f"No transcript text returned for lesson {lesson_id}")
+
+    pdf_bytes = _build_transcript_pdf(
+        course_title=course_title,
+        lesson_title=lesson_title,
+        transcript_text=transcript_text,
+        source_url=video_source_ref,
+    )
+    pdf_title = f"{lesson_title} Transcript.pdf"
+    pdf_object_name = upload_file_tenant(
+        "course-pdfs",
+        tenant_id,
+        "courses",
+        course_id,
+        "video-transcripts",
+        f"{lesson_id}.pdf",
+        file_data=pdf_bytes,
+        content_type="application/pdf",
+    )
+    transcript_pdf_url = f"minio://course-pdfs/{pdf_object_name}"
+
+    support_documents = list(lesson.get("support_documents") or lesson.get("supportDocuments") or [])
+    support_documents.append(
+        {
+            "title": pdf_title,
+            "url": transcript_pdf_url,
+            "kind": "pdf",
+            "extractedText": transcript_text,
+        }
+    )
+
+    updated_lesson = {
+        **lesson,
+        "support_documents": support_documents,
+        "supportDocuments": support_documents,
+        "videoTranscriptText": transcript_text,
+        "videoTranscriptPdfUrl": transcript_pdf_url,
+        "videoSourceRef": video_source_ref,
+    }
+    supplemental_source = {
+        "title": pdf_title,
+        "kind": "course_video_transcript_pdf",
+        "text": transcript_text,
+    }
+    _log(
+        f"[Agno Course Memory Agent] Video {lesson_index}/{total_videos} transcription completed: lesson={lesson_id} pdf=minio://course-pdfs/{pdf_object_name}"
+    )
+    return updated_lesson, supplemental_source
+
+
+def _augment_traditional_course_with_video_transcripts(
+    *,
+    course: dict[str, Any],
+    auth_token: str,
+    supplemental_sources: list[dict[str, str]],
+    hindsight_url: str,
+    hindsight_api_key: str,
+    requester_user_id: str = "",
+) -> tuple[dict[str, Any], list[dict[str, str]], list[str], list[str]]:
+    tenant_id = str(course.get("tenant_id") or "").strip()
+    course_id = str(course.get("id") or "").strip()
+    course_title = _normalize_text(course.get("title") or "") or "Untitled course"
+    if not tenant_id or not course_id:
+        return course, supplemental_sources, [], []
+
+    lessons_with_video: list[tuple[int, dict[str, Any]]] = []
+    for module in course.get("modules") or []:
+        for lesson in module.get("lessons") or []:
+            video_url = str(lesson.get("video_url") or lesson.get("videoUrl") or "").strip()
+            if video_url and _normalize_text(lesson.get("content_type") or lesson.get("contentType") or "").lower() == "video":
+                lessons_with_video.append((len(lessons_with_video) + 1, lesson))
+
+    if not lessons_with_video:
+        return course, supplemental_sources, [], []
+
+    _log(
+        f"[Agno Course Memory Agent] Starting traditional video transcript pipeline for course {course_id} with {len(lessons_with_video)} video lesson(s)."
+    )
+    updated_sources = list(supplemental_sources)
+    pre_retained_document_ids: list[str] = []
+    pre_retain_operation_ids: list[str] = []
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    hindsight_headers = {"Content-Type": "application/json"}
+    if hindsight_api_key:
+        hindsight_headers["Authorization"] = f"Bearer {hindsight_api_key}"
+
+    with httpx.Client(headers=headers, timeout=300.0) as client:
+        _ensure_hindsight_course_banks(
+            client=client,
+            hindsight_url=hindsight_url,
+            headers=hindsight_headers,
+            tenant_id=tenant_id,
+            course_id=course_id,
+            requester_user_id=requester_user_id,
+        )
+        for lesson_index, lesson in lessons_with_video:
+            try:
+                updated_lesson, supplemental_source = _transcribe_video_lesson(
+                    client=client,
+                    lesson=lesson,
+                    course_title=course_title,
+                    course_id=course_id,
+                    tenant_id=tenant_id,
+                    lesson_index=lesson_index,
+                    total_videos=len(lessons_with_video),
+                )
+                lesson.update(updated_lesson)
+                if supplemental_source:
+                    source_index = len(updated_sources) + 1
+                    updated_sources.append(supplemental_source)
+                    lesson_retain_payload = {
+                        "lessonId": updated_lesson.get("id") or updated_lesson.get("lessonId"),
+                        "moduleId": updated_lesson.get("module_id") or updated_lesson.get("moduleId"),
+                        "moduleTitle": updated_lesson.get("module_title") or updated_lesson.get("moduleTitle"),
+                        "courseId": course_id,
+                        "courseTitle": course_title,
+                        "title": updated_lesson.get("title"),
+                        "contentType": updated_lesson.get("content_type") or updated_lesson.get("contentType"),
+                        "assessmentId": updated_lesson.get("assessment_id") or updated_lesson.get("assessmentId"),
+                        "duration": updated_lesson.get("duration"),
+                        "content": updated_lesson.get("content"),
+                        "cleanedHtmlContent": _normalize_text(updated_lesson.get("content") or ""),
+                        "supportDocuments": _enrich_lesson_support_documents(
+                            updated_lesson.get("support_documents") or updated_lesson.get("supportDocuments"),
+                            updated_lesson.get("content"),
+                            updated_sources,
+                        ),
+                        "teacherParoles": [],
+                        "explanations": [],
+                        "quizQuestions": [],
+                    }
+                    lesson_document = _build_lesson_retain_document(
+                        course_id=course_id,
+                        course_title=course_title,
+                        tenant_id=tenant_id,
+                        lesson=lesson_retain_payload,
+                    )
+                    source_document = _build_source_retain_document(
+                        course_id=course_id,
+                        course_title=course_title,
+                        tenant_id=tenant_id,
+                        source=supplemental_source,
+                        source_index=source_index,
+                    )
+                    if source_document is not None:
+                        lesson_document_id = str(lesson_document.get("document_id") or "").strip()
+                        source_document_id = str(source_document.get("document_id") or "").strip()
+                        _log(
+                            f"[Agno Course Memory Agent] Starting immediate lesson retain operation for {lesson_document_id}."
+                        )
+                        lesson_operation_ids = _retain_documents_now(
+                            client=client,
+                            hindsight_url=hindsight_url,
+                            headers=hindsight_headers,
+                            tenant_id=tenant_id,
+                            course_id=course_id,
+                            documents=[lesson_document],
+                        )
+                        _log(
+                            f"[Agno Course Memory Agent] Completed immediate lesson retain operation for {lesson_document_id}. operation_ids={', '.join(lesson_operation_ids) if lesson_operation_ids else 'none'}"
+                        )
+                        _log(
+                            f"[Agno Course Memory Agent] Starting immediate supplemental source retain operation for {source_document_id}."
+                        )
+                        source_operation_ids = _retain_documents_now(
+                            client=client,
+                            hindsight_url=hindsight_url,
+                            headers=hindsight_headers,
+                            tenant_id=tenant_id,
+                            course_id=course_id,
+                            documents=[source_document],
+                        )
+                        _log(
+                            f"[Agno Course Memory Agent] Completed immediate supplemental source retain operation for {source_document_id}. operation_ids={', '.join(source_operation_ids) if source_operation_ids else 'none'}"
+                        )
+                        pre_retained_document_ids.extend([lesson_document_id, source_document_id])
+                        pre_retain_operation_ids.extend(lesson_operation_ids)
+                        pre_retain_operation_ids.extend(source_operation_ids)
+            except Exception as exc:
+                lesson_id = str(lesson.get("id") or "").strip() or f"lesson-{lesson_index}"
+                _log(
+                    f"[Agno Course Memory Agent] Video {lesson_index}/{len(lessons_with_video)} transcription failed: lesson={lesson_id} error={exc}"
+                )
+
+    _log(f"[Agno Course Memory Agent] Traditional video transcript pipeline finished for course {course_id}.")
+    return (
+        course,
+        updated_sources,
+        list(dict.fromkeys(pre_retained_document_ids)),
+        list(dict.fromkeys(pre_retain_operation_ids)),
+    )
 
 
 def _parse_lesson_content(raw_content: Any) -> Any:
@@ -830,10 +1349,8 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
             success=False,
         )
 
-    course = response.json()
-    modules = course.get("modules") or []
-
     supplemental_sources = _normalize_supplemental_sources(payload.supplementalSources)
+    course = response.json()
     effective_tenant_id = str(course.get("tenant_id") or payload.tenantId or "").strip()
     if not supplemental_sources and effective_tenant_id:
         recovered_sources = _load_existing_supplemental_sources(
@@ -847,6 +1364,15 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
             _log(
                 f"[Agno Course Memory Agent] Recovered {len(recovered_sources)} supplemental course source(s) from Hindsight for course {payload.courseId}."
             )
+    course, supplemental_sources, pre_retained_document_ids, pre_retain_operation_ids = _augment_traditional_course_with_video_transcripts(
+        course=course,
+        auth_token=payload.authToken,
+        supplemental_sources=supplemental_sources,
+        hindsight_url=hindsight_url,
+        hindsight_api_key=hindsight_api_key,
+        requester_user_id=str(payload.requesterUserId or "").strip(),
+    )
+    modules = course.get("modules") or []
     modules_summary: list[dict[str, Any]] = []
     is_ai_generated = False
 
@@ -932,6 +1458,8 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
                             "courseTitle": course.get("title"),
                             "title": lesson.get("title"),
                             "contentType": lesson.get("content_type"),
+                            "videoUrl": lesson.get("video_url") or lesson.get("videoUrl"),
+                            "videoSourceRef": lesson.get("video_source_ref") or lesson.get("videoSourceRef"),
                             "assessmentId": assessment_id or None,
                             "duration": lesson.get("duration"),
                             "content": lesson.get("content"),
@@ -972,6 +1500,8 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
                 "forceRetention": payload.forceRetention,
                 "foundExistingCourseBank": found_existing_course_bank,
                 "bankExistenceCheckStatus": bank_check_status,
+                "preRetainedDocumentIds": pre_retained_document_ids,
+                "preRetainOperationIds": pre_retain_operation_ids,
             },
             success=True,
         )
@@ -1045,6 +1575,8 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
                     "courseTitle": course.get("title"),
                     "title": lesson.get("title"),
                     "contentType": lesson.get("content_type"),
+                    "videoUrl": lesson.get("video_url") or lesson.get("videoUrl"),
+                    "videoSourceRef": lesson.get("video_source_ref") or lesson.get("videoSourceRef"),
                     "duration": lesson.get("duration"),
                     "content": lesson.get("content"),
                     "supportDocuments": _enrich_lesson_support_documents(
@@ -1099,6 +1631,8 @@ def assemble_course_memory_payload(step_input: StepInput) -> StepOutput:
             "forceRetention": payload.forceRetention,
             "foundExistingCourseBank": found_existing_course_bank,
             "bankExistenceCheckStatus": bank_check_status,
+            "preRetainedDocumentIds": pre_retained_document_ids,
+            "preRetainOperationIds": pre_retain_operation_ids,
         },
         success=True,
     )
@@ -1598,6 +2132,17 @@ def retain_documents_in_hindsight(step_input: StepInput) -> StepOutput:
     if hindsight_api_key:
         headers["Authorization"] = f"Bearer {hindsight_api_key}"
 
+    pre_retained_document_ids = {
+        str(document_id).strip()
+        for document_id in (previous_content.get("preRetainedDocumentIds") or [])
+        if str(document_id).strip()
+    }
+    pre_retain_operation_ids = [
+        str(operation_id).strip()
+        for operation_id in (previous_content.get("preRetainOperationIds") or [])
+        if str(operation_id).strip()
+    ]
+
     # Hindsight request payload logs are intentionally muted to avoid noisy terminal output.
 
     lesson_documents = [
@@ -1606,6 +2151,7 @@ def retain_documents_in_hindsight(step_input: StepInput) -> StepOutput:
         if isinstance(item, dict)
         and str(item.get("document_id") or "").startswith(f"course:{course_id}:lesson:")
         and not str(item.get("document_id") or "").endswith(":quiz")
+        and str(item.get("document_id") or "").strip() not in pre_retained_document_ids
     ]
     quiz_documents = [
         item
@@ -1619,6 +2165,7 @@ def retain_documents_in_hindsight(step_input: StepInput) -> StepOutput:
         for item in retention_documents
         if isinstance(item, dict)
         and str(item.get("document_id") or "").startswith(f"course:{course_id}:source:")
+        and str(item.get("document_id") or "").strip() not in pre_retained_document_ids
     ]
     non_lesson_documents = [
         item
@@ -1639,7 +2186,7 @@ def retain_documents_in_hindsight(step_input: StepInput) -> StepOutput:
         )
     ]
 
-    operation_ids_collected: list[str] = []
+    operation_ids_collected: list[str] = list(pre_retain_operation_ids)
     retain_responses: list[dict[str, Any]] = []
     is_async = False
 

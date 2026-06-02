@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/Ta
 import { BookmarkButton } from "@/app/components/ui/BookmarkButton";
 import { api } from "@/app/lib/api";
 import { useAuth } from "@/app/context/AuthContext";
+import { resolveStoredMediaUrl } from "@/app/lib/media";
 import {
   ArrowLeft,
   Clock,
@@ -400,7 +401,7 @@ function CourseDetailContent() {
                      }}>
                   {course.thumbnail ? (
                     <img
-                      src={course.thumbnail}
+                      src={resolveStoredMediaUrl(course.thumbnail)}
                       alt={course.title}
                       className="h-full w-full object-cover rounded-t-xl"
                     />
@@ -421,7 +422,7 @@ function CourseDetailContent() {
                 <div className="relative aspect-video rounded-t-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
                   {course.thumbnail ? (
                     <img
-                      src={course.thumbnail}
+                      src={resolveStoredMediaUrl(course.thumbnail)}
                       alt={course.title}
                       className="h-full w-full object-cover rounded-t-xl"
                     />

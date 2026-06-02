@@ -82,6 +82,7 @@ def _upsert_platform_course(
     db: Session,
     record: AICourseDraft,
     current_user: User,
+    thumbnail: str | None = None,
 ) -> Course:
     final_course = record.final_course_payload
     if not final_course:
@@ -97,6 +98,7 @@ def _upsert_platform_course(
     course_title = str(final_course.get("stage", {}).get("name") or record.title)
     scenes = sorted(final_course.get("scenes") or [], key=lambda scene: scene.get("order", 0))
     estimated_duration = sum(_scene_duration(scene) for scene in scenes) or max(len(scenes) * 5, 5)
+    resolved_thumbnail = thumbnail.strip() if isinstance(thumbnail, str) and thumbnail.strip() else None
 
     if not course:
         course = Course(
@@ -104,7 +106,7 @@ def _upsert_platform_course(
             description=(
                 "AI-generated course draft created from OpenMAIC and saved for learning-expert review."
             ),
-            thumbnail=None,
+            thumbnail=resolved_thumbnail,
             category="AI Generated",
             difficulty="Intermediate",
             duration=estimated_duration,
@@ -121,6 +123,8 @@ def _upsert_platform_course(
             "AI-generated course draft created from OpenMAIC and saved for learning-expert review."
         )
         course.duration = estimated_duration
+        if resolved_thumbnail is not None:
+            course.thumbnail = resolved_thumbnail
         course.author_id = current_user.id
         course.tenant_id = current_user.tenant_id
         course.is_published = False
@@ -346,7 +350,7 @@ def save_ai_course_as_platform_draft(
     if not record:
         raise HTTPException(status_code=404, detail="AI course draft not found")
 
-    course = _upsert_platform_course(db, record, user)
+    course = _upsert_platform_course(db, record, user, payload.get("thumbnail"))
     record.review_status = "draft_saved"
     record.approved_by = payload.get("approvedBy") or user.email
     record.approved_at = datetime.utcnow()

@@ -12,11 +12,19 @@ from sqlalchemy.orm import Session
 from common.auth import decode_token
 from common.database import get_db
 from common.models import Team, TeamGoal, TeamMembership, User, UserGoal
+from services.learning.services.goal_tracking import (
+    AUTO_GOAL_TYPES,
+    parse_goal_description,
+    serialize_goal_description,
+    sync_team_goals,
+    sync_user_goals,
+)
 
 router = APIRouter(prefix="/goals", tags=["goals"])
 security = HTTPBearer()
 
 TEAM_GOAL_ROLES = {"Admin", "Manager", "TeamManager", "SuperAdmin"}
+GOAL_MANAGEMENT_ROLES = TEAM_GOAL_ROLES
 
 
 def get_current_user(
@@ -49,6 +57,26 @@ def _parse_date(value: Optional[str]) -> Optional[date]:
     return date.fromisoformat(value)
 
 
+def _parse_uuid(value: str, field_name: str) -> UUID:
+    try:
+        return UUID(str(value))
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{field_name} is invalid",
+        ) from exc
+
+
+def _required_text(data: dict, field_name: str) -> str:
+    value = str(data.get(field_name) or "").strip()
+    if not value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{field_name} is required",
+        )
+    return value
+
+
 def _target_count(goal) -> int:
     return max(int(getattr(goal, "target_count", 1) or 1), 1)
 
@@ -68,10 +96,15 @@ def _normalize_status(progress: int, target_count: int, current_status: str) -> 
 def _serialize_user_goal(goal: UserGoal) -> dict:
     target_count = _target_count(goal)
     progress = int(goal.progress or 0)
+    goal_type, clean_description, is_auto_tracked = parse_goal_description(goal.description)
     return {
         "id": str(goal.id),
+        "user_id": str(goal.user_id),
         "title": goal.title,
         "description": goal.description,
+        "goal_type": goal_type,
+        "clean_description": clean_description,
+        "is_auto_tracked": is_auto_tracked,
         "target_date": goal.target_date.isoformat() if goal.target_date else None,
         "target_count": target_count,
         "xp_reward": int(getattr(goal, "xp_reward", 0) or 0),
@@ -87,7 +120,28 @@ def _require_team_goal_role(user: User) -> None:
     if user.role not in TEAM_GOAL_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only TeamManager, Manager, or Admin can manage team goals",
+            detail="Only TeamManager, Manager, Admin, or SuperAdmin can manage team goals",
+        )
+
+
+def _require_goal_management_role(user: User) -> None:
+    if user.role not in GOAL_MANAGEMENT_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only TeamManager, Manager, Admin, or SuperAdmin can manage goals",
+        )
+
+
+def _assert_can_manage_personal_goal_for_user(actor: User, assignee: User) -> None:
+    """Allow every user to manage their own goal; restrict cross-user assignment."""
+    if actor.id == assignee.id:
+        return
+
+    _require_goal_management_role(actor)
+    if actor.role != "SuperAdmin" and assignee.tenant_id != actor.tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: user belongs to another tenant",
         )
 
 
@@ -190,12 +244,28 @@ def _serialize_team_goal(goal: TeamGoal, db: Session) -> dict:
 
 @router.get("", response_model=list[dict])
 def list_personal_goals(
+    user_id: Optional[UUID] = Query(None, alias="user_id"),
     status_filter: Optional[str] = Query(None, alias="status"),
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     user = _get_user_from_payload(current_user, db)
-    query = db.query(UserGoal).filter(UserGoal.user_id == user.id)
+    target_user_id = user.id
+    if user_id and user_id != user.id:
+        _require_goal_management_role(user)
+        target_user = db.query(User).filter(User.id == user_id).first()
+        if not target_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        if user.role != "SuperAdmin" and target_user.tenant_id != user.tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: user belongs to another tenant",
+            )
+        target_user_id = target_user.id
+
+    sync_user_goals(db, target_user_id)
+
+    query = db.query(UserGoal).filter(UserGoal.user_id == target_user_id)
     if status_filter:
         query = query.filter(UserGoal.status == status_filter)
     goals = query.order_by(UserGoal.created_at.desc()).all()
@@ -209,22 +279,38 @@ def create_personal_goal(
     db: Session = Depends(get_db),
 ):
     user = _get_user_from_payload(current_user, db)
+
+    assignee_id_raw = goal_data.get("user_id") or str(user.id)
+
+    assignee_id = _parse_uuid(assignee_id_raw, "user_id")
+    assignee = db.query(User).filter(User.id == assignee_id).first()
+    if not assignee:
+        raise HTTPException(status_code=404, detail="Assigned user not found")
+    _assert_can_manage_personal_goal_for_user(user, assignee)
+
     target_count = max(int(goal_data.get("target_count", 1) or 1), 1)
-    progress = int(goal_data.get("progress", 0) or 0)
-    status_value = _normalize_status(progress, target_count, goal_data.get("status", "active"))
+    goal_type = goal_data.get("goal_type", "manual")
+    if goal_type not in AUTO_GOAL_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Goal type must be one of the automatic tracking options",
+        )
+    description = serialize_goal_description(goal_data.get("description"), goal_type)
 
     goal = UserGoal(
-        user_id=user.id,
-        title=goal_data["title"],
-        description=goal_data.get("description"),
+        user_id=assignee.id,
+        title=_required_text(goal_data, "title"),
+        description=description,
         target_date=_parse_date(goal_data.get("target_date")),
         target_count=target_count,
         xp_reward=max(int(goal_data.get("xp_reward", 0) or 0), 0),
-        progress=progress,
-        status=status_value,
+        progress=0,
+        status="active",
     )
     db.add(goal)
     db.commit()
+    db.refresh(goal)
+    sync_user_goals(db, assignee.id)
     db.refresh(goal)
     return _serialize_user_goal(goal)
 
@@ -237,9 +323,18 @@ def update_personal_goal(
     db: Session = Depends(get_db),
 ):
     user = _get_user_from_payload(current_user, db)
-    goal = db.query(UserGoal).filter(UserGoal.id == goal_id, UserGoal.user_id == user.id).first()
+    goal = db.query(UserGoal).filter(UserGoal.id == goal_id).first()
     if not goal:
         raise HTTPException(status_code=404, detail="Goal not found")
+    assignee = db.query(User).filter(User.id == goal.user_id).first()
+    if not assignee:
+        raise HTTPException(status_code=404, detail="Assigned user not found")
+    _assert_can_manage_personal_goal_for_user(user, assignee)
+    if "progress" in goal_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Progress is updated automatically from learner activity",
+        )
 
     for field in ["title", "description"]:
         if field in goal_data and goal_data[field] is not None:
@@ -251,11 +346,15 @@ def update_personal_goal(
         goal.target_count = max(int(goal_data["target_count"]), 1)
     if "xp_reward" in goal_data and goal_data["xp_reward"] is not None:
         goal.xp_reward = max(int(goal_data["xp_reward"]), 0)
-    if "progress" in goal_data and goal_data["progress"] is not None:
-        goal.progress = max(int(goal_data["progress"]), 0)
-    goal.status = _normalize_status(int(goal.progress or 0), _target_count(goal), goal_data.get("status", goal.status))
+    if "goal_type" in goal_data or "description" in goal_data:
+        existing_goal_type, existing_clean_description, _ = parse_goal_description(goal.description)
+        goal_type = goal_data.get("goal_type", existing_goal_type)
+        description = goal_data.get("description", existing_clean_description)
+        goal.description = serialize_goal_description(description, goal_type)
 
     db.commit()
+    db.refresh(goal)
+    sync_user_goals(db, goal.user_id)
     db.refresh(goal)
     return _serialize_user_goal(goal)
 
@@ -267,9 +366,13 @@ def delete_personal_goal(
     db: Session = Depends(get_db),
 ):
     user = _get_user_from_payload(current_user, db)
-    goal = db.query(UserGoal).filter(UserGoal.id == goal_id, UserGoal.user_id == user.id).first()
+    goal = db.query(UserGoal).filter(UserGoal.id == goal_id).first()
     if not goal:
         raise HTTPException(status_code=404, detail="Goal not found")
+    assignee = db.query(User).filter(User.id == goal.user_id).first()
+    if not assignee:
+        raise HTTPException(status_code=404, detail="Assigned user not found")
+    _assert_can_manage_personal_goal_for_user(user, assignee)
     db.delete(goal)
     db.commit()
 
@@ -318,24 +421,32 @@ def create_team_goal(
 ):
     user = _get_user_from_payload(current_user, db)
     _require_team_goal_role(user)
-    team = _get_team_for_goal_access(UUID(goal_data["team_id"]), user, db)
+    team_id = _parse_uuid(_required_text(goal_data, "team_id"), "team_id")
+    team = _get_team_for_goal_access(team_id, user, db)
     target_count = max(int(goal_data.get("target_count", 1) or 1), 1)
-    progress = max(int(goal_data.get("progress", 0) or 0), 0)
-    status_value = _normalize_status(progress, target_count, goal_data.get("status", "active"))
+    goal_type = goal_data.get("goal_type", "manual")
+    if goal_type not in AUTO_GOAL_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Goal type must be one of the automatic tracking options",
+        )
+    description = serialize_goal_description(goal_data.get("description"), goal_type)
 
     goal = TeamGoal(
         team_id=team.id,
-        title=goal_data["title"],
-        description=goal_data.get("description"),
+        title=_required_text(goal_data, "title"),
+        description=description,
         target_date=_parse_date(goal_data.get("target_date")),
         target_count=target_count,
         xp_reward=max(int(goal_data.get("xp_reward", 0) or 0), 0),
-        progress=progress,
-        status=status_value,
+        progress=0,
+        status="active",
         created_by_id=user.id,
     )
     db.add(goal)
     db.commit()
+    db.refresh(goal)
+    sync_team_goals(db, team.id)
     db.refresh(goal)
     return _serialize_team_goal(goal, db)
 
@@ -364,10 +475,19 @@ def update_team_goal(
         goal.target_count = max(int(goal_data["target_count"]), 1)
     if "xp_reward" in goal_data and goal_data["xp_reward"] is not None:
         goal.xp_reward = max(int(goal_data["xp_reward"]), 0)
-    if "progress" in goal_data and goal_data["progress"] is not None:
-        goal.progress = max(int(goal_data["progress"]), 0)
-    goal.status = _normalize_status(int(goal.progress or 0), _target_count(goal), goal_data.get("status", goal.status))
+    if "progress" in goal_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Progress is updated automatically from team activity",
+        )
+    if "goal_type" in goal_data or "description" in goal_data:
+        existing_goal_type, existing_clean_description, _ = parse_goal_description(goal.description)
+        goal_type = goal_data.get("goal_type", existing_goal_type)
+        description = goal_data.get("description", existing_clean_description)
+        goal.description = serialize_goal_description(description, goal_type)
 
     db.commit()
+    db.refresh(goal)
+    sync_team_goals(db, goal.team_id)
     db.refresh(goal)
     return _serialize_team_goal(goal, db)

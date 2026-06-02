@@ -96,6 +96,27 @@ function decodeHtmlEntities(value: string) {
   return textarea.value;
 }
 
+function normalizeAudioUrl(audioUrl?: string) {
+  const raw = String(audioUrl || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  if (typeof window === "undefined") {
+    return raw;
+  }
+
+  try {
+    const resolved = new URL(raw, window.location.origin);
+    if (resolved.pathname.includes("/api/classroom-media/")) {
+      return `${window.location.origin}${resolved.pathname}${resolved.search}`;
+    }
+    return resolved.toString();
+  } catch {
+    return raw;
+  }
+}
+
 function isSlideContent(content: SceneContent): content is SlideContent {
   return content.type === "slide";
 }
@@ -263,12 +284,14 @@ export function AiGeneratedLessonPlayer({
   onNext,
   onComplete,
   completed = false,
+  hideLessonHeader = false,
 }: {
   lesson: LessonInput;
   onPrevious?: () => void;
   onNext?: () => void;
   onComplete?: () => void | Promise<void>;
   completed?: boolean;
+  hideLessonHeader?: boolean;
 }) {
   const scene = useMemo(() => parseAiGeneratedLesson(lesson), [lesson]);
   const [playbackState, setPlaybackState] = useState<"idle" | "playing" | "paused">("idle");
@@ -307,11 +330,33 @@ export function AiGeneratedLessonPlayer({
 
     if (typeof window !== "undefined" && action.audioUrl) {
       return new Promise<boolean>((resolve) => {
-        const audio = new Audio(action.audioUrl);
+        const audio = new Audio(normalizeAudioUrl(action.audioUrl));
         audioRef.current = audio;
         audio.onended = () => resolve(playbackTokenRef.current === token);
-        audio.onerror = () => resolve(playbackTokenRef.current === token);
-        void audio.play().catch(() => resolve(playbackTokenRef.current === token));
+        audio.onerror = () => {
+          audioRef.current = null;
+          if (!window.speechSynthesis) {
+            resolve(playbackTokenRef.current === token);
+            return;
+          }
+          const utterance = new SpeechSynthesisUtterance(action.text);
+          utterance.onend = () => resolve(playbackTokenRef.current === token);
+          utterance.onerror = () => resolve(playbackTokenRef.current === token);
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(utterance);
+        };
+        void audio.play().catch(() => {
+          audioRef.current = null;
+          if (!window.speechSynthesis) {
+            resolve(playbackTokenRef.current === token);
+            return;
+          }
+          const utterance = new SpeechSynthesisUtterance(action.text);
+          utterance.onend = () => resolve(playbackTokenRef.current === token);
+          utterance.onerror = () => resolve(playbackTokenRef.current === token);
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(utterance);
+        });
       });
     }
 
@@ -476,9 +521,9 @@ export function AiGeneratedLessonPlayer({
   return (
     <>
       {isSlideContent(scene.content) ? (
-        <div className="rounded-b-3xl border-b border-x border-border bg-card">
-          <div className="bg-[linear-gradient(180deg,rgba(224,242,254,0.58),rgba(236,253,245,0.38),rgba(248,250,252,0.96))] px-5 py-5">
-            <div className="mx-auto flex aspect-[16/9] w-full max-w-5xl flex-col justify-center gap-4 rounded-[24px] border border-slate-200 bg-white p-10 shadow-sm">
+        <div className="overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-sm">
+          <div className="bg-[linear-gradient(180deg,rgba(224,242,254,0.72),rgba(236,253,245,0.48),rgba(248,250,252,0.98))] px-4 py-5 sm:px-5">
+            <div className="mx-auto flex min-h-[360px] w-full max-w-5xl flex-col justify-center gap-4 rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.10)] sm:p-10">
               {slideBlocks.map((block, index) => {
                 const isActive = highlightedBlockIndex === index;
                 const isVisible =
@@ -489,11 +534,11 @@ export function AiGeneratedLessonPlayer({
                     className={`rounded-3xl border px-5 py-4 transition ${
                       isActive
                         ? "border-sky-400 bg-[linear-gradient(135deg,rgba(14,165,233,0.20),rgba(16,185,129,0.16))] shadow-[0_12px_30px_rgba(14,165,233,0.20)]"
-                        : "border-slate-200 bg-slate-50"
+                        : "border-slate-200 bg-slate-50/90"
                     } ${isVisible ? "opacity-100" : "opacity-30"}`}
                   >
                     <div
-                      className="prose prose-slate max-w-none text-sm leading-7"
+                      className="prose prose-slate max-w-none text-sm leading-7 text-slate-900 prose-p:text-slate-900 prose-li:text-slate-800 prose-strong:text-slate-950"
                       dangerouslySetInnerHTML={{ __html: block.html }}
                     />
                   </div>
@@ -561,20 +606,33 @@ export function AiGeneratedLessonPlayer({
         </div>
       ) : null}
 
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-text-primary">{scene.title}</h1>
-        <div className="mt-2 flex items-center gap-4 text-sm text-text-secondary">
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-            {scene.duration} minutes
-          </span>
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">
-            {scene.type}
-          </span>
-        </div>
+      <div className="rounded-b-3xl border border-t-0 border-slate-200 bg-white p-6 text-slate-950 shadow-sm">
+        {!hideLessonHeader ? (
+          <>
+            <h1 className="text-2xl font-bold text-slate-950">{scene.title}</h1>
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-sm font-medium text-slate-700">
+              <span className="rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-slate-800">
+                {scene.duration} minutes
+              </span>
+              <span className="rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-slate-800">
+                {scene.type}
+              </span>
+            </div>
+          </>
+        ) : null}
 
         {speechBlocks.length > 0 ? (
-          <div className="mt-6 rounded-3xl border border-emerald-200 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.14),transparent_22%),linear-gradient(180deg,rgba(255,255,255,0.99),rgba(240,253,250,0.96))] p-6 text-slate-900 shadow-sm">
-            <div className="mb-5 flex flex-wrap gap-3">
+          <div className={`${hideLessonHeader ? "" : "mt-6"} rounded-3xl border border-emerald-300 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_22%),linear-gradient(180deg,rgba(255,255,255,1),rgba(236,253,245,0.98))] p-5 text-slate-950 shadow-[0_16px_36px_rgba(15,23,42,0.10)] sm:p-6`}>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                  Lesson playback
+                </p>
+                <p className="mt-1 text-sm font-medium text-slate-700">
+                  Review the narration and move through the course preview.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={async () => {
@@ -582,7 +640,7 @@ export function AiGeneratedLessonPlayer({
                   onPrevious?.();
                 }}
                 disabled={!onPrevious || completionSaving}
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500"
               >
                 <SkipBack className="mr-2 inline h-4 w-4" />
                 Previous
@@ -611,12 +669,13 @@ export function AiGeneratedLessonPlayer({
                   onNext?.();
                 }}
                 disabled={!onNext || completionSaving}
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500"
               >
                 Next
                 <SkipForward className="ml-2 inline h-4 w-4" />
               </button>
-              <div className="inline-flex items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-900">
+              </div>
+              <div className="inline-flex items-center rounded-xl border border-emerald-300 bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-950">
                 {completionSaving
                   ? "Saving completion..."
                   : completed
@@ -628,7 +687,7 @@ export function AiGeneratedLessonPlayer({
               <Volume2 className="h-4 w-4" />
               Live narration
             </div>
-            <div className="mt-3 min-h-16 rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm leading-7 text-slate-700">
+            <div className="mt-3 min-h-16 rounded-2xl border border-emerald-300 bg-white px-4 py-3 text-sm font-medium leading-7 text-slate-900 shadow-inner">
               {activeSpeech || "Press play to review the lesson narration."}
             </div>
           </div>

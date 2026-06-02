@@ -61,6 +61,7 @@ def get_current_user_from_token(
 def require_learning_expert(current_user: dict) -> dict:
     """Require LearningExpert or higher role."""
     allowed_roles = {
+        UserRole.SuperAdmin.value,
         UserRole.Admin.value,
         UserRole.Manager.value,
         UserRole.LearningExpert.value,
@@ -68,7 +69,7 @@ def require_learning_expert(current_user: dict) -> dict:
     if current_user.get("role") not in allowed_roles:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only LearningExpert, Manager, or Admin can manage assessments",
+            detail="Only LearningExpert, Manager, Admin, or SuperAdmin can manage assessments",
         )
     return current_user
 

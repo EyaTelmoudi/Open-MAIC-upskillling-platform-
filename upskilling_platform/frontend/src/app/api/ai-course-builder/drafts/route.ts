@@ -2,15 +2,21 @@ import { buildOpenMAICUrl } from "@/app/lib/openmaic-proxy";
 import {
   safeHasAnyAiCourseDraftRecords,
   safeListAiCourseDrafts,
+  safeGetAiCourseRequestScope,
   safeUpsertAiCourseDraft,
 } from "@/app/lib/safe-ai-course-db";
 
 export async function GET(request: Request) {
   try {
-    const storedDrafts = await safeListAiCourseDrafts();
-    const hasStoredDraftRecords = await safeHasAnyAiCourseDraftRecords();
+    const scope = await safeGetAiCourseRequestScope(request);
+    const storedDrafts = await safeListAiCourseDrafts(request);
+    const hasStoredDraftRecords = await safeHasAnyAiCourseDraftRecords(request);
     if (storedDrafts.length > 0 || hasStoredDraftRecords) {
       return Response.json({ success: true, drafts: storedDrafts }, { status: 200 });
+    }
+
+    if (!scope?.isSuperAdmin) {
+      return Response.json({ success: true, drafts: [] }, { status: 200 });
     }
 
     const upstream = await fetch(buildOpenMAICUrl("/api/learing-expert-agent/drafts"), {
@@ -54,6 +60,17 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const scope = await safeGetAiCourseRequestScope(request);
+    if (!scope?.isSuperAdmin) {
+      return Response.json(
+        {
+          success: false,
+          error: "Only Super Admin can import unscoped OpenMAIC drafts.",
+        },
+        { status: 403 },
+      );
+    }
+
     const upstream = await fetch(buildOpenMAICUrl("/api/learing-expert-agent/drafts"), {
       cache: "no-store",
     });

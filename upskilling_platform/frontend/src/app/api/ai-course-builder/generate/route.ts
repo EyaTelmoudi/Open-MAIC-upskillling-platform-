@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { buildOpenMAICUrl } from "@/app/lib/openmaic-proxy";
-import { safeUpsertAiCourseDraft } from "@/app/lib/safe-ai-course-db";
+import { safeGetAiCourseRequestScope, safeUpsertAiCourseDraft } from "@/app/lib/safe-ai-course-db";
 import {
   type ActiveGenerationRunRecord,
   getActiveGenerationRun,
@@ -14,6 +14,8 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const requirement = String(formData.get("requirement") || "").trim();
+    const tenantId = String(formData.get("tenantId") || "").trim() || null;
+    const scope = await safeGetAiCourseRequestScope(request);
     const pdfEntry = formData.get("pdf");
     const pdfName =
       pdfEntry && typeof pdfEntry === "object" && "name" in pdfEntry
@@ -35,6 +37,24 @@ export async function POST(request: Request) {
         {
           success: false,
           error: "Provide either a learning expert prompt, a PDF file, or both.",
+        },
+        { status: 400 },
+      );
+    }
+    if (tenantId && !scope?.isSuperAdmin) {
+      return Response.json(
+        {
+          success: false,
+          error: "Only SuperAdmins can choose a company workspace for generated courses.",
+        },
+        { status: 403 },
+      );
+    }
+    if (scope?.isSuperAdmin && !tenantId) {
+      return Response.json(
+        {
+          success: false,
+          error: "Choose the company workspace before generating a course.",
         },
         { status: 400 },
       );
@@ -200,6 +220,7 @@ export async function POST(request: Request) {
                             draft: draftData.draft,
                             prompt: requirement,
                             sourcePdfName: pdfName,
+                            tenantId,
                           });
                         }
                       } catch {
@@ -328,6 +349,7 @@ export async function POST(request: Request) {
                     draft: draftData.draft,
                     prompt: requirement,
                     sourcePdfName: pdfName,
+                    tenantId,
                   });
 
                   if (!savedDraft) {

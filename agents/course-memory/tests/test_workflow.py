@@ -46,6 +46,19 @@ agno_module.workflow = agno_workflow_module
 sys.modules.setdefault("agno", agno_module)
 sys.modules["agno.workflow"] = agno_workflow_module
 
+common_module = types.ModuleType("common")
+common_storage_module = types.ModuleType("common.storage")
+
+
+def _upload_file_tenant(*args, **kwargs):
+    return "tenant-1/courses/course-1/video-transcripts/lesson-1.pdf"
+
+
+common_storage_module.upload_file_tenant = _upload_file_tenant
+common_module.storage = common_storage_module
+sys.modules.setdefault("common", common_module)
+sys.modules["common.storage"] = common_storage_module
+
 SPEC = importlib.util.spec_from_file_location("course_memory_workflow", WORKFLOW_PATH)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError(f"Unable to load workflow module from {WORKFLOW_PATH}")
@@ -54,13 +67,19 @@ SPEC.loader.exec_module(workflow)
 
 
 class FakeResponse:
-    def __init__(self, status_code: int, payload: object) -> None:
+    def __init__(self, status_code: int, payload: object, *, content: bytes | None = None, headers: dict[str, str] | None = None) -> None:
         self.status_code = status_code
         self._payload = payload
         self.text = payload if isinstance(payload, str) else str(payload)
+        self.content = content or b""
+        self.headers = headers or {}
 
     def json(self):
         return self._payload
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
 
 
 class FakeHttpxClient:
@@ -338,6 +357,87 @@ class CourseMemoryWorkflowTests(unittest.TestCase):
             "technical debt and spaghetti code",
             assembled_payload["supplementalSources"][0]["text"],
         )
+
+    def test_video_transcript_pipeline_uploads_pdf_and_adds_supplemental_source(self) -> None:
+        course = {
+            "id": "course-1",
+            "tenant_id": "tenant-1",
+            "title": "AI Spec",
+            "modules": [
+                {
+                    "id": "module-1",
+                    "lessons": [
+                        {
+                            "id": "lesson-1",
+                            "title": "Lesson 1",
+                            "content_type": "video",
+                            "video_url": "http://learning.local/video.mp4",
+                        }
+                    ],
+                }
+            ],
+        }
+
+        uploaded_targets: list[tuple[str, str]] = []
+
+        class TranscriptHttpClient(FakeHttpxClient):
+            def get(self, url: str, *, headers=None, params=None, follow_redirects=False):
+                if url == "http://learning.local/video.mp4":
+                    return FakeResponse(
+                        200,
+                        {},
+                        content=b"video-bytes",
+                        headers={"content-type": "video/mp4"},
+                    )
+                return super().get(url, headers=headers, params=params)
+
+            def put(self, url: str, *, json=None, headers=None):
+                return FakeResponse(200, {"success": True})
+
+            def post(self, url: str, *, files=None, data=None, json=None, headers=None, timeout=None):
+                if url.endswith("/v1/audio/transcriptions"):
+                    return FakeResponse(200, {"text": "Transcript generated from the lesson video."})
+                if url.endswith("/memories"):
+                    items = (json or {}).get("items") or []
+                    document_id = items[0].get("document_id") if items and isinstance(items[0], dict) else "unknown"
+                    suffix = document_id.split(":")[-1]
+                    return FakeResponse(200, {"async": True, "operation_id": f"op-{suffix}"})
+                raise AssertionError(f"Unexpected POST URL: {url}")
+
+        def fake_upload_file_tenant(bucket_name: str, tenant_id: str, *path_parts: str, **kwargs):
+            uploaded_targets.append((bucket_name, "/".join(path_parts)))
+            return f"{tenant_id}/{'/'.join(path_parts)}"
+
+        with patch.object(workflow.httpx, "Client", TranscriptHttpClient), patch.object(
+            workflow,
+            "upload_file_tenant",
+            side_effect=fake_upload_file_tenant,
+        ):
+            updated_course, updated_sources, pre_retained_document_ids, pre_retain_operation_ids = workflow._augment_traditional_course_with_video_transcripts(
+                course=course,
+                auth_token="token",
+                supplemental_sources=[],
+                hindsight_url="http://127.0.0.1:8888",
+                hindsight_api_key="",
+                requester_user_id="user-1",
+            )
+
+        lesson = updated_course["modules"][0]["lessons"][0]
+        self.assertEqual(uploaded_targets, [("course-pdfs", "courses/course-1/video-transcripts/lesson-1.pdf")])
+        self.assertEqual(lesson["support_documents"][0]["kind"], "pdf")
+        self.assertIn("Transcript generated", lesson["support_documents"][0]["extractedText"])
+        self.assertEqual(
+            lesson["videoTranscriptPdfUrl"],
+            "minio://course-pdfs/tenant-1/courses/course-1/video-transcripts/lesson-1.pdf",
+        )
+        self.assertEqual(len(updated_sources), 1)
+        self.assertEqual(
+            pre_retained_document_ids,
+            ["course:course-1:lesson:lesson-1", "course:course-1:source:1"],
+        )
+        self.assertEqual(pre_retain_operation_ids, ["op-lesson-1", "op-1"])
+        self.assertEqual(updated_sources[0]["kind"], "course_video_transcript_pdf")
+        self.assertIn("Transcript generated", updated_sources[0]["text"])
 
     def test_assemble_reports_existing_course_bank_before_continuing(self) -> None:
         checked_bank_profile_urls: list[str] = []

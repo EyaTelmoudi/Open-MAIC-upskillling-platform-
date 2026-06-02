@@ -8,6 +8,8 @@ const DEFAULT_LEARNING_URL =
   process.env.NEXT_PUBLIC_LEARNING_URL || process.env.LEARNING_URL || "http://localhost:8002";
 const DEFAULT_HINDSIGHT_URL = process.env.HINDSIGHT_URL || "http://127.0.0.1:8888";
 const DEFAULT_HINDSIGHT_API_KEY = process.env.HINDSIGHT_API_KEY || "";
+const COURSE_MEMORY_SERVICE_TOKEN =
+  process.env.COURSE_MEMORY_SERVICE_TOKEN || "dev-course-memory-service-token";
 
 type CourseMemoryPayload = {
   courseId: string;
@@ -90,8 +92,8 @@ function getPredictedCourseDocumentIds(
     `course:${courseId}:source:1`,
   ]);
 
-  for (const module of courseDetails?.modules || []) {
-    for (const lesson of module.lessons || []) {
+  for (const courseModule of courseDetails?.modules || []) {
+    for (const lesson of courseModule.lessons || []) {
       const lessonId = String(lesson.id || "").trim();
       if (!lessonId) continue;
 
@@ -440,8 +442,12 @@ async function updateCourseMemoryRetentionStatus(
 ) {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${authToken}`,
   };
+  if (COURSE_MEMORY_SERVICE_TOKEN) {
+    headers["X-Course-Memory-Service-Token"] = COURSE_MEMORY_SERVICE_TOKEN;
+  } else {
+    headers.Authorization = `Bearer ${authToken}`;
+  }
 
   const response = await fetch(`${DEFAULT_LEARNING_URL}/api/v1/courses/${courseId}/memory-retention`, {
     method: "PATCH",

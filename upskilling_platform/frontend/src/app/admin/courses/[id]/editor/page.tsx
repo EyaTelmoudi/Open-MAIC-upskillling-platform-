@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 
 import { AdminShell } from "@/app/components/layout/AdminShell";
 import { CourseManagementNav } from "@/app/admin/courses/course-management-nav";
-import { getAICourseDraftByPlatformCourseId, getCourseById } from "@/app/lib/api";
+import { getCourseById } from "@/app/lib/api";
 import { routes } from "@/app/lib/routes";
 
 function isAiGeneratedCourse(course: { category?: string | null; description?: string | null }) {
@@ -35,9 +35,8 @@ export default function AdminCourseEditorRedirectPage() {
         setCourseTitle(course.title);
 
         if (isAiGeneratedCourse(course)) {
-          setEditorMessage("Edit generated draft in the AI Course Studio.");
-          const draft = await getAICourseDraftByPlatformCourseId(courseId, course.title);
-          router.replace(routes.adminAiCourseEditor(draft.draftId));
+          setEditorMessage("Open the AI-generated course editor in Course Management.");
+          router.replace(`${routes.adminCourseDetail(courseId)}?edit=1`);
           return;
         }
 

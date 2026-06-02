@@ -3,6 +3,7 @@ import { runCourseRefinementAgentAction } from "@/app/lib/course-maker-agent";
 import { assemblePublishedCourseForMemory } from "@/app/lib/course-memory-agent";
 import {
   safeGetAiCourseDraft,
+  safeGetAiCourseRequestScope,
   safeSaveAiCourseAsPlatformDraft,
   safeUpsertAiCourseDraft,
 } from "@/app/lib/safe-ai-course-db";
@@ -48,9 +49,10 @@ export async function GET(
 ) {
   try {
     const { draftId } = await params;
+    const scope = await safeGetAiCourseRequestScope(request);
 
-    let record = await safeGetAiCourseDraft(draftId);
-    if (!record) {
+    let record = await safeGetAiCourseDraft(request, draftId);
+    if (!record && scope?.isSuperAdmin) {
       record = await importDraftIfMissing(request, draftId);
     }
 
@@ -94,10 +96,14 @@ export async function POST(
 ) {
   try {
     const { draftId } = await params;
-    const body = (await request.json().catch(() => ({}))) as { approvedBy?: string };
+    const body = (await request.json().catch(() => ({}))) as {
+      approvedBy?: string;
+      thumbnail?: string | null;
+    };
+    const scope = await safeGetAiCourseRequestScope(request);
 
-    let record = await safeGetAiCourseDraft(draftId);
-    if (!record) {
+    let record = await safeGetAiCourseDraft(request, draftId);
+    if (!record && scope?.isSuperAdmin) {
       record = await importDraftIfMissing(request, draftId);
     }
 
@@ -129,6 +135,7 @@ export async function POST(
       request,
       draftId,
       body.approvedBy || "LearningExpert",
+      body.thumbnail || null,
     );
 
     if (!saved) {

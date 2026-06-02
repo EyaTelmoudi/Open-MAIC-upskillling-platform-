@@ -29,6 +29,7 @@ import { Card } from "@/app/components/ui/Card";
 import { useAuth } from "@/app/context/AuthContext";
 import { routes } from "@/app/lib/routes";
 import { AiCourseStudioNav } from "./ai-course-studio-nav";
+import { canAccessCourseAuthoring } from "./permissions";
 
 const highlights = [
   {
@@ -138,12 +139,12 @@ export default function AdminAiCourseStudioPage() {
   const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    if (!isLoading && user && user.role !== "LearningExpert") {
+    if (!isLoading && user && !canAccessCourseAuthoring(user.role)) {
       router.replace(routes.adminCourses);
     }
   }, [isLoading, router, user]);
 
-  if (!isLoading && user?.role !== "LearningExpert") {
+  if (!isLoading && !canAccessCourseAuthoring(user?.role)) {
     return null;
   }
 
@@ -155,7 +156,7 @@ export default function AdminAiCourseStudioPage() {
         <section className="overflow-hidden rounded-3xl border border-[#2A5B4A] bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.22),_transparent_32%),radial-gradient(circle_at_76%_18%,_rgba(59,130,246,0.2),_transparent_26%),linear-gradient(135deg,_#102E2D_0%,_#132A3A_48%,_#0F172A_100%)] p-6 text-white shadow-[0_26px_70px_rgba(0,0,0,0.28)] sm:p-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">
             <Sparkles className="h-3.5 w-3.5" />
-            Learning Expert Only
+            Admin and Learning Expert
           </div>
           <div className="mt-5 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
@@ -163,7 +164,7 @@ export default function AdminAiCourseStudioPage() {
                 AI Course Studio
               </h2>
               <p className="mt-4 text-sm leading-7 text-slate-200 sm:text-base">
-                AI Course Studio is the learning expert&apos;s workspace for transforming source
+                AI Course Studio is the course authoring workspace for transforming source
                 material into a structured, reviewable course draft. It combines the course
                 generator agent, editorial review, and platform persistence so experts can move
                 from PDF content to a final course experience with far less manual setup.
@@ -309,8 +310,9 @@ export default function AdminAiCourseStudioPage() {
                 <div>
                   <h3 className="text-xl font-semibold text-slate-950">Why this workspace matters</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    This section is intentionally restricted to the{" "}
-                    <span className="font-semibold">LearningExpert</span> role because it is an
+                    This section is intentionally restricted to{" "}
+                    <span className="font-semibold">Admin</span> and{" "}
+                    <span className="font-semibold">LearningExpert</span> roles because it is an
                     editorial and quality-control workspace, not just a generation screen.
                   </p>
                 </div>

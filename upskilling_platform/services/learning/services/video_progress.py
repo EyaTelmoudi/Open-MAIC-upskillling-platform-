@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from common.models import UserProgress, Lesson, Enrollment, AssessmentAttempt, Course, User, XPTransaction
 from services.learning.services.learner_context import touch_lesson_context
+from services.learning.services.goal_tracking import sync_user_goals
 
 
 def _course_completion_xp_already_awarded(
@@ -181,6 +182,7 @@ def check_enrollment_completion(db: Session, user_id: UUID, course_id: UUID) -> 
                     logger.info(
                         f"Awarded {course.xp_reward} XP for user {user_id}, course {course_id}"
                     )
+                sync_user_goals(db, user_id)
             except Exception as e:
                 logger.error(f"XP award failed: {e}")
         else:

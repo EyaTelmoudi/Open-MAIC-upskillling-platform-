@@ -26,7 +26,7 @@ export async function GET(
       );
     }
 
-    const hydrated = await safeGetAiCourseDraft(record.external_draft_id);
+    const hydrated = await safeGetAiCourseDraft(request, record.external_draft_id);
     const resolved = hydrated || record;
 
     return NextResponse.json(

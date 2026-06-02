@@ -4,6 +4,7 @@ import { getActiveGenerationRun } from "@/app/lib/ai-course-active-run-store";
 import {
   safeDeleteAiCourseDraft,
   safeGetAiCourseDraft,
+  safeGetAiCourseRequestScope,
   safeUpsertAiCourseDraft,
 } from "@/app/lib/safe-ai-course-db";
 import { toUtcIsoString } from "@/app/lib/ai-course-db";
@@ -14,7 +15,8 @@ export async function GET(
 ) {
   try {
     const { draftId } = await params;
-    const storedDraft = await safeGetAiCourseDraft(draftId);
+    const scope = await safeGetAiCourseRequestScope(request);
+    const storedDraft = await safeGetAiCourseDraft(request, draftId);
     if (storedDraft?.draft_payload) {
       await runCourseRefinementAgentAction({
         action: "open_draft_for_editor",
@@ -40,6 +42,13 @@ export async function GET(
           },
         },
         { status: 200 }
+      );
+    }
+
+    if (!scope?.isSuperAdmin) {
+      return Response.json(
+        { success: false, error: "Draft not found for this company." },
+        { status: 404 },
       );
     }
 
@@ -100,11 +109,20 @@ export async function PUT(
     const { draftId } = await params;
     const body = await request.json();
     const draftPayload = body?.draft;
+    const scope = await safeGetAiCourseRequestScope(request);
+    const storedDraft = await safeGetAiCourseDraft(request, draftId);
 
     if (!draftPayload || draftPayload.draftId !== draftId) {
       return Response.json(
         { success: false, error: "Invalid draft payload" },
         { status: 400 },
+      );
+    }
+
+    if (!storedDraft && !scope?.isSuperAdmin) {
+      return Response.json(
+        { success: false, error: "Draft not found for this company." },
+        { status: 404 },
       );
     }
 
@@ -144,29 +162,47 @@ export async function PUT(
       status: draftPayload?.status || null,
     }).catch(() => null);
 
-    const upstream = await fetch(
-      buildOpenMAICUrl(`/api/learing-expert-agent/drafts/${draftId}`),
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+    try {
+      const upstream = await fetch(
+        buildOpenMAICUrl(`/api/learing-expert-agent/drafts/${draftId}`),
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      );
+      const data = await upstream.json();
+      if (upstream.ok && data?.success && data?.draft) {
+        await safeUpsertAiCourseDraft(request, { draft: data.draft });
+        await runCourseRefinementAgentAction({
+          action: "confirm_refined_draft_saved",
+          draftId,
+          title: data.draft?.stage?.name || data.draft?.draftId || null,
+          scenesCount: Array.isArray(data.draft?.editableScenes)
+            ? data.draft.editableScenes.length
+            : null,
+          source: "postgresql_sync",
+          status: data.draft?.status || null,
+        }).catch(() => null);
       }
-    );
-    const data = await upstream.json();
-    if (upstream.ok && data?.success && data?.draft) {
-      await safeUpsertAiCourseDraft(request, { draft: data.draft });
-      await runCourseRefinementAgentAction({
-        action: "confirm_refined_draft_saved",
-        draftId,
-        title: data.draft?.stage?.name || data.draft?.draftId || null,
-        scenesCount: Array.isArray(data.draft?.editableScenes)
-          ? data.draft.editableScenes.length
-          : null,
-        source: "postgresql_sync",
-        status: data.draft?.status || null,
-      }).catch(() => null);
+      return Response.json(data, { status: upstream.status });
+    } catch (syncError) {
+      console.warn(
+        `[AI Course Builder] Draft ${draftId} was saved locally, but OpenMAIC sync is unavailable: ${
+          syncError instanceof Error ? syncError.message : "Unknown error"
+        }`,
+      );
+      return Response.json(
+        {
+          success: true,
+          draft: draftPayload,
+          warning:
+            "The draft was saved in PostgreSQL, but synchronization with OpenMAIC is currently unavailable.",
+          syncedToOpenmaic: false,
+        },
+        { status: 200 },
+      );
     }
-    return Response.json(data, { status: upstream.status });
   } catch (error) {
     return Response.json(
       {
@@ -186,6 +222,14 @@ export async function POST(
   try {
     const { draftId } = await params;
     const body = await request.json();
+    const scope = await safeGetAiCourseRequestScope(request);
+    const storedDraft = await safeGetAiCourseDraft(request, draftId);
+    if (!storedDraft && !scope?.isSuperAdmin) {
+      return Response.json(
+        { success: false, error: "Draft not found for this company." },
+        { status: 404 },
+      );
+    }
 
     const upstream = await fetch(
       buildOpenMAICUrl(`/api/learing-expert-agent/drafts/${draftId}`),
@@ -225,11 +269,19 @@ export async function POST(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ draftId: string }> }
 ) {
   try {
     const { draftId } = await params;
+    const scope = await safeGetAiCourseRequestScope(request);
+    const storedDraft = await safeGetAiCourseDraft(request, draftId);
+    if (!storedDraft && !scope?.isSuperAdmin) {
+      return Response.json(
+        { success: false, error: "Draft not found for this company." },
+        { status: 404 },
+      );
+    }
 
     const upstream = await fetch(
       buildOpenMAICUrl(`/api/learing-expert-agent/drafts/${draftId}`),
@@ -251,7 +303,7 @@ export async function DELETE(
       );
     }
 
-    await safeDeleteAiCourseDraft(draftId).catch(() => null);
+    await safeDeleteAiCourseDraft(request, draftId).catch(() => null);
 
     return Response.json(
       {

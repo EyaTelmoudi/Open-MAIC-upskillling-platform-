@@ -51,6 +51,9 @@ class CourseResponse(BaseModel):
     xp_reward: int
     rating: Optional[float] = None
     is_published: bool
+    memory_retention_status: str = "pending"
+    memory_retention_error: Optional[str] = None
+    memory_retention_updated_at: Optional[datetime] = None
     author_id: Optional[UUID] = None
     created_at: datetime
     updated_at: datetime

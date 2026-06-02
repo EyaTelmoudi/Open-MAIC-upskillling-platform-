@@ -44,7 +44,7 @@ const BLOCKED_DOMAIN_PATTERNS = [
 const BLOCKED_IMAGE_PATTERNS = [/logo/i, /icon/i, /sprite/i, /watermark/i, /thumbnail/i];
 
 function mediaServingUrl(baseUrl: string, classroomId: string, subPath: string): string {
-  return `${baseUrl}/api/classroom-media/${classroomId}/${subPath}`;
+  return `/api/classroom-media/${classroomId}/${subPath}`;
 }
 
 function shouldSearchForVisual(outline: SceneOutline): boolean {

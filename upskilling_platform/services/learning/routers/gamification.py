@@ -2,6 +2,7 @@
 
 import logging
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -12,6 +13,7 @@ from common.database import get_db
 from common.auth import decode_token
 from common.messaging import RabbitMQClient
 from common.models import User
+from services.learning.services.goal_tracking import sync_user_goals
 from services.learning.gamification import (
     XPManager,
     LevelManager,
@@ -174,6 +176,8 @@ async def award_xp(
     if level_up:
         response["level_up"] = level_up
 
+    sync_user_goals(db, UUID(user_id))
+
     return response
 
 
@@ -212,6 +216,7 @@ async def record_activity(
     user_id = current_user["sub"]
     streak_manager = StreakManager(db, rabbitmq_client)
     result = streak_manager.record_activity(str(user_id), user.timezone)
+    sync_user_goals(db, UUID(user_id))
     return result
 
 

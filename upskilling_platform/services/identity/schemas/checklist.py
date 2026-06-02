@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
+from pydantic import field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 class ChecklistItem(BaseModel):
@@ -29,6 +31,20 @@ class GeneralSettings(BaseModel):
     platform_language: Optional[str] = Field(None, max_length=20)
     default_timezone: Optional[str] = Field(None, max_length=100)
     support_email: Optional[str] = None
+
+    @field_validator("default_timezone")
+    @classmethod
+    def validate_default_timezone(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        timezone = value.strip()
+        if not timezone:
+            raise ValueError("Default timezone is required")
+        try:
+            ZoneInfo(timezone)
+        except ZoneInfoNotFoundError:
+            raise ValueError(f"Invalid timezone: {timezone}")
+        return timezone
 
 
 class SecuritySettings(BaseModel):

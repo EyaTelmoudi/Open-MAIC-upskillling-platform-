@@ -14,8 +14,10 @@ import {
   FileVideo,
   Layers3,
   Loader2,
+  MessageSquareText,
   PlayCircle,
   Save,
+  Sparkles,
   Star,
   Upload,
   X,
@@ -23,6 +25,7 @@ import {
 
 import { AdminShell } from "@/app/components/layout/AdminShell";
 import { CourseManagementNav } from "@/app/admin/courses/course-management-nav";
+import { CourseThumbnailField } from "@/app/admin/courses/course-thumbnail-field";
 import { AiCourseModulePlayer } from "@/app/components/admin/AiCourseModulePlayer";
 import { AiGeneratedLessonPlayer } from "@/app/components/learn/AiGeneratedLessonPlayer";
 import { Button, buttonVariants } from "@/app/components/ui/Button";
@@ -42,6 +45,7 @@ import {
   type ContentUploadResponse,
   type CourseDetailResponse,
 } from "@/app/lib/api";
+import { buildStoredMediaReference } from "@/app/lib/media";
 import { routes } from "@/app/lib/routes";
 
 type ResourceLink = {
@@ -53,6 +57,7 @@ type EditableLesson = {
   id: string;
   title: string;
   summary: string;
+  content: string | null;
   video_url: string | null;
   content_type: string;
   duration: number;
@@ -70,6 +75,7 @@ type EditableQuizQuestion = {
   type: string;
   options: string[];
   correct_answer: string;
+  explanation?: string | null;
   points: number;
   order: number;
 };
@@ -86,11 +92,14 @@ type EditableCourse = {
   id: string;
   title: string;
   description: string;
+  thumbnail: string | null;
   category: string;
   difficulty: string;
   duration: number;
   xp_reward: number;
   is_published: boolean;
+  memory_retention_status?: "pending" | "processing" | "completed" | "failed";
+  memory_retention_error?: string | null;
   modules: EditableModule[];
 };
 
@@ -119,6 +128,20 @@ const statusStyles: Record<"published" | "draft", string> = {
   draft: "bg-amber-500/10 text-amber-600",
 };
 
+const memoryRetentionLabels: Record<"pending" | "processing" | "completed" | "failed", string> = {
+  pending: "Memory Pending",
+  processing: "Memory Processing",
+  completed: "Memory Ready",
+  failed: "Memory Failed",
+};
+
+const memoryRetentionStyles: Record<"pending" | "processing" | "completed" | "failed", string> = {
+  pending: "bg-amber-500/10 text-amber-600",
+  processing: "bg-sky-500/10 text-sky-600",
+  completed: "bg-emerald-500/10 text-emerald-600",
+  failed: "bg-red-500/10 text-red-600",
+};
+
 const categoryOptions = [
   "Technology",
   "Business",
@@ -138,6 +161,18 @@ type ParsedAiScenePreview = {
   teacherParoles: string[];
   visibleTexts: string[];
   interactiveDescription: string | null;
+};
+
+type ParsedAiTeacherScriptBlock = {
+  id: string;
+  order: number;
+  text: string;
+};
+
+type ParsedAiSlideTextBlock = {
+  id: string;
+  order: number;
+  text: string;
 };
 
 function stripHtml(value?: string | null) {
@@ -262,6 +297,156 @@ function isAiSceneLesson(content?: string | null) {
   return parseAiScenePreview(content) !== null;
 }
 
+function parseAiTeacherScriptBlocks(content?: string | null): ParsedAiTeacherScriptBlock[] {
+  if (!content) {
+    return [];
+  }
+
+  const trimmed = content.trim();
+  if (!trimmed.startsWith("{")) {
+    return parseLooseAiScenePreview(trimmed)?.teacherParoles.map((text, index) => ({
+      id: `speech-${index + 1}`,
+      order: index + 1,
+      text,
+    })) || [];
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      actions?: Array<{ id?: string; type?: string; text?: string; content?: string }>;
+    };
+
+    return (parsed.actions || [])
+      .filter((action) => action.type === "speech")
+      .map((action, index) => ({
+        id: action.id || `speech-${index + 1}`,
+        order: index + 1,
+        text: decodeHtmlEntities(stripHtml(action.text || action.content || "")),
+      }))
+      .filter((block) => block.text.length > 0);
+  } catch {
+    return parseLooseAiScenePreview(trimmed)?.teacherParoles.map((text, index) => ({
+      id: `speech-${index + 1}`,
+      order: index + 1,
+      text,
+    })) || [];
+  }
+}
+
+function parseAiSlideTextBlocks(content?: string | null): ParsedAiSlideTextBlock[] {
+  if (!content) {
+    return [];
+  }
+
+  const trimmed = content.trim();
+  if (!trimmed.startsWith("{")) {
+    return parseLooseAiScenePreview(trimmed)?.visibleTexts.map((text, index) => ({
+      id: `slide-text-${index + 1}`,
+      order: index + 1,
+      text,
+    })) || [];
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      content?: {
+        canvas?: {
+          elements?: Array<{ id?: string; type?: string; content?: string }>;
+        };
+      };
+    };
+
+    return (parsed.content?.canvas?.elements || [])
+      .filter((element) => element.type === "text")
+      .map((element, index) => ({
+        id: element.id || `slide-text-${index + 1}`,
+        order: index + 1,
+        text: decodeHtmlEntities(stripHtml(element.content || "")),
+      }))
+      .filter((block) => block.text.length > 0);
+  } catch {
+    return parseLooseAiScenePreview(trimmed)?.visibleTexts.map((text, index) => ({
+      id: `slide-text-${index + 1}`,
+      order: index + 1,
+      text,
+    })) || [];
+  }
+}
+
+function replaceParagraphContent(html: string | undefined, nextText: string) {
+  const escapedText = escapeHtml(nextText).replace(/\n/g, "<br />");
+  const source = html || "";
+  const paragraphMatch = source.match(/^<p([^>]*)>[\s\S]*<\/p>$/i);
+  if (paragraphMatch) {
+    return `<p${paragraphMatch[1]}>${escapedText}</p>`;
+  }
+  return `<p>${escapedText}</p>`;
+}
+
+function updateAiSceneSpeechBlockContent(
+  content: string | null,
+  blockId: string,
+  nextText: string,
+) {
+  if (!content?.trim().startsWith("{")) {
+    return content;
+  }
+
+  try {
+    const parsed = JSON.parse(content) as {
+      actions?: Array<{ id?: string; type?: string; text?: string; content?: string }>;
+    };
+    let speechIndex = 0;
+    parsed.actions = (parsed.actions || []).map((action) => {
+      if (action.type !== "speech") {
+        return action;
+      }
+      speechIndex += 1;
+      const resolvedId = action.id || `speech-${speechIndex}`;
+      return resolvedId === blockId ? { ...action, text: nextText } : action;
+    });
+    return JSON.stringify(parsed);
+  } catch {
+    return content;
+  }
+}
+
+function updateAiSceneSlideTextBlockContent(
+  content: string | null,
+  blockId: string,
+  nextText: string,
+) {
+  if (!content?.trim().startsWith("{")) {
+    return content;
+  }
+
+  try {
+    const parsed = JSON.parse(content) as {
+      content?: {
+        canvas?: {
+          elements?: Array<{ id?: string; type?: string; content?: string }>;
+        };
+      };
+    };
+    let textIndex = 0;
+    if (parsed.content?.canvas?.elements) {
+      parsed.content.canvas.elements = parsed.content.canvas.elements.map((element) => {
+        if (element.type !== "text") {
+          return element;
+        }
+        textIndex += 1;
+        const resolvedId = element.id || `slide-text-${textIndex}`;
+        return resolvedId === blockId
+          ? { ...element, content: replaceParagraphContent(element.content, nextText) }
+          : element;
+      });
+    }
+    return JSON.stringify(parsed);
+  } catch {
+    return content;
+  }
+}
+
 function moduleHasAiLessons(
   module: { lessons: Array<{ content?: string | null }> }
 ) {
@@ -330,6 +515,7 @@ function normalizeQuizQuestion(
     type: question.type,
     options: Array.isArray(question.options) ? question.options : [],
     correct_answer: question.correct_answer,
+    explanation: null,
     points: question.points,
     order: question.order,
   };
@@ -616,6 +802,7 @@ export default function AdminCourseDetailPage() {
 
   const [course, setCourse] = useState<CourseDetailResponse | null>(null);
   const [editingCourse, setEditingCourse] = useState<EditableCourse | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -623,6 +810,13 @@ export default function AdminCourseDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedPreviewLessonId, setSelectedPreviewLessonId] = useState<string | null>(null);
+  const [selectedAiEditorLessonId, setSelectedAiEditorLessonId] = useState<string | null>(null);
+  const [aiAssistantOpen, setAiAssistantOpen] = useState(true);
+  const [aiAssistantInstruction, setAiAssistantInstruction] = useState("");
+  const [loadedAiQuizLessonIds, setLoadedAiQuizLessonIds] = useState<Set<string>>(() => new Set());
+  const [previewAiQuizQuestionsByLessonId, setPreviewAiQuizQuestionsByLessonId] = useState<
+    Record<string, EditableQuizQuestion[]>
+  >({});
 
   async function loadCourse() {
     if (!courseId) {
@@ -679,11 +873,14 @@ export default function AdminCourseDetailPage() {
         id: detailWithQuizQuestions.id,
         title: detailWithQuizQuestions.title,
         description: detailWithQuizQuestions.description || "",
+        thumbnail: detailWithQuizQuestions.thumbnail || null,
         category: detailWithQuizQuestions.category,
         difficulty: detailWithQuizQuestions.difficulty,
         duration: computedDuration,
         xp_reward: detailWithQuizQuestions.xp_reward,
         is_published: detailWithQuizQuestions.is_published,
+        memory_retention_status: detailWithQuizQuestions.memory_retention_status,
+        memory_retention_error: detailWithQuizQuestions.memory_retention_error,
         modules: detailWithQuizQuestions.modules.map((module) => ({
           id: module.id,
           title: module.title,
@@ -695,6 +892,7 @@ export default function AdminCourseDetailPage() {
               id: lesson.id,
               title: lesson.title,
               summary: parsed.summary,
+              content: lesson.content || null,
               video_url: lesson.video_url || null,
               content_type: lesson.content_type,
               duration: lesson.duration,
@@ -725,7 +923,116 @@ export default function AdminCourseDetailPage() {
     }
   }, [course, editingCourse, startInEditMode]);
 
+  useEffect(() => {
+    if (!startInEditMode && isEditMode) {
+      setIsEditMode(false);
+    }
+  }, [isEditMode, startInEditMode]);
+
   const previewLessons = useMemo(() => flattenCourseLessons(course), [course]);
+  const aiEditorLessons = useMemo(
+    () =>
+      editingCourse?.modules.flatMap((module) =>
+        module.lessons.map((lesson) => ({
+          ...lesson,
+          moduleId: module.id,
+          moduleTitle: module.title,
+          moduleOrder: module.order,
+          scenePreview: parseAiScenePreview(lesson.content),
+        })),
+      ) || [],
+    [editingCourse],
+  );
+  const selectedAiEditorLesson = useMemo(
+    () =>
+      aiEditorLessons.find((lesson) => lesson.id === selectedAiEditorLessonId) ||
+      aiEditorLessons[0] ||
+      null,
+    [aiEditorLessons, selectedAiEditorLessonId],
+  );
+
+  useEffect(() => {
+    if (!selectedAiEditorLessonId && aiEditorLessons[0]) {
+      setSelectedAiEditorLessonId(aiEditorLessons[0].id);
+      return;
+    }
+
+    if (
+      selectedAiEditorLessonId &&
+      aiEditorLessons.length > 0 &&
+      !aiEditorLessons.some((lesson) => lesson.id === selectedAiEditorLessonId)
+    ) {
+      setSelectedAiEditorLessonId(aiEditorLessons[0].id);
+    }
+  }, [aiEditorLessons, selectedAiEditorLessonId]);
+
+  useEffect(() => {
+    if (!selectedAiEditorLesson || !isQuizLesson(selectedAiEditorLesson)) {
+      return;
+    }
+
+    if (selectedAiEditorLesson.quizQuestions.length > 0 || loadedAiQuizLessonIds.has(selectedAiEditorLesson.id)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadAiPlatformQuiz() {
+      try {
+        const response = await fetch(
+          `/api/ai-course-builder/platform-course-quiz-editor/${selectedAiEditorLesson!.id}`,
+          { cache: "no-store" },
+        );
+        const data = (await response.json()) as {
+          success?: boolean;
+          quiz?: {
+            questions?: Array<{
+              id: string;
+              text: string;
+              type: string;
+              options: Array<{ value: string; label: string }>;
+              correctAnswers: string[];
+              explanation?: string | null;
+              order: number;
+            }>;
+          };
+        };
+
+        if (cancelled) {
+          return;
+        }
+
+        if (response.ok && data.success && data.quiz?.questions) {
+          const quizQuestions: EditableQuizQuestion[] = data.quiz.questions.map((question) => ({
+            id: question.id,
+            text: question.text,
+            type: question.type,
+            options: question.options.map((option) => option.label || option.value),
+            correct_answer: question.correctAnswers.join(", "),
+            explanation: question.explanation || null,
+            points: 1,
+            order: question.order,
+          }));
+
+          updateEditingLesson(
+            selectedAiEditorLesson!.moduleId,
+            selectedAiEditorLesson!.id,
+            { quizQuestions },
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadedAiQuizLessonIds((current) => new Set(current).add(selectedAiEditorLesson!.id));
+        }
+      }
+    }
+
+    void loadAiPlatformQuiz();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadedAiQuizLessonIds, selectedAiEditorLesson]);
 
   useEffect(() => {
     if (previewLessons.length === 0) {
@@ -763,6 +1070,67 @@ export default function AdminCourseDetailPage() {
     }));
     return resources.filter((resource) => !isDuplicateOfMainVideo(resource, selectedPreviewLesson?.video_url || null));
   }, [selectedPreviewLesson, selectedPreviewLessonData.resources]);
+  const selectedPreviewQuizQuestions =
+    selectedPreviewLesson
+      ? previewAiQuizQuestionsByLessonId[selectedPreviewLesson.id] || selectedPreviewLesson.quizQuestions
+      : [];
+
+  useEffect(() => {
+    if (
+      !selectedPreviewLesson ||
+      selectedPreviewLesson.content_type !== "quiz" ||
+      selectedPreviewQuizQuestions.length > 0
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadPreviewAiPlatformQuiz() {
+      const response = await fetch(
+        `/api/ai-course-builder/platform-course-quiz-editor/${selectedPreviewLesson!.id}`,
+        { cache: "no-store" },
+      );
+      const data = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        quiz?: {
+          questions?: Array<{
+            id: string;
+            text: string;
+            type: string;
+            options: Array<{ value: string; label: string }>;
+            correctAnswers: string[];
+            explanation?: string | null;
+            order: number;
+          }>;
+        };
+      };
+
+      if (cancelled || !response.ok || !data.success || !data.quiz?.questions) {
+        return;
+      }
+
+      setPreviewAiQuizQuestionsByLessonId((current) => ({
+        ...current,
+        [selectedPreviewLesson!.id]: data.quiz!.questions!.map((question) => ({
+          id: question.id,
+          text: question.text,
+          type: question.type,
+          options: question.options.map((option) => option.label || option.value),
+          correct_answer: question.correctAnswers.join(", "),
+          explanation: question.explanation || null,
+          points: 1,
+          order: question.order,
+        })),
+      }));
+    }
+
+    void loadPreviewAiPlatformQuiz();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPreviewLesson, selectedPreviewQuizQuestions.length]);
 
   const updateEditingCourse = (changes: Partial<EditableCourse>) => {
     setEditingCourse((current) => (current ? { ...current, ...changes } : current));
@@ -852,21 +1220,21 @@ export default function AdminCourseDetailPage() {
     setSuccess(null);
 
     try {
-      for (const module of editingCourse.modules) {
-        await updateCourseModule(module.id, {
-          title: module.title,
-          description: module.description || null,
-          order: module.order,
+      for (const courseModule of editingCourse.modules) {
+        await updateCourseModule(courseModule.id, {
+          title: courseModule.title,
+          description: courseModule.description || null,
+          order: courseModule.order,
         });
 
-        for (const lesson of module.lessons) {
+        for (const lesson of courseModule.lessons) {
           let videoUrl = lesson.video_url;
           const resources = [...lesson.resources];
 
           if (lesson.newVideoFile) {
             const upload = await uploadCourseContent(lesson.newVideoFile, {
               courseId: editingCourse.id,
-              moduleId: module.id,
+              moduleId: courseModule.id,
             });
             videoUrl = buildStoredVideoReference(upload);
             resources.push({ title: upload.filename, url: upload.url });
@@ -875,16 +1243,26 @@ export default function AdminCourseDetailPage() {
           for (const file of lesson.newFiles) {
             const upload = await uploadCourseContent(file, {
               courseId: editingCourse.id,
-              moduleId: module.id,
+              moduleId: courseModule.id,
             });
             resources.push({ title: upload.filename, url: upload.url });
           }
 
+          const lessonIsAiScene = isAiSceneLesson(lesson.content);
+
           await updateModuleLesson(lesson.id, {
             title: lesson.title,
-            content: buildLessonContentFromResources(lesson.summary, resources),
+            content: lessonIsAiScene
+              ? lesson.content
+              : buildLessonContentFromResources(lesson.summary, resources),
             video_url: videoUrl,
-            content_type: isQuizLesson(lesson) ? "quiz" : videoUrl ? "video" : "resource",
+            content_type: lessonIsAiScene
+              ? lesson.content_type
+              : isQuizLesson(lesson)
+                ? "quiz"
+                : videoUrl
+                  ? "video"
+                  : "resource",
             duration: lesson.duration,
             order: lesson.order,
             assessment_id: lesson.assessment_id,
@@ -920,13 +1298,49 @@ export default function AdminCourseDetailPage() {
                 order: question.order,
               });
             }
+          } else if (isAiSceneLesson(lesson.content) && isQuizLesson(lesson) && lesson.quizQuestions.length > 0) {
+            const response = await fetch(`/api/ai-course-builder/platform-course-quiz-editor/${lesson.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                questions: lesson.quizQuestions.map((question) => ({
+                  id: question.id,
+                  text: question.text,
+                  type: question.type,
+                  options: question.options.map((option, index) => ({
+                    value: String.fromCharCode(65 + index),
+                    label: option,
+                  })),
+                  correctAnswers: question.correct_answer
+                    .split(",")
+                    .map((answer) => answer.trim())
+                    .filter(Boolean),
+                  explanation: question.explanation || null,
+                  order: question.order,
+                })),
+              }),
+            });
+
+            const data = (await response.json().catch(() => ({}))) as { error?: string };
+            if (!response.ok) {
+              throw new Error(data.error || "Failed to update AI platform quiz questions.");
+            }
           }
         }
+      }
+
+      let thumbnail = editingCourse.thumbnail || "";
+      if (thumbnailFile) {
+        const thumbnailUpload = await uploadCourseContent(thumbnailFile, {
+          courseId: editingCourse.id,
+        });
+        thumbnail = buildStoredMediaReference(thumbnailUpload);
       }
 
       await updateCourseById(editingCourse.id, {
         title: editingCourse.title,
         description: editingCourse.description || null,
+        thumbnail,
         category: editingCourse.category,
         difficulty: editingCourse.difficulty,
         duration: calculateCourseDuration(editingCourse.modules),
@@ -934,6 +1348,7 @@ export default function AdminCourseDetailPage() {
       });
 
       await loadCourse();
+      setThumbnailFile(null);
       setIsEditMode(false);
       setSuccess("Course updated successfully.");
     } catch (err) {
@@ -955,9 +1370,27 @@ export default function AdminCourseDetailPage() {
     try {
       const updated = await toggleCoursePublish(course.id);
 
-      setCourse((current) => (current ? { ...current, is_published: updated.is_published } : current));
+      setCourse((current) =>
+        current
+          ? {
+              ...current,
+              is_published: updated.is_published,
+              memory_retention_status: updated.memory_retention_status ?? current.memory_retention_status,
+              memory_retention_error: updated.memory_retention_error ?? current.memory_retention_error,
+              memory_retention_updated_at:
+                updated.memory_retention_updated_at ?? current.memory_retention_updated_at,
+            }
+          : current,
+      );
       setEditingCourse((current) =>
-        current ? { ...current, is_published: updated.is_published } : current
+        current
+          ? {
+              ...current,
+              is_published: updated.is_published,
+              memory_retention_status: updated.memory_retention_status ?? current.memory_retention_status,
+              memory_retention_error: updated.memory_retention_error ?? current.memory_retention_error,
+            }
+          : current
       );
       setSuccess(
         updated.is_published
@@ -980,6 +1413,23 @@ export default function AdminCourseDetailPage() {
           currentCourseId={courseId}
         />
 
+        {(startInEditMode || isEditMode) && (
+          <section className="overflow-hidden rounded-3xl border border-[#2A5B4A] bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.2),_transparent_34%),radial-gradient(circle_at_78%_12%,_rgba(59,130,246,0.18),_transparent_26%),linear-gradient(135deg,_#102E2D_0%,_#132A3A_48%,_#0F172A_100%)] p-5 text-white shadow-[0_24px_64px_rgba(0,0,0,0.22)]">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-100">
+                Admin and Learning Expert
+              </p>
+              <h1 className="mt-2 text-xl font-semibold tracking-tight text-white">
+                Course Editor
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-200">
+                Update the course content, adjust modules and lessons, attach learning files, and
+                prepare the course for publishing from one focused editing workspace.
+              </p>
+            </div>
+          </section>
+        )}
+
         {loading ? (
           <div className="flex min-h-[40vh] items-center justify-center rounded-2xl border border-slate-200 bg-white/95 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
             <div className="inline-flex items-center gap-2 text-slate-600">
@@ -995,41 +1445,78 @@ export default function AdminCourseDetailPage() {
           <>
             {(() => {
               const aiCourse = isAiGeneratedCourse(course);
+              const memoryRetentionStatus =
+                (course.memory_retention_status || "pending") as "pending" | "processing" | "completed" | "failed";
+              const canPublishCourse = course.is_published || memoryRetentionStatus === "completed";
+              const publishBlockedReason =
+                memoryRetentionStatus === "failed"
+                  ? course.memory_retention_error || "Course memory retention failed."
+                  : memoryRetentionStatus === "processing"
+                    ? "The course is still being retained by Hindsight."
+                    : "The course cannot be published until its memory retention is complete.";
 
               return (
                 <>
-            {success && (
+            {success ? (
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                 {success}
               </div>
-            )}
+            ) : null}
 
-            <div className="flex flex-wrap justify-end gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-3 rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3 shadow-[0_14px_34px_rgba(15,23,42,0.08)] backdrop-blur">
+              {!course.is_published && (
+                <div
+                  className={`inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold ${memoryRetentionStyles[memoryRetentionStatus]}`}
+                >
+                  {memoryRetentionLabels[memoryRetentionStatus]}
+                </div>
+              )}
               {isEditMode ? (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={handleTogglePublish}
-                    disabled={isSaving || isPublishing}
-                    className="border-slate-300 bg-white text-slate-950 hover:bg-slate-100"
-                  >
-                    {isPublishing ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : course.is_published ? (
-                      <Eye className="h-4 w-4" />
-                    ) : (
-                      <CheckCircle className="h-4 w-4" />
-                    )}
-                    {isPublishing
-                      ? "Updating..."
-                      : course.is_published
-                        ? "Move To Draft"
-                        : "Publish Course"}
-                  </Button>
+                  {course.is_published ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        disabled
+                        className="border-emerald-200 bg-emerald-50 text-emerald-700 opacity-100"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Published
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleTogglePublish}
+                        disabled={isSaving || isPublishing}
+                        className="border-slate-300 bg-white text-slate-950 hover:bg-slate-100"
+                      >
+                        {isPublishing ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                        {isPublishing ? "Updating..." : "Move To Draft"}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      onClick={handleTogglePublish}
+                      disabled={isSaving || isPublishing || !canPublishCourse}
+                      title={!canPublishCourse ? publishBlockedReason : undefined}
+                      className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    >
+                      {isPublishing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4" />
+                      )}
+                      {isPublishing ? "Publishing..." : "Publish Course"}
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     onClick={() => {
                       setIsEditMode(false);
+                      setThumbnailFile(null);
                       setSuccess(null);
                       setError(null);
                       loadCourse();
@@ -1050,29 +1537,45 @@ export default function AdminCourseDetailPage() {
                 </>
               ) : (
                 <>
-                  <Button
-                    variant={course.is_published ? "outline" : "default"}
-                    onClick={handleTogglePublish}
-                    disabled={isPublishing}
-                    className={
-                      course.is_published
-                        ? "border-slate-300 bg-white text-slate-950 hover:bg-slate-100"
-                        : undefined
-                    }
-                  >
-                    {isPublishing ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : course.is_published ? (
-                      <Eye className="h-4 w-4" />
-                    ) : (
-                      <CheckCircle className="h-4 w-4" />
-                    )}
-                    {isPublishing
-                      ? "Updating..."
-                      : course.is_published
-                        ? "Move To Draft"
-                        : "Publish Course"}
-                  </Button>
+                  {course.is_published ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        disabled
+                        className="border-emerald-200 bg-emerald-50 text-emerald-700 opacity-100"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Published
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleTogglePublish}
+                        disabled={isPublishing}
+                        className="border-slate-300 bg-white text-slate-950 hover:bg-slate-100"
+                      >
+                        {isPublishing ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                        {isPublishing ? "Updating..." : "Move To Draft"}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      onClick={handleTogglePublish}
+                      disabled={isPublishing || !canPublishCourse}
+                      title={!canPublishCourse ? publishBlockedReason : undefined}
+                      className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    >
+                      {isPublishing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4" />
+                      )}
+                      {isPublishing ? "Publishing..." : "Publish Course"}
+                    </Button>
+                  )}
                   <Link
                     href={routes.adminCourseEditorResolver(course.id)}
                     className={buttonVariants({ variant: "default", size: "default" })}
@@ -1084,22 +1587,624 @@ export default function AdminCourseDetailPage() {
               )}
             </div>
 
-            {isEditMode ? (
-              <div className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+            {!course.is_published && !canPublishCourse ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                {publishBlockedReason}
+              </div>
+            ) : null}
+
+            {isEditMode && aiCourse ? (
+              <section className="overflow-hidden rounded-[32px] border border-[#2A5B4A] bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.22),_transparent_32%),radial-gradient(circle_at_76%_18%,_rgba(59,130,246,0.2),_transparent_26%),linear-gradient(135deg,_#102E2D_0%,_#132A3A_48%,_#0F172A_100%)] p-6 text-white shadow-[0_26px_70px_rgba(0,0,0,0.24)]">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="max-w-3xl">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-100">
+                      AI-generated course editor
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                      Edit generated course metadata and review scene content
+                    </h2>
+                    <p className="mt-3 text-sm leading-7 text-slate-200">
+                      This editor is optimized for AI-generated courses. Update the platform course
+                      details here, then review generated scenes in the lesson presentation below
+                      without using the traditional file-upload lesson editor.
+                    </p>
+                  </div>
+
+                  <div className="grid min-w-[260px] gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-white/12 bg-white/10 p-4 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-emerald-100">
+                        <Clock3 className="h-4 w-4" />
+                        Duration
+                      </div>
+                      <p className="mt-2 text-lg font-semibold text-white">
+                        {formatCourseDuration(editingCourse.duration)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/12 bg-white/10 p-4 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-emerald-100">
+                        <Star className="h-4 w-4" />
+                        XP Reward
+                      </div>
+                      <p className="mt-2 text-lg font-semibold text-white">
+                        +{editingCourse.xp_reward}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/12 bg-white/10 p-4 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-emerald-100">
+                        <Layers3 className="h-4 w-4" />
+                        Modules
+                      </div>
+                      <p className="mt-2 text-lg font-semibold text-white">
+                        {editingCourse.modules.length}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/12 bg-white/10 p-4 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-emerald-100">
+                        <PlayCircle className="h-4 w-4" />
+                        Scenes
+                      </div>
+                      <p className="mt-2 text-lg font-semibold text-white">
+                        {editingCourse.modules.reduce((total, module) => total + module.lessons.length, 0)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-3xl border border-white/12 bg-white/10 p-5 backdrop-blur-sm">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">
+                        Title
+                      </label>
+                      <Input
+                        value={editingCourse.title}
+                        onChange={(event) => updateEditingCourse({ title: event.target.value })}
+                        className="border-white/20 bg-white text-slate-950 shadow-sm focus-visible:border-emerald-300"
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">
+                        Description
+                      </label>
+                      <textarea
+                        value={editingCourse.description}
+                        onChange={(event) => updateEditingCourse({ description: event.target.value })}
+                        rows={3}
+                        className="w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
+                      />
+                    </div>
+                    <div className="md:col-span-2 [&_label:first-child]:text-emerald-100 [&_label:first-child]:font-semibold [&_label:first-child]:uppercase [&_label:first-child]:tracking-[0.18em]">
+                      <CourseThumbnailField
+                        inputId="ai-course-detail-thumbnail"
+                        currentUrl={editingCourse.thumbnail}
+                        file={thumbnailFile}
+                        onFileChange={setThumbnailFile}
+                        onRemove={() => {
+                          setThumbnailFile(null);
+                          updateEditingCourse({ thumbnail: "" });
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">
+                        Difficulty
+                      </label>
+                      <select
+                        value={editingCourse.difficulty}
+                        onChange={(event) => updateEditingCourse({ difficulty: event.target.value })}
+                        className="w-full rounded-xl border border-white/20 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
+                      >
+                        {difficultyOptions.map((difficulty) => (
+                          <option key={difficulty} value={difficulty}>
+                            {difficulty}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100">
+                        XP Reward
+                      </label>
+                      <Input
+                        type="number"
+                        value={editingCourse.xp_reward}
+                        onChange={(event) =>
+                          updateEditingCourse({ xp_reward: parseInt(event.target.value, 10) || 0 })
+                        }
+                        className="border-white/20 bg-white text-slate-950 shadow-sm focus-visible:border-emerald-300"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
+            {isEditMode && aiCourse ? (
+              <section
+                className={`grid gap-6 ${
+                  selectedAiEditorLesson && aiAssistantOpen
+                    ? "xl:grid-cols-[320px_minmax(0,1fr)_360px]"
+                    : "xl:grid-cols-[320px_minmax(0,1fr)]"
+                }`}
+              >
+                <aside className="xl:sticky xl:top-[108px] xl:self-start">
+                  <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white text-slate-900 shadow-[0_18px_46px_rgba(15,23,42,0.08)]">
+                    <div className="border-b border-slate-200 bg-[linear-gradient(135deg,rgba(248,250,252,0.98),rgba(236,253,245,0.9),rgba(224,242,254,0.9))] px-5 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                        Course scenes
+                      </p>
+                      <h3 className="mt-2 text-lg font-semibold text-slate-950">
+                        Select a scene to edit
+                      </h3>
+                    </div>
+                    <div className="max-h-[620px] space-y-2 overflow-y-auto p-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      {aiEditorLessons.length > 0 ? (
+                        aiEditorLessons.map((lesson, index) => (
+                          <button
+                            key={lesson.id}
+                            type="button"
+                            onClick={() => setSelectedAiEditorLessonId(lesson.id)}
+                            className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                              selectedAiEditorLesson?.id === lesson.id
+                                ? "border-emerald-300 bg-emerald-50 text-slate-950 shadow-sm"
+                                : "border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/50"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+                                {index + 1}
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block text-sm font-semibold">
+                                  {lesson.title}
+                                </span>
+                                <span className="mt-1 block text-xs text-slate-500">
+                                  {lesson.scenePreview?.type || lesson.content_type} • {formatCourseDuration(lesson.duration)}
+                                </span>
+                              </span>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-500">
+                          No generated scenes were found for this course.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </aside>
+
+                <div className="min-w-0 space-y-5">
+                  {selectedAiEditorLesson ? (
+                    <>
+                      <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white text-slate-900 shadow-[0_18px_46px_rgba(15,23,42,0.08)]">
+                        <div className="border-b border-slate-200 bg-[linear-gradient(135deg,rgba(248,250,252,0.98),rgba(236,253,245,0.9),rgba(224,242,254,0.9))] px-5 py-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                            Selected generated scene
+                          </p>
+                          <h3 className="mt-2 text-xl font-semibold text-slate-950">
+                            {selectedAiEditorLesson.title}
+                          </h3>
+                          <p className="mt-2 text-sm text-slate-600">
+                            Edit the scene metadata and review the generated learner presentation in the same workspace.
+                          </p>
+                        </div>
+
+                        <div className="space-y-4 p-5">
+                          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_160px]">
+                            <div className="space-y-2">
+                              <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                Scene title
+                              </label>
+                              <Input
+                                value={selectedAiEditorLesson.title}
+                                onChange={(event) =>
+                                  updateEditingLesson(
+                                    selectedAiEditorLesson.moduleId,
+                                    selectedAiEditorLesson.id,
+                                    { title: event.target.value },
+                                  )
+                                }
+                                className="border-slate-200 bg-white text-slate-900 shadow-sm focus-visible:border-emerald-400 focus-visible:ring-emerald-100"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                Duration
+                              </label>
+                              <Input
+                                type="number"
+                                value={selectedAiEditorLesson.duration}
+                                onChange={(event) =>
+                                  updateEditingLesson(
+                                    selectedAiEditorLesson.moduleId,
+                                    selectedAiEditorLesson.id,
+                                    { duration: parseInt(event.target.value, 10) || 0 },
+                                  )
+                                }
+                                className="border-slate-200 bg-white text-slate-900 shadow-sm focus-visible:border-emerald-400 focus-visible:ring-emerald-100"
+                              />
+                            </div>
+                          </div>
+
+                          {isQuizLesson(selectedAiEditorLesson) ? (
+                            <div className="rounded-3xl border border-amber-200 bg-amber-50/80 p-4">
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+                                    Quiz content
+                                  </p>
+                                  <h4 className="mt-2 text-base font-semibold text-slate-950">
+                                    Questions, answers, and explanations for this knowledge check
+                                  </h4>
+                                </div>
+                                <span className="rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-medium text-amber-800">
+                                  {selectedAiEditorLesson.quizQuestions.length} question
+                                  {selectedAiEditorLesson.quizQuestions.length === 1 ? "" : "s"}
+                                </span>
+                              </div>
+
+                              <div className="mt-4 space-y-4">
+                                {selectedAiEditorLesson.quizQuestions.length > 0 ? (
+                                  selectedAiEditorLesson.quizQuestions
+                                    .slice()
+                                    .sort((left, right) => left.order - right.order)
+                                    .map((question, questionIndex) => (
+                                      <div
+                                        key={question.id}
+                                        className="rounded-3xl border border-amber-200 bg-white p-4 shadow-sm"
+                                      >
+                                        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">
+                                            Question {questionIndex + 1}
+                                          </p>
+                                          <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                                            {question.points} pt{question.points === 1 ? "" : "s"}
+                                          </span>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                          <div className="space-y-2">
+                                            <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                              Question text
+                                            </label>
+                                            <textarea
+                                              value={question.text}
+                                              onChange={(event) =>
+                                                updateEditingQuizQuestion(
+                                                  selectedAiEditorLesson.moduleId,
+                                                  selectedAiEditorLesson.id,
+                                                  question.id,
+                                                  { text: event.target.value },
+                                                )
+                                              }
+                                              rows={3}
+                                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm leading-6 text-slate-900 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                                            />
+                                          </div>
+
+                                          <div className="grid gap-3 md:grid-cols-2">
+                                            {question.options.map((option, optionIndex) => (
+                                              <div key={`${question.id}-option-${optionIndex}`} className="space-y-2">
+                                                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                                  Option {optionIndex + 1}
+                                                </label>
+                                                <Input
+                                                  value={option}
+                                                  onChange={(event) => {
+                                                    const nextOptions = [...question.options];
+                                                    nextOptions[optionIndex] = event.target.value;
+                                                    updateEditingQuizQuestion(
+                                                      selectedAiEditorLesson.moduleId,
+                                                      selectedAiEditorLesson.id,
+                                                      question.id,
+                                                      { options: nextOptions },
+                                                    );
+                                                  }}
+                                                  className="border-slate-200 bg-white text-slate-900 shadow-sm focus-visible:border-amber-400 focus-visible:ring-amber-100"
+                                                />
+                                              </div>
+                                            ))}
+                                          </div>
+
+                                          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_140px]">
+                                            <div className="space-y-2">
+                                              <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                                Correct answer
+                                              </label>
+                                              <Input
+                                                value={question.correct_answer}
+                                                onChange={(event) =>
+                                                  updateEditingQuizQuestion(
+                                                    selectedAiEditorLesson.moduleId,
+                                                    selectedAiEditorLesson.id,
+                                                    question.id,
+                                                    { correct_answer: event.target.value },
+                                                  )
+                                                }
+                                                className="border-slate-200 bg-white text-slate-900 shadow-sm focus-visible:border-amber-400 focus-visible:ring-amber-100"
+                                              />
+                                            </div>
+                                            <div className="space-y-2">
+                                              <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                                Points
+                                              </label>
+                                              <Input
+                                                type="number"
+                                                value={question.points}
+                                                onChange={(event) =>
+                                                  updateEditingQuizQuestion(
+                                                    selectedAiEditorLesson.moduleId,
+                                                    selectedAiEditorLesson.id,
+                                                    question.id,
+                                                    { points: parseInt(event.target.value, 10) || 0 },
+                                                  )
+                                                }
+                                                className="border-slate-200 bg-white text-slate-900 shadow-sm focus-visible:border-amber-400 focus-visible:ring-amber-100"
+                                              />
+                                            </div>
+                                          </div>
+
+                                          <div className="space-y-2">
+                                            <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                              Explanation
+                                            </label>
+                                            <textarea
+                                              value={question.explanation || ""}
+                                              onChange={(event) =>
+                                                updateEditingQuizQuestion(
+                                                  selectedAiEditorLesson.moduleId,
+                                                  selectedAiEditorLesson.id,
+                                                  question.id,
+                                                  { explanation: event.target.value },
+                                                )
+                                              }
+                                              rows={3}
+                                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm leading-6 text-slate-900 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))
+                                ) : (
+                                  <div className="rounded-2xl border border-dashed border-amber-300 bg-white px-4 py-5 text-sm text-slate-600">
+                                    No quiz questions were found for this generated quiz scene.
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                                      Slide content
+                                    </p>
+                                    <h4 className="mt-2 text-base font-semibold text-slate-950">
+                                      Learner-facing text in this generated scene
+                                    </h4>
+                                  </div>
+                                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
+                                    {parseAiSlideTextBlocks(selectedAiEditorLesson.content).length} block
+                                    {parseAiSlideTextBlocks(selectedAiEditorLesson.content).length === 1 ? "" : "s"}
+                                  </span>
+                                </div>
+
+                                <div className="mt-4 space-y-3">
+                                  {parseAiSlideTextBlocks(selectedAiEditorLesson.content).length > 0 ? (
+                                    parseAiSlideTextBlocks(selectedAiEditorLesson.content).map((textBlock) => (
+                                      <div
+                                        key={textBlock.id}
+                                        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                                      >
+                                        <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                          Slide text {textBlock.order}
+                                        </label>
+                                        <textarea
+                                          value={textBlock.text}
+                                          onChange={(event) =>
+                                            updateEditingLesson(
+                                              selectedAiEditorLesson.moduleId,
+                                              selectedAiEditorLesson.id,
+                                              {
+                                                content: updateAiSceneSlideTextBlockContent(
+                                                  selectedAiEditorLesson.content,
+                                                  textBlock.id,
+                                                  event.target.value,
+                                                ),
+                                              },
+                                            )
+                                          }
+                                          rows={3}
+                                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm leading-6 text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+                                        />
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-500">
+                                      No editable slide text was found for this scene.
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                                      Teacher script
+                                    </p>
+                                    <h4 className="mt-2 text-base font-semibold text-slate-950">
+                                      Narration for this generated scene
+                                    </h4>
+                                  </div>
+                                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
+                                    {parseAiTeacherScriptBlocks(selectedAiEditorLesson.content).length} part
+                                    {parseAiTeacherScriptBlocks(selectedAiEditorLesson.content).length === 1 ? "" : "s"}
+                                  </span>
+                                </div>
+
+                                <div className="mt-4 space-y-3">
+                                  {parseAiTeacherScriptBlocks(selectedAiEditorLesson.content).length > 0 ? (
+                                    parseAiTeacherScriptBlocks(selectedAiEditorLesson.content).map((scriptBlock) => (
+                                      <div
+                                        key={scriptBlock.id}
+                                        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                                      >
+                                        <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                          Script part {scriptBlock.order}
+                                        </label>
+                                        <textarea
+                                          value={scriptBlock.text}
+                                          onChange={(event) =>
+                                            updateEditingLesson(
+                                              selectedAiEditorLesson.moduleId,
+                                              selectedAiEditorLesson.id,
+                                              {
+                                                content: updateAiSceneSpeechBlockContent(
+                                                  selectedAiEditorLesson.content,
+                                                  scriptBlock.id,
+                                                  event.target.value,
+                                                ),
+                                              },
+                                            )
+                                          }
+                                          rows={4}
+                                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm leading-6 text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
+                                        />
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-500">
+                                      No teacher narration was found for this scene.
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_46px_rgba(15,23,42,0.08)]">
+                        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                            Generated scene preview
+                          </p>
+                        </div>
+                        <div className="bg-slate-100/70 p-5">
+                          {selectedAiEditorLesson.content ? (
+                            <AiGeneratedLessonPlayer
+                              lesson={{
+                                id: selectedAiEditorLesson.id,
+                                title: selectedAiEditorLesson.title,
+                                duration: selectedAiEditorLesson.duration,
+                                content: selectedAiEditorLesson.content,
+                              }}
+                              completed
+                              hideLessonHeader
+                            />
+                          ) : (
+                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-500">
+                              This generated scene has no stored playable content.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                    </>
+                  ) : (
+                    <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-6 py-10 text-sm text-slate-500">
+                      Select a generated scene from the sidebar to start editing.
+                    </div>
+                  )}
+                </div>
+
+                {selectedAiEditorLesson && aiAssistantOpen ? (
+                  <aside className="xl:sticky xl:top-[108px] xl:self-start">
+                    <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(239,246,255,0.98))] text-slate-900 shadow-[0_24px_60px_rgba(15,23,42,0.16)]">
+                      <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
+                        <div>
+                          <div className="flex items-center gap-2 text-sm font-semibold text-sky-700">
+                            <Sparkles className="h-4 w-4" />
+                            Scene Assistant
+                          </div>
+                          <p className="mt-2 text-sm leading-6 text-slate-600">
+                            Use this panel to plan the revision before saving the platform course.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAiAssistantOpen(false)}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:text-slate-900"
+                          aria-label="Close assistant"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4 p-5">
+                        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm leading-6 text-slate-600">
+                          Review the scene preview, update the title or duration, and only change the scene source when the generated payload needs a precise correction.
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            Revision note
+                          </label>
+                          <textarea
+                            value={aiAssistantInstruction}
+                            onChange={(event) => setAiAssistantInstruction(event.target.value)}
+                            placeholder="Example: shorten the introduction, simplify the narration, or make the quiz question clearer."
+                            rows={6}
+                            className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-300 focus:ring-4 focus:ring-sky-100"
+                          />
+                        </div>
+                        <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs leading-5 text-sky-800">
+                          This platform editor saves your direct edits. For full AI regeneration of a scene, reopen the generated draft editor before final approval.
+                        </div>
+                      </div>
+                    </div>
+                  </aside>
+                ) : selectedAiEditorLesson ? (
+                  <button
+                    type="button"
+                    onClick={() => setAiAssistantOpen(true)}
+                    className="fixed bottom-6 right-6 z-40 inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-[0_18px_40px_rgba(15,23,42,0.18)] transition hover:border-sky-300 hover:bg-sky-50"
+                  >
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-sky-100 text-sky-700">
+                      <MessageSquareText className="h-4 w-4" />
+                    </span>
+                    Open scene assistant
+                  </button>
+                ) : null}
+              </section>
+            ) : null}
+
+            {isEditMode && !aiCourse ? (
+              <div className="overflow-hidden rounded-[32px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] p-5 shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="mb-4 flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#D1FAE5,#DBEAFE)] text-emerald-700 shadow-sm">
                         <BookOpen className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                                <div className="grid gap-4 md:grid-cols-2">
+                        <div className="mb-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                            Course information
+                          </p>
+                          <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-950">
+                            Edit the course foundation
+                          </h2>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
                           <div className="space-y-2 md:col-span-2">
                             <label className="text-xs font-medium text-slate-600">Title</label>
                             <Input
                               value={editingCourse.title}
                               onChange={(e) => updateEditingCourse({ title: e.target.value })}
-                              className="border-slate-200 bg-white text-slate-900"
+                              className="border-slate-200 bg-white text-slate-900 shadow-sm focus-visible:border-emerald-400 focus-visible:ring-emerald-100"
                             />
                           </div>
                           <div className="space-y-2 md:col-span-2">
@@ -1108,9 +2213,19 @@ export default function AdminCourseDetailPage() {
                               value={editingCourse.description}
                               onChange={(e) => updateEditingCourse({ description: e.target.value })}
                               rows={3}
-                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
                             />
                           </div>
+                          <CourseThumbnailField
+                            inputId="course-detail-thumbnail"
+                            currentUrl={editingCourse.thumbnail}
+                            file={thumbnailFile}
+                            onFileChange={setThumbnailFile}
+                            onRemove={() => {
+                              setThumbnailFile(null);
+                              updateEditingCourse({ thumbnail: "" });
+                            }}
+                          />
                         </div>
                       </div>
                     </div>
@@ -1121,7 +2236,7 @@ export default function AdminCourseDetailPage() {
                         <select
                           value={editingCourse.category}
                           onChange={(e) => updateEditingCourse({ category: e.target.value })}
-                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
                         >
                           {categoryOptions.map((category) => (
                             <option key={category} value={category}>
@@ -1135,7 +2250,7 @@ export default function AdminCourseDetailPage() {
                         <select
                           value={editingCourse.difficulty}
                           onChange={(e) => updateEditingCourse({ difficulty: e.target.value })}
-                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
                         >
                           {difficultyOptions.map((difficulty) => (
                             <option key={difficulty} value={difficulty}>
@@ -1146,7 +2261,7 @@ export default function AdminCourseDetailPage() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs font-medium text-slate-600">Course Duration</label>
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900">
+                        <div className="rounded-xl border border-slate-200 bg-slate-100/80 px-3 py-2 text-sm font-medium text-slate-900 shadow-inner">
                           {formatCourseDuration(editingCourse.duration)}, calculated automatically from the lessons
                         </div>
                       </div>
@@ -1158,14 +2273,14 @@ export default function AdminCourseDetailPage() {
                           onChange={(e) =>
                             updateEditingCourse({ xp_reward: parseInt(e.target.value, 10) || 0 })
                           }
-                          className="border-slate-200 bg-white text-slate-900"
+                          className="border-slate-200 bg-white text-slate-900 shadow-sm focus-visible:border-emerald-400 focus-visible:ring-emerald-100"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div className="grid min-w-[260px] gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4 shadow-sm">
                       <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-600">
                         <Clock3 className="h-4 w-4" />
                         Duration
@@ -1174,7 +2289,7 @@ export default function AdminCourseDetailPage() {
                           {formatCourseDuration(editingCourse.duration)}
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
+                    <div className="rounded-2xl border border-sky-100 bg-sky-50/80 p-4 shadow-sm">
                       <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-600">
                         <Star className="h-4 w-4" />
                         XP Reward
@@ -1183,7 +2298,7 @@ export default function AdminCourseDetailPage() {
                         +{editingCourse.xp_reward}
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
+                    <div className="rounded-2xl border border-amber-100 bg-amber-50/80 p-4 shadow-sm">
                       <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-600">
                         <Layers3 className="h-4 w-4" />
                         Modules
@@ -1192,7 +2307,7 @@ export default function AdminCourseDetailPage() {
                         {editingCourse.modules.length}
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4">
+                    <div className="rounded-2xl border border-indigo-100 bg-indigo-50/80 p-4 shadow-sm">
                       <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-600">
                         <PlayCircle className="h-4 w-4" />
                         Lessons
@@ -1202,9 +2317,11 @@ export default function AdminCourseDetailPage() {
                       </p>
                     </div>
                   </div>
-                  </div>
                 </div>
-                            ) : (
+              </div>
+            ) : null}
+
+            {!isEditMode ? (
               <section className="overflow-hidden rounded-3xl border border-[#2A5B4A] bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.22),_transparent_32%),radial-gradient(circle_at_76%_18%,_rgba(59,130,246,0.2),_transparent_26%),linear-gradient(135deg,_#102E2D_0%,_#132A3A_48%,_#0F172A_100%)] p-6 text-white shadow-[0_26px_70px_rgba(0,0,0,0.28)] sm:p-8">
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">
                   <BookOpen className="h-3.5 w-3.5" />
@@ -1278,7 +2395,7 @@ export default function AdminCourseDetailPage() {
                   </div>
                 </div>
               </section>
-            )}
+            ) : null}
 
             {!isEditMode && course && previewLessons.length > 0 ? (
               <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
@@ -1350,46 +2467,26 @@ export default function AdminCourseDetailPage() {
                   <div className="bg-slate-100/70 p-5">
                     {selectedPreviewLesson ? (
                       <div className="space-y-5">
-                        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">
-                              {selectedPreviewLesson.moduleTitle}
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
-                              {formatCourseDuration(selectedPreviewLesson.duration)}
-                            </span>
-                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
-                              {selectedPreviewLesson.content_type}
-                            </span>
+                        {!isAiSceneLesson(selectedPreviewLesson.content) ? (
+                          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">
+                                {selectedPreviewLesson.moduleTitle}
+                              </span>
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                                {formatCourseDuration(selectedPreviewLesson.duration)}
+                              </span>
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                                {selectedPreviewLesson.content_type}
+                              </span>
+                            </div>
+                            <h4 className="mt-4 text-2xl font-semibold text-slate-950">
+                              {selectedPreviewLesson.title}
+                            </h4>
                           </div>
-                          <h4 className="mt-4 text-2xl font-semibold text-slate-950">
-                            {selectedPreviewLesson.title}
-                          </h4>
-                        </div>
+                        ) : null}
 
-                        {isAiSceneLesson(selectedPreviewLesson.content) ? (
-                          <AiGeneratedLessonPlayer
-                            lesson={{
-                              id: selectedPreviewLesson.id,
-                              title: selectedPreviewLesson.title,
-                              duration: selectedPreviewLesson.duration,
-                              content: selectedPreviewLesson.content,
-                            }}
-                            completed
-                          />
-                        ) : selectedPreviewLesson.content_type === "video" && selectedPreviewVideoUrl ? (
-                          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                            <div className="aspect-video bg-slate-950">
-                              <video controls className="h-full w-full" src={selectedPreviewVideoUrl} />
-                            </div>
-                            <div className="p-6">
-                              <h5 className="text-lg font-semibold text-slate-950">Lesson Overview</h5>
-                              <p className="mt-3 text-sm leading-7 text-slate-700">
-                                {selectedPreviewLessonData.summary || "No lesson summary provided."}
-                              </p>
-                            </div>
-                          </div>
-                        ) : selectedPreviewLesson.content_type === "quiz" ? (
+                        {selectedPreviewLesson.content_type === "quiz" ? (
                           <div className="rounded-3xl border border-amber-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,251,235,0.94))] p-6 shadow-sm">
                             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
                               Quiz Preview
@@ -1400,14 +2497,14 @@ export default function AdminCourseDetailPage() {
                             <p className="mt-3 text-sm leading-7 text-slate-700">
                               Open the learner experience to answer it interactively. The admin review keeps it in read-only preview mode.
                             </p>
-                            {selectedPreviewLessonData.summary ? (
+                            {selectedPreviewLessonData.summary && !isAiSceneLesson(selectedPreviewLesson.content) ? (
                               <p className="mt-4 text-sm leading-7 text-slate-700">
                                 {selectedPreviewLessonData.summary}
                               </p>
                             ) : null}
-                            {selectedPreviewLesson.quizQuestions.length > 0 ? (
+                            {selectedPreviewQuizQuestions.length > 0 ? (
                               <div className="mt-6 space-y-4">
-                                {selectedPreviewLesson.quizQuestions
+                                {selectedPreviewQuizQuestions
                                   .slice()
                                   .sort((left, right) => left.order - right.order)
                                   .map((question, questionIndex) => (
@@ -1428,7 +2525,14 @@ export default function AdminCourseDetailPage() {
                                       </p>
                                       <div className="mt-4 space-y-2">
                                         {question.options.map((option, optionIndex) => {
-                                          const isCorrect = option.trim() === question.correct_answer.trim();
+                                          const correctAnswers = question.correct_answer
+                                            .split(",")
+                                            .map((answer) => answer.trim())
+                                            .filter(Boolean);
+                                          const isCorrect =
+                                            option.trim() === question.correct_answer.trim() ||
+                                            correctAnswers.includes(String.fromCharCode(65 + optionIndex)) ||
+                                            correctAnswers.includes(option.trim());
                                           return (
                                             <div
                                               key={`${question.id}-option-${optionIndex}`}
@@ -1447,14 +2551,43 @@ export default function AdminCourseDetailPage() {
                                           );
                                         })}
                                       </div>
+                                      {question.explanation ? (
+                                        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-slate-700">
+                                          <span className="font-semibold text-slate-950">Explanation:</span>{" "}
+                                          {question.explanation}
+                                        </div>
+                                      ) : null}
                                     </div>
                                   ))}
                               </div>
                             ) : (
                               <p className="mt-4 text-sm text-slate-600">
-                                No quiz questions were found for this lesson.
+                                Loading quiz questions, or no quiz questions were found for this lesson.
                               </p>
                             )}
+                          </div>
+                        ) : isAiSceneLesson(selectedPreviewLesson.content) ? (
+                          <AiGeneratedLessonPlayer
+                            lesson={{
+                              id: selectedPreviewLesson.id,
+                              title: selectedPreviewLesson.title,
+                              duration: selectedPreviewLesson.duration,
+                              content: selectedPreviewLesson.content,
+                            }}
+                            completed
+                            hideLessonHeader
+                          />
+                        ) : selectedPreviewLesson.content_type === "video" && selectedPreviewVideoUrl ? (
+                          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                            <div className="aspect-video bg-slate-950">
+                              <video controls className="h-full w-full" src={selectedPreviewVideoUrl} />
+                            </div>
+                            <div className="p-6">
+                              <h5 className="text-lg font-semibold text-slate-950">Lesson Overview</h5>
+                              <p className="mt-3 text-sm leading-7 text-slate-700">
+                                {selectedPreviewLessonData.summary || "No lesson summary provided."}
+                              </p>
+                            </div>
                           </div>
                         ) : (
                           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -1511,12 +2644,12 @@ export default function AdminCourseDetailPage() {
               </section>
             ) : null}
 
-            {isEditMode ? (
-            <div className="space-y-4">
+            {isEditMode && !aiCourse ? (
+            <div className="space-y-5">
               {(isEditMode ? editingCourse.modules : course.modules).map((module, moduleIndex) => (
                 <div
                   key={module.id}
-                  className="rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-[0_14px_32px_rgba(15,23,42,0.06)]"
+                  className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_46px_rgba(15,23,42,0.08)]"
                 >
                   {(() => {
                     const isAiModule =
@@ -1524,8 +2657,8 @@ export default function AdminCourseDetailPage() {
 
                     return (
                       <>
-                  <div className="mb-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                  <div className="border-b border-slate-200 bg-[linear-gradient(135deg,rgba(248,250,252,0.98),rgba(236,253,245,0.9),rgba(224,242,254,0.9))] px-5 py-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
                       Module {moduleIndex + 1}
                     </p>
                     {isEditMode ? (
@@ -1537,7 +2670,7 @@ export default function AdminCourseDetailPage() {
                             onChange={(e) =>
                               updateEditingModule(module.id, { title: e.target.value })
                             }
-                            className="border-slate-200 bg-white text-slate-900"
+                            className="border-slate-200 bg-white text-slate-900 shadow-sm focus-visible:border-emerald-400 focus-visible:ring-emerald-100"
                           />
                         </div>
                         <div className="space-y-2">
@@ -1550,7 +2683,7 @@ export default function AdminCourseDetailPage() {
                                 order: parseInt(e.target.value, 10) || 1,
                               })
                             }
-                            className="border-slate-200 bg-white text-slate-900"
+                            className="border-slate-200 bg-white text-slate-900 shadow-sm focus-visible:border-emerald-400 focus-visible:ring-emerald-100"
                           />
                         </div>
                         <div className="space-y-2 md:col-span-2">
@@ -1561,7 +2694,7 @@ export default function AdminCourseDetailPage() {
                               updateEditingModule(module.id, { description: e.target.value })
                             }
                             rows={3}
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
                           />
                         </div>
                       </div>
@@ -1577,7 +2710,7 @@ export default function AdminCourseDetailPage() {
                     )}
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-4 bg-slate-50/70 p-5">
                     {module.lessons.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-5 text-sm text-slate-600">
                         No lessons defined for this module yet.
@@ -1602,7 +2735,7 @@ export default function AdminCourseDetailPage() {
                       module.lessons.map((lesson, lessonIndex) => (
                         <div
                           key={lesson.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4"
+                          className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
                         >
                           {isEditMode ? (
                             <div className="space-y-4">
@@ -1612,6 +2745,20 @@ export default function AdminCourseDetailPage() {
 
                                 return (
                                   <>
+                              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                    Lesson {lessonIndex + 1}
+                                  </p>
+                                  <p className="mt-1 text-sm font-semibold text-slate-950">
+                                    Edit lesson content and materials
+                                  </p>
+                                </div>
+                                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
+                                  {formatCourseDuration(editableLesson.duration)}
+                                </span>
+                              </div>
+
                               <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                   <label className="text-xs font-medium text-slate-600">Lesson Title</label>
@@ -1622,7 +2769,7 @@ export default function AdminCourseDetailPage() {
                                         title: e.target.value,
                                       })
                                     }
-                                    className="border-slate-200 bg-white text-slate-900"
+                                    className="border-slate-200 bg-white text-slate-900 shadow-sm focus-visible:border-emerald-400 focus-visible:ring-emerald-100"
                                   />
                                 </div>
                                 <div className="space-y-2">
@@ -1635,7 +2782,7 @@ export default function AdminCourseDetailPage() {
                                         duration: parseInt(e.target.value, 10) || 0,
                                       })
                                     }
-                                    className="border-slate-200 bg-white text-slate-900"
+                                    className="border-slate-200 bg-white text-slate-900 shadow-sm focus-visible:border-emerald-400 focus-visible:ring-emerald-100"
                                   />
                                   <p className="text-xs text-slate-500">
                                     Auto-filled from the main video when available. Adjust it only for non-video lessons.
@@ -1651,26 +2798,31 @@ export default function AdminCourseDetailPage() {
                                       })
                                     }
                                     rows={3}
-                                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"
                                   />
                                 </div>
                               </div>
 
                               {!quizLesson && ((editableLesson.resources.length > 0 ||
                                 editableLesson.video_url) && (
-                                <div className="rounded-xl border border-slate-200 bg-white p-3">
-                                  <p className="text-xs font-medium text-slate-900">
+                                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+                                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">
                                     Current Attached Content
                                   </p>
                                   {editableLesson.video_url && (
-                                    <p className="mt-2 text-xs text-slate-500">
+                                    <p className="mt-2 text-sm font-medium text-slate-800">
                                       Main video already attached
                                     </p>
                                   )}
                                   {editableLesson.resources.length > 0 && (
-                                    <ul className="mt-2 space-y-1 text-xs text-slate-500">
+                                    <ul className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
                                       {editableLesson.resources.map((resource) => (
-                                        <li key={`${lesson.id}-${resource.url}`}>{resource.title}</li>
+                                        <li
+                                          key={`${lesson.id}-${resource.url}`}
+                                          className="rounded-xl border border-white/70 bg-white px-3 py-2 shadow-sm"
+                                        >
+                                          {resource.title}
+                                        </li>
                                       ))}
                                     </ul>
                                   )}
@@ -1679,14 +2831,21 @@ export default function AdminCourseDetailPage() {
 
                               {!quizLesson ? (
                                 <div className="grid gap-4 md:grid-cols-2">
-                                  <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4">
-                                    <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-600">
-                                      <FileVideo className="h-4 w-4" />
-                                      Replace / Add Main Video
+                                  <div className="rounded-3xl border border-dashed border-sky-300 bg-sky-50/60 p-4">
+                                    <div className="mb-3 flex items-start gap-3">
+                                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-sky-700 shadow-sm">
+                                        <FileVideo className="h-4 w-4" />
+                                      </span>
+                                      <div>
+                                        <p className="text-sm font-semibold text-slate-900">Replace / Add Main Video</p>
+                                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                                          Upload a new video to replace or complete the main lesson media.
+                                        </p>
+                                      </div>
                                     </div>
                                     <label
                                       htmlFor={`lesson-${lesson.id}-video`}
-                                      className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                                      className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
                                     >
                                       <Upload className="h-4 w-4" />
                                       Choose Video
@@ -1718,14 +2877,21 @@ export default function AdminCourseDetailPage() {
                                     />
                                   </div>
 
-                                  <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4">
-                                    <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-600">
-                                      <Upload className="h-4 w-4" />
-                                      Add Support Files
+                                  <div className="rounded-3xl border border-dashed border-emerald-300 bg-emerald-50/60 p-4">
+                                    <div className="mb-3 flex items-start gap-3">
+                                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-700 shadow-sm">
+                                        <Upload className="h-4 w-4" />
+                                      </span>
+                                      <div>
+                                        <p className="text-sm font-semibold text-slate-900">Add Support Files</p>
+                                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                                          Attach documents, slides, images, or other resources for the lesson.
+                                        </p>
+                                      </div>
                                     </div>
                                     <label
                                       htmlFor={`lesson-${lesson.id}-files`}
-                                      className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+                                      className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-slate-950 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
                                     >
                                       <Upload className="h-4 w-4" />
                                       Choose Files

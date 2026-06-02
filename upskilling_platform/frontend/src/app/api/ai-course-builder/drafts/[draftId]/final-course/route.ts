@@ -1,6 +1,7 @@
 import { buildOpenMAICUrl } from "@/app/lib/openmaic-proxy";
 import {
   safeGetAiCourseDraft,
+  safeGetAiCourseRequestScope,
   safeUpsertAiCourseDraft,
 } from "@/app/lib/safe-ai-course-db";
 
@@ -10,9 +11,17 @@ export async function GET(
 ) {
   try {
     const { draftId } = await params;
-    const storedDraft = await safeGetAiCourseDraft(draftId);
+    const scope = await safeGetAiCourseRequestScope(request);
+    const storedDraft = await safeGetAiCourseDraft(request, draftId);
     if (storedDraft?.final_course_payload) {
       return Response.json({ success: true, course: storedDraft.final_course_payload }, { status: 200 });
+    }
+
+    if (!scope?.isSuperAdmin) {
+      return Response.json(
+        { success: false, error: "Final course not found for this company." },
+        { status: 404 },
+      );
     }
 
     const upstream = await fetch(

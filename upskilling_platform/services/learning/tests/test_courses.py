@@ -1,6 +1,7 @@
 """Route-level tests for course management."""
 
 from datetime import datetime
+from unittest.mock import MagicMock
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -190,6 +191,62 @@ def test_delete_course_removes_learner_context_before_lessons(
         for statement in executed_statements
     )
     mock_db.commit.assert_called_once()
+
+
+def test_toggle_course_publish_publishes_ready_course(
+    mock_db,
+    registered_admin_user,
+    monkeypatch,
+):
+    """Publishing a ready draft flips is_published to true and returns the new state."""
+    course_id = uuid4()
+    course = SimpleNamespace(
+        id=course_id,
+        title="Ready Course",
+        is_published=False,
+        tenant_id=registered_admin_user.tenant_id,
+        memory_retention_status="completed",
+        memory_retention_error=None,
+        memory_retention_updated_at=None,
+        updated_at=datetime.utcnow(),
+    )
+    module = SimpleNamespace(id=uuid4(), course_id=course_id)
+    lesson = SimpleNamespace(id=uuid4(), module_id=module.id)
+
+    course_query = MagicMock()
+    course_query.filter.return_value = course_query
+    course_query.first.return_value = course
+
+    module_query = MagicMock()
+    module_query.filter.return_value = module_query
+    module_query.all.return_value = [module]
+
+    lesson_query = MagicMock()
+    lesson_query.filter.return_value = lesson_query
+    lesson_query.all.return_value = [lesson]
+
+    mock_db.query.side_effect = [course_query, module_query, lesson_query]
+    mock_db.refresh.side_effect = lambda entity: entity
+
+    published_messages = []
+
+    class FakeRabbitMQClient:
+        def publish(self, **message):
+            published_messages.append(message)
+
+    monkeypatch.setattr(courses, "RabbitMQClient", FakeRabbitMQClient)
+
+    result = courses.toggle_course_publish(
+        course_id=course_id,
+        current_user={"sub": str(registered_admin_user.id)},
+        db=mock_db,
+    )
+
+    assert course.is_published is True
+    assert result["is_published"] is True
+    assert result["id"] == str(course_id)
+    mock_db.commit.assert_called_once()
+    assert published_messages[0]["routing_key"] == "learning.course.published"
 
 
 @pytest.fixture(autouse=True)

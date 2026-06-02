@@ -56,6 +56,8 @@ export default function SetPasswordPage() {
       const data = await response.json();
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("refresh_token", data.refresh_token);
+      document.cookie = `access_token=${data.access_token}; path=/; max-age=${data.expires_in || 900}; SameSite=Lax`;
+      document.cookie = `refresh_token=${data.refresh_token}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
 
       setSuccess(true);
 

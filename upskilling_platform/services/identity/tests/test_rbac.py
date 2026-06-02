@@ -11,17 +11,21 @@ from services.identity.middleware.rbac import (
 
 
 class TestRoleHierarchy:
-    def test_admin_is_highest(self):
+    def test_superadmin_is_highest(self):
+        assert ROLE_HIERARCHY["SuperAdmin"] == 7
+
+    def test_admin_is_company_admin_level(self):
         assert ROLE_HIERARCHY["Admin"] == 6
 
     def test_intern_is_lowest(self):
         assert ROLE_HIERARCHY["TeamIntern"] == 1
 
-    def test_all_six_roles_present(self):
-        assert len(ROLE_HIERARCHY) == 6
+    def test_all_seven_roles_present(self):
+        assert len(ROLE_HIERARCHY) == 7
 
     def test_hierarchy_order(self):
         levels = ROLE_HIERARCHY
+        assert levels["SuperAdmin"] > levels["Admin"]
         assert levels["Admin"] > levels["Manager"]
         assert levels["Manager"] > levels["LearningExpert"]
         assert levels["LearningExpert"] > levels["TeamManager"]
@@ -96,12 +100,22 @@ class TestRequireMinRole:
         assert "Manager" in exc_info.value.detail
 
     def test_admin_can_access_everything(self):
-        """Admin role can access all minimum role levels."""
+        """Admin role can access company-level roles, but not SuperAdmin-only actions."""
         for min_role in ROLE_HIERARCHY:
+            if min_role == "SuperAdmin":
+                continue
             checker = require_min_role(min_role)
             user = {"sub": "user-1", "role": "Admin"}
             result = checker(current_user=user)
             assert result["role"] == "Admin"
+
+    def test_admin_cannot_access_superadmin_level(self):
+        """Admin role cannot access SuperAdmin-only actions."""
+        checker = require_min_role("SuperAdmin")
+        user = {"sub": "user-1", "role": "Admin"}
+        with pytest.raises(HTTPException) as exc_info:
+            checker(current_user=user)
+        assert exc_info.value.status_code == 403
 
     def test_intern_can_only_access_intern_level(self):
         """Intern can only access TeamIntern minimum level."""

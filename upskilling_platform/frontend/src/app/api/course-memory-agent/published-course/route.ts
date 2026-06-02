@@ -16,14 +16,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await assemblePublishedCourseForMemory(request, courseId, tenantId);
+    void assemblePublishedCourseForMemory(request, courseId, tenantId)
+      .then((result) => {
+        console.log(
+          `[Agno Course Memory Agent] Background retain workflow completed for course ${courseId}. async=${Boolean(result.isAsync)}`,
+        );
+      })
+      .catch((error) => {
+        console.error(
+          `[Agno Course Memory Agent] Background retain workflow failed for course ${courseId}: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
+        );
+      });
 
     return Response.json(
       {
         success: true,
-        result,
+        queued: true,
+        courseId,
       },
-      { status: 200 },
+      { status: 202 },
     );
   } catch (error) {
     return Response.json(

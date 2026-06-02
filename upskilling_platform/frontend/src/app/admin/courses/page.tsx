@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CourseManagementNav } from "@/app/admin/courses/course-management-nav";
+import { CourseThumbnailField } from "@/app/admin/courses/course-thumbnail-field";
 import { AdminShell } from "@/app/components/layout/AdminShell";
 import { useAuth } from "@/app/context/AuthContext";
 import { Button } from "@/app/components/ui/Button";
@@ -13,7 +14,7 @@ import {
   createModuleLesson,
   deleteCourseById,
   getCourses,
-  toggleCoursePublish,
+  getTenants,
   updateCourseById,
   updateCourseModule,
   updateModuleLesson,
@@ -21,6 +22,7 @@ import {
   type ContentUploadResponse,
   type Course,
   type CourseDetailResponse,
+  type TenantResponse,
 } from "@/app/lib/api";
 import { routes } from "@/app/lib/routes";
 import {
@@ -35,6 +37,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { buildStoredMediaReference } from "@/app/lib/media";
 
 type AdminCourse = Course & {
   thumbnail?: string | null;
@@ -86,6 +89,7 @@ type EditableCourse = {
   id: string;
   title: string;
   description: string;
+  thumbnail: string | null;
   category: string;
   difficulty: string;
   duration: number;
@@ -148,7 +152,7 @@ const emptyForm = {
   difficulty: "Beginner",
   duration: 60,
   xp_reward: 100,
-  is_published: true,
+  is_published: false,
 };
 
 function escapeHtml(value: string): string {
@@ -331,10 +335,19 @@ export default function AdminCoursesPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [originFilter, setOriginFilter] = useState<CourseOrigin>("all");
   const [formData, setFormData] = useState(emptyForm);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [editingThumbnailFile, setEditingThumbnailFile] = useState<File | null>(null);
   const [modules, setModules] = useState<ModuleDraft[]>([createEmptyModule(0)]);
+  const [tenants, setTenants] = useState<TenantResponse[]>([]);
 
   const canManageCourses =
-    !!user && ["Admin", "Manager", "LearningExpert"].includes(user.role);
+    !!user && ["Admin", "Manager", "LearningExpert", "SuperAdmin"].includes(user.role);
+  const isSuperAdmin = user?.role === "SuperAdmin";
+
+  const tenantNameById = useMemo(
+    () => Object.fromEntries(tenants.map((tenant) => [tenant.id, tenant.name])),
+    [tenants]
+  );
 
   const filteredCourses = useMemo(() => {
     return courses.filter((course) => {
@@ -352,10 +365,14 @@ export default function AdminCoursesPage() {
       return (
         course.title.toLowerCase().includes(needle) ||
         (course.description || "").toLowerCase().includes(needle) ||
-        course.category.toLowerCase().includes(needle)
+        course.category.toLowerCase().includes(needle) ||
+        (isSuperAdmin &&
+          (course.tenant_id ? tenantNameById[course.tenant_id] || "" : "Platform-wide")
+            .toLowerCase()
+            .includes(needle))
       );
     });
-  }, [courses, originFilter, search]);
+  }, [courses, isSuperAdmin, originFilter, search, tenantNameById]);
 
   const courseCounts = useMemo(() => {
     let ai = 0;
@@ -374,18 +391,24 @@ export default function AdminCoursesPage() {
     };
   }, [courses]);
 
-  async function loadCourses() {
+  const loadCourses = useCallback(async () => {
     try {
       setError(null);
-      const response = await getCourses({ page: 1, page_size: 100 });
-      setCourses(response.items);
+      const [coursesResponse, tenantsResponse] = await Promise.all([
+        getCourses({ page: 1, page_size: 100 }),
+        isSuperAdmin ? getTenants(1, 100) : Promise.resolve(null),
+      ]);
+      setCourses(coursesResponse.items);
+      if (tenantsResponse) {
+        setTenants(tenantsResponse.tenants || []);
+      }
     } catch (err) {
       console.error("Failed to load admin courses:", err);
       setError(err instanceof Error ? err.message : "Failed to load courses");
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     if (!canManageCourses) {
@@ -393,10 +416,11 @@ export default function AdminCoursesPage() {
       return;
     }
     loadCourses();
-  }, [canManageCourses]);
+  }, [canManageCourses, loadCourses]);
 
   function resetCreateForm() {
     setFormData(emptyForm);
+    setThumbnailFile(null);
     setModules([createEmptyModule(0)]);
   }
 
@@ -446,14 +470,23 @@ export default function AdminCoursesPage() {
     setSuccess(null);
 
     try {
-      const createdCourse = await createCourse({
+      let savedCourse = await createCourse({
         ...formData,
         description: formData.description || null,
         is_published: false,
       });
 
+      if (thumbnailFile) {
+        const thumbnailUpload = await uploadCourseContent(thumbnailFile, {
+          courseId: savedCourse.id,
+        });
+        savedCourse = await updateCourseById(savedCourse.id, {
+          thumbnail: buildStoredMediaReference(thumbnailUpload),
+        });
+      }
+
       for (const [index, moduleDraft] of modules.entries()) {
-        const createdModule = await createCourseModule(createdCourse.id, {
+        const createdModule = await createCourseModule(savedCourse.id, {
           title: moduleDraft.title,
           description: moduleDraft.description || null,
           order: index + 1,
@@ -464,7 +497,7 @@ export default function AdminCoursesPage() {
         if (moduleDraft.videoFile) {
           uploads.push(
             await uploadCourseContent(moduleDraft.videoFile, {
-              courseId: createdCourse.id,
+              courseId: savedCourse.id,
               moduleId: createdModule.id,
             })
           );
@@ -473,7 +506,7 @@ export default function AdminCoursesPage() {
         if (moduleDraft.pdfFile) {
           uploads.push(
             await uploadCourseContent(moduleDraft.pdfFile, {
-              courseId: createdCourse.id,
+              courseId: savedCourse.id,
               moduleId: createdModule.id,
             })
           );
@@ -482,7 +515,7 @@ export default function AdminCoursesPage() {
         for (const attachment of moduleDraft.attachments) {
           uploads.push(
             await uploadCourseContent(attachment, {
-              courseId: createdCourse.id,
+              courseId: savedCourse.id,
               moduleId: createdModule.id,
             })
           );
@@ -501,26 +534,13 @@ export default function AdminCoursesPage() {
         });
       }
 
-      let finalCourse: AdminCourse = {
-        ...createdCourse,
-        thumbnail: null,
+      const finalCourse: AdminCourse = {
+        ...savedCourse,
         rating: null,
       };
 
-      if (formData.is_published) {
-        const published = await toggleCoursePublish(createdCourse.id);
-        finalCourse = {
-          ...finalCourse,
-          is_published: published.is_published,
-        };
-      }
-
       setCourses((current) => [finalCourse, ...current]);
-      setSuccess(
-        formData.is_published
-          ? "Course created and published successfully. The Course Memory Agent synced the course bank."
-          : "Course created successfully."
-      );
+      setSuccess("Course created successfully. Publish will be available after course memory retention completes.");
       setShowCreateModal(false);
       resetCreateForm();
     } catch (err) {
@@ -612,20 +632,27 @@ export default function AdminCoursesPage() {
       const updatedCourse = await updateCourseById(editingCourse.id, {
         title: editingCourse.title,
         description: editingCourse.description || null,
+        thumbnail: editingThumbnailFile
+          ? buildStoredMediaReference(
+              await uploadCourseContent(editingThumbnailFile, {
+                courseId: editingCourse.id,
+              })
+            )
+          : editingCourse.thumbnail || "",
         category: editingCourse.category,
         difficulty: editingCourse.difficulty,
         duration: editingCourse.duration,
         xp_reward: editingCourse.xp_reward,
       });
 
-      for (const module of editingCourse.modules) {
-        await updateCourseModule(module.id, {
-          title: module.title,
-          description: module.description || null,
-          order: module.order,
+      for (const courseModule of editingCourse.modules) {
+        await updateCourseModule(courseModule.id, {
+          title: courseModule.title,
+          description: courseModule.description || null,
+          order: courseModule.order,
         });
 
-        for (const lesson of module.lessons) {
+        for (const lesson of courseModule.lessons) {
           let videoUrl = lesson.video_url;
           const resources = [...lesson.resources];
 
@@ -671,6 +698,7 @@ export default function AdminCoursesPage() {
       );
       setShowEditModal(false);
       setEditingCourse(null);
+      setEditingThumbnailFile(null);
       setSuccess("Course updated successfully.");
     } catch (err) {
       console.error("Failed to update course:", err);
@@ -690,7 +718,7 @@ export default function AdminCoursesPage() {
               Access Denied
             </h2>
             <p className="mt-2 text-text-secondary">
-              This page is only accessible to admins and learning experts.
+              This page is only accessible to course administrators and learning experts.
             </p>
           </div>
         </div>
@@ -715,29 +743,29 @@ export default function AdminCoursesPage() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-slate-200/80 bg-white/88 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-slate-950">
+        <section className="overflow-hidden rounded-3xl border border-[#2A5B4A] bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.22),_transparent_32%),radial-gradient(circle_at_76%_18%,_rgba(59,130,246,0.2),_transparent_26%),linear-gradient(135deg,_#102E2D_0%,_#132A3A_48%,_#0F172A_100%)] p-5 text-white shadow-[0_26px_70px_rgba(0,0,0,0.28)] sm:p-6 lg:p-8">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-3xl">
+              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
                 Course Management Workspace
               </h2>
-              <p className="text-sm text-slate-600">
+              <p className="mt-4 text-sm leading-7 text-slate-200 sm:text-base">
                 Traditional courses and AI-generated courses remain available together in the same workspace.
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 lg:items-end">
-              <div className="relative w-full lg:w-[320px]">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <div className="flex w-full flex-col gap-4 xl:w-[440px] xl:items-end">
+              <div className="relative w-full">
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search courses..."
-                  className="border-slate-200 bg-white pl-10 text-slate-900 placeholder:text-slate-500"
+                  className="h-12 rounded-2xl border-white/15 bg-white/10 pl-11 text-white placeholder:text-slate-300 shadow-[0_16px_36px_rgba(0,0,0,0.18)] backdrop-blur-sm focus:border-emerald-300"
                 />
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="grid w-full grid-cols-3 gap-2">
                 {[
                   { value: "all" as const, label: "All Courses", count: courseCounts.all },
                   { value: "traditional" as const, label: "Traditional", count: courseCounts.traditional },
@@ -747,14 +775,16 @@ export default function AdminCoursesPage() {
                     key={option.value}
                     type="button"
                     onClick={() => setOriginFilter(option.value)}
-                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
+                    className={`rounded-2xl border px-3 py-3 text-left transition-colors ${
                       originFilter === option.value
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-primary/40 hover:text-primary"
+                        ? "border-emerald-300/50 bg-white/16 text-white"
+                        : "border-white/10 bg-white/8 text-slate-200 hover:border-white/25 hover:bg-white/12"
                     }`}
                   >
-                    <span>{option.label}</span>
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.16em]">
+                      {option.label}
+                    </span>
+                    <span className="mt-2 block font-mono text-2xl font-bold leading-none">
                       {option.count}
                     </span>
                   </button>
@@ -762,7 +792,7 @@ export default function AdminCoursesPage() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/92 shadow-[0_22px_50px_rgba(15,23,42,0.08)]">
           <table className="w-full">
@@ -774,6 +804,11 @@ export default function AdminCoursesPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
                   Category
                 </th>
+                {isSuperAdmin ? (
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Company
+                  </th>
+                ) : null}
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-700">
                   Level
                 </th>
@@ -798,7 +833,7 @@ export default function AdminCoursesPage() {
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={isSuperAdmin ? 9 : 8}
                     className="px-4 py-10 text-center text-slate-600"
                   >
                     <div className="inline-flex items-center gap-2">
@@ -843,6 +878,17 @@ export default function AdminCoursesPage() {
                     <td className="px-4 py-4 text-sm text-slate-900">
                       {course.category}
                     </td>
+                    {isSuperAdmin ? (
+                      <td className="px-4 py-4">
+                        <div className="min-w-[150px]">
+                          <p className="text-sm font-semibold text-slate-900">
+                            {course.tenant_id
+                              ? tenantNameById[course.tenant_id] || "Unknown company"
+                              : "Platform-wide"}
+                          </p>
+                        </div>
+                      </td>
+                    ) : null}
                     <td className="px-4 py-4">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -975,6 +1021,13 @@ export default function AdminCoursesPage() {
                       rows={3}
                     />
                   </div>
+                  <CourseThumbnailField
+                    inputId="create-course-thumbnail"
+                    currentUrl={null}
+                    file={thumbnailFile}
+                    onFileChange={setThumbnailFile}
+                    onRemove={() => setThumbnailFile(null)}
+                  />
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-text-secondary">
                       Category
@@ -1251,16 +1304,12 @@ export default function AdminCoursesPage() {
                 <label className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-3 text-sm text-text-primary">
                   <input
                     type="checkbox"
-                    checked={formData.is_published}
-                    onChange={(e) =>
-                      setFormData((current) => ({
-                        ...current,
-                        is_published: e.target.checked,
-                      }))
-                    }
+                    checked={false}
+                    disabled
+                    onChange={() => undefined}
                     className="h-4 w-4 rounded border-border"
                   />
-                  Publish to the learner catalog after the modules and files are created
+                  Publish is locked during creation. It becomes available only after Hindsight fully retains the course memory.
                 </label>
               </div>
 
@@ -1312,6 +1361,7 @@ export default function AdminCoursesPage() {
                   onClick={() => {
                     setShowEditModal(false);
                     setEditingCourse(null);
+                    setEditingThumbnailFile(null);
                   }}
                 >
                   <X className="h-4 w-4" />
@@ -1342,6 +1392,16 @@ export default function AdminCoursesPage() {
                       className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
                     />
                   </div>
+                  <CourseThumbnailField
+                    inputId="edit-course-thumbnail"
+                    currentUrl={editingCourse.thumbnail}
+                    file={editingThumbnailFile}
+                    onFileChange={setEditingThumbnailFile}
+                    onRemove={() => {
+                      setEditingThumbnailFile(null);
+                      updateEditingCourse({ thumbnail: "" });
+                    }}
+                  />
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-text-secondary">
                       Category

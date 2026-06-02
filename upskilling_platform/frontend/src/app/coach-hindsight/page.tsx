@@ -29,6 +29,7 @@ type EnrollmentRecord = {
 type CoachCourseOption = {
   id: string;
   title: string;
+  tenantId: string | null;
   status: string;
   enrolledAt: string;
   completedAt: string | null;
@@ -37,6 +38,41 @@ type CoachCourseOption = {
 function starterMessages(courseTitle?: string | null): Message[] {
   void courseTitle;
   return [];
+}
+
+function fallbackSuggestedQuestions(courseTitle?: string | null) {
+  const title = courseTitle?.trim() || "this course";
+  return [
+    `What should I understand first before studying ${title}?`,
+    `What should I focus on before moving to the next lesson in ${title}?`,
+    `What does the retained course memory say about ${title}?`,
+    `Give me a concise explanation grounded in ${title}.`,
+  ];
+}
+
+function formatConversationTime(timestamp: string, timezone?: string | null) {
+  const date = new Date(timestamp);
+
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+      timeZone: timezone || undefined,
+    }).format(date);
+  } catch {
+    return new Intl.DateTimeFormat(undefined, {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(date);
+  }
 }
 
 export default function CoachHindsightPage() {
@@ -48,11 +84,14 @@ export default function CoachHindsightPage() {
   const [conversations, setConversations] = useState<CoachSessionListItem[]>([]);
   const [activeConversation, setActiveConversation] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>(fallbackSuggestedQuestions());
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const draftConversationKeysRef = useRef<Set<string>>(new Set());
   const selectedCourse = useMemo(
     () => availableCourses.find((course) => course.id === selectedCourseId) || null,
     [availableCourses, selectedCourseId],
   );
+  const effectiveTenantId = tenantId || selectedCourse?.tenantId || user?.tenant_id || null;
 
   useEffect(() => {
     async function loadCoachCourses() {
@@ -81,11 +120,14 @@ export default function CoachHindsightPage() {
         const uniqueCourseIds = Array.from(new Set(sortedEnrollments.map((item) => item.course_id)));
         const courseEntries = await Promise.all(
           uniqueCourseIds.map(async (courseId) => {
-            const course = await api.get<{ id: string; title: string }>(`/api/v1/learning/courses/${courseId}`);
+            const course = await api.get<{ id: string; title: string; tenant_id?: string | null }>(
+              `/api/v1/learning/courses/${courseId}`,
+            );
             const enrollment = sortedEnrollments.find((item) => item.course_id === courseId);
             return {
               id: course.id,
               title: course.title,
+              tenantId: course.tenant_id || null,
               status: enrollment?.status || "unknown",
               enrolledAt: enrollment?.enrolled_at || "",
               completedAt: enrollment?.completed_at || null,
@@ -99,7 +141,23 @@ export default function CoachHindsightPage() {
             current === COURSE_MEMORY_DEMO_COURSE_ID ? courseEntries[0].id : current,
           );
         } else {
-          setAvailableCourses([]);
+          if (user?.role === "SuperAdmin") {
+            const demoCourse = await api.get<{ id: string; title: string; tenant_id?: string | null }>(
+              `/api/v1/learning/courses/${COURSE_MEMORY_DEMO_COURSE_ID}`,
+            );
+            setAvailableCourses([
+              {
+                id: demoCourse.id,
+                title: demoCourse.title,
+                tenantId: demoCourse.tenant_id || null,
+                status: "available",
+                enrolledAt: "",
+                completedAt: null,
+              },
+            ]);
+          } else {
+            setAvailableCourses([]);
+          }
           setSelectedCourseId(COURSE_MEMORY_DEMO_COURSE_ID);
         }
       } catch (error) {
@@ -112,11 +170,11 @@ export default function CoachHindsightPage() {
     }
 
     void loadCoachCourses();
-  }, [user?.id]);
+  }, [user?.id, user?.role]);
 
   useEffect(() => {
     async function loadSessions() {
-      if (!user?.id || !selectedCourseId || !tenantId) {
+      if (!user?.id || !selectedCourseId || !effectiveTenantId) {
         return;
       }
 
@@ -158,7 +216,69 @@ export default function CoachHindsightPage() {
     }
 
     void loadSessions();
-  }, [selectedCourse?.title, selectedCourseId, tenantId, user?.id]);
+  }, [effectiveTenantId, selectedCourse?.title, selectedCourseId, user?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSuggestedQuestions() {
+      if (!user?.id || !selectedCourseId) {
+        setSuggestedQuestions(fallbackSuggestedQuestions(selectedCourse?.title || null));
+        return;
+      }
+
+      setIsLoadingSuggestions(true);
+      try {
+        const response = await fetch("/api/hindsight-coach-agent/suggestions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            courseId: selectedCourseId,
+            userId: user.id,
+          }),
+        });
+
+        const payload = (await response.json().catch(() => null)) as
+          | { success?: boolean; suggestions?: string[] }
+          | null;
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok || !payload?.success || !Array.isArray(payload.suggestions)) {
+          setSuggestedQuestions(fallbackSuggestedQuestions(selectedCourse?.title || null));
+          return;
+        }
+
+        const cleanSuggestions = payload.suggestions
+          .map((suggestion) => (typeof suggestion === "string" ? suggestion.trim() : ""))
+          .filter(Boolean)
+          .slice(0, 4);
+
+        setSuggestedQuestions(
+          cleanSuggestions.length > 0
+            ? cleanSuggestions
+            : fallbackSuggestedQuestions(selectedCourse?.title || null),
+        );
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load hindsight coach suggestions:", error);
+          setSuggestedQuestions(fallbackSuggestedQuestions(selectedCourse?.title || null));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingSuggestions(false);
+        }
+      }
+    }
+
+    void loadSuggestedQuestions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCourse?.title, selectedCourseId, user?.id]);
 
   const courseOptions = useMemo(() => {
     if (availableCourses.length === 0) {
@@ -209,11 +329,21 @@ export default function CoachHindsightPage() {
   const handleSendMessage = async (content: string) => {
     let sessionId = activeConversation;
     if (!sessionId) {
-      if (!tenantId) {
+      if (!effectiveTenantId) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content:
+              "I cannot start the coaching discussion because this course has no company context. Please select a course linked to a company.",
+            timestamp: new Date().toISOString(),
+          },
+        ]);
         return;
       }
       const created = await createCoachSession({
-        tenantId,
+        tenantId: effectiveTenantId,
         courseId: selectedCourseId,
         source: "hindsight-coach-page",
         pagePath: "/coach-hindsight",
@@ -238,11 +368,12 @@ export default function CoachHindsightPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          tenantId,
+          tenantId: effectiveTenantId,
           courseId: selectedCourseId,
           question: content,
           pagePath: "/coach-hindsight",
           sessionId,
+          messageCreatedAt: newUserMessage.timestamp,
         }),
       });
 
@@ -290,13 +421,6 @@ export default function CoachHindsightPage() {
     }
   };
 
-  const suggestedQuestions = [
-    "Summarize what this course wants me to understand first.",
-    "What should I focus on before moving to the next lesson?",
-    "What does the course memory say about this topic?",
-    "Give me a concise explanation grounded in the retained course content.",
-  ];
-
   return (
     <AppShell fullBleed>
       <div className="flex h-[calc(100vh-76px)] min-h-0 overflow-hidden">
@@ -305,7 +429,7 @@ export default function CoachHindsightPage() {
             id: conversation.id,
             title: conversation.title,
             preview: conversation.preview,
-            lastMessage: new Date(conversation.lastActivityAt).toLocaleString(),
+            lastMessage: formatConversationTime(conversation.lastActivityAt, user?.timezone),
             unread: false,
           }))}
           activeId={activeConversation}
@@ -317,14 +441,6 @@ export default function CoachHindsightPage() {
           <header className="flex items-center gap-3 border-b border-border bg-card px-6 py-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
               <Brain className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold text-text-primary">
-                AI Coaching Agent
-              </h1>
-              <p className="text-sm text-text-secondary">
-                Powered directly by Hindsight Reflect
-              </p>
             </div>
             <div className="ml-auto w-full max-w-xs">
               <Select
@@ -345,7 +461,7 @@ export default function CoachHindsightPage() {
           {messages.length <= 1 && (
             <div className="px-6 pb-4">
               <p className="mb-3 text-sm text-text-secondary">
-                Try asking:
+                {isLoadingSuggestions ? "Preparing course-specific questions..." : "Try asking:"}
               </p>
               <div className="flex flex-wrap gap-2">
                 {suggestedQuestions.map((q, i) => (

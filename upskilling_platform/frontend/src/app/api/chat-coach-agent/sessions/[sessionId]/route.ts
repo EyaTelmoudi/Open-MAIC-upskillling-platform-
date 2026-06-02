@@ -41,7 +41,7 @@ function mapMessages(session: NonNullable<Awaited<ReturnType<typeof getCoachSess
       id: `${turn.id}:assistant`,
       role: "assistant" as const,
       content: turn.agentAnswer,
-      timestamp: turn.createdAt,
+      timestamp: turn.agentAnsweredAt,
       sources: turn.supportingMemories.slice(0, 3).map((memory: Record<string, unknown>, index: number) => ({
         title: `Course memory ${index + 1}`,
         lesson:

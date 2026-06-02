@@ -14,11 +14,34 @@ function isBrowser() {
   return typeof window !== "undefined";
 }
 
-function resolveBaseUrl(path: string): string {
-  if (isBrowser() && path.startsWith("/api/")) {
-    return "";
+function sanitizeToken(token: string | null | undefined): string | null {
+  const value = String(token || "").trim();
+  if (!value || value === "undefined" || value === "null") {
+    return null;
+  }
+  return value.split(".").length === 3 ? value : null;
+}
+
+function decodeJwtPayload(token: string | null): Record<string, unknown> | null {
+  const cleanToken = sanitizeToken(token);
+  if (!cleanToken) {
+    return null;
   }
 
+  try {
+    const payload = cleanToken.split(".")[1];
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(
+      normalized.length + ((4 - (normalized.length % 4)) % 4),
+      "=",
+    );
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function resolveBaseUrl(path: string): string {
   if (
     path.startsWith("/api/v1/auth") ||
     path.startsWith("/api/v1/identity") ||
@@ -87,29 +110,88 @@ function normalizeServicePath(path: string): string {
 
 function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
-  // Prefer the freshest token stored by the auth flow.
-  const localToken = localStorage.getItem("access_token");
+  const localToken = sanitizeToken(localStorage.getItem("access_token"));
   if (localToken) {
     return localToken;
   }
   const cookieMatch = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
-  if (cookieMatch) {
-    return cookieMatch[1];
-  }
-  return null;
+  return sanitizeToken(cookieMatch?.[1] ? decodeURIComponent(cookieMatch[1]) : null);
 }
 
 function getRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("refresh_token");
+  const localToken = sanitizeToken(localStorage.getItem("refresh_token"));
+  if (localToken) {
+    return localToken;
+  }
+  const cookieMatch = document.cookie.match(/(?:^|;\s*)refresh_token=([^;]+)/);
+  return sanitizeToken(cookieMatch?.[1] ? decodeURIComponent(cookieMatch[1]) : null);
 }
 
 function persistTokens(tokens: { access_token: string; refresh_token: string; expires_in?: number }) {
   if (typeof window === "undefined") return;
-  localStorage.setItem("access_token", tokens.access_token);
-  localStorage.setItem("refresh_token", tokens.refresh_token);
+  const accessToken = sanitizeToken(tokens.access_token);
+  const refreshToken = sanitizeToken(tokens.refresh_token);
+  if (!accessToken || !refreshToken) {
+    return;
+  }
+  localStorage.setItem("access_token", accessToken);
+  localStorage.setItem("refresh_token", refreshToken);
   const maxAge = Number(tokens.expires_in || 900);
-  document.cookie = `access_token=${tokens.access_token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  document.cookie = `access_token=${encodeURIComponent(accessToken)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  document.cookie = `refresh_token=${encodeURIComponent(refreshToken)}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+}
+
+async function refreshTokensViaIdentity(refreshCandidates: string[]): Promise<boolean> {
+  const currentAccessToken = getAuthToken();
+  const currentPayload = decodeJwtPayload(currentAccessToken);
+
+  for (const candidate of refreshCandidates) {
+    let response = await fetch(`${IDENTITY_URL}/api/v1/auth/refresh`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refresh_token: candidate }),
+      cache: "no-store",
+    });
+
+    if (response.status === 422 && currentPayload) {
+      const params = new URLSearchParams({
+        refresh_token: candidate,
+        user_id: String(currentPayload.sub || ""),
+        email: String(currentPayload.email || ""),
+        role: String(currentPayload.role || ""),
+        auth_provider: String(currentPayload.auth_provider || ""),
+      });
+      response = await fetch(`${IDENTITY_URL}/api/v1/auth/refresh?${params.toString()}`, {
+        method: "POST",
+        cache: "no-store",
+      });
+    }
+
+    if (!response.ok) {
+      continue;
+    }
+
+    const tokens = await response.json().catch(() => null);
+    const refreshedPayload = decodeJwtPayload(tokens?.access_token || null);
+    if (
+      !tokens?.access_token ||
+      !tokens?.refresh_token ||
+      (
+        currentPayload?.tenantId &&
+        refreshedPayload?.tenantId !== currentPayload.tenantId
+      )
+    ) {
+      continue;
+    }
+
+    persistTokens(tokens);
+    return true;
+  }
+
+  return false;
 }
 
 function clearStoredAuth() {
@@ -117,47 +199,77 @@ function clearStoredAuth() {
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
   document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  document.cookie = "refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+}
+
+function createApiError(message: string, status?: number) {
+  const error = new Error(message) as Error & { status?: number };
+  error.status = status;
+  return error;
+}
+
+function formatApiErrorMessage(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object") {
+    return fallback;
+  }
+
+  const detail = (error as { detail?: unknown }).detail;
+  if (typeof detail === "string" && detail.trim()) {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => {
+        if (item && typeof item === "object" && "msg" in item) {
+          return String((item as { msg?: unknown }).msg || "").trim();
+        }
+        return "";
+      })
+      .filter(Boolean);
+    if (messages.length > 0) {
+      return messages.join(" ");
+    }
+  }
+
+  const message = (error as { message?: unknown }).message;
+  if (typeof message === "string" && message.trim()) {
+    return message;
+  }
+
+  return fallback;
 }
 
 let refreshPromise: Promise<boolean> | null = null;
 
-async function tryRefreshAccessToken(): Promise<boolean> {
+export async function tryRefreshAccessToken(): Promise<boolean> {
   if (typeof window === "undefined") return false;
   if (refreshPromise) {
     return refreshPromise;
   }
 
   const refreshToken = getRefreshToken();
-  if (!refreshToken) {
+  const cookieMatch = document.cookie.match(/(?:^|;\s*)refresh_token=([^;]+)/);
+  const cookieRefreshToken = sanitizeToken(
+    cookieMatch?.[1] ? decodeURIComponent(cookieMatch[1]) : null,
+  );
+  const refreshCandidates = Array.from(
+    new Set([refreshToken, cookieRefreshToken].filter(Boolean)),
+  ) as string[];
+
+  if (refreshCandidates.length === 0) {
     clearStoredAuth();
     return false;
   }
 
   refreshPromise = (async () => {
     try {
-      const response = await fetch(`${IDENTITY_URL}/api/v1/auth/refresh`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
-
-      if (!response.ok) {
-        clearStoredAuth();
-        return false;
+      const refreshed = await refreshTokensViaIdentity(refreshCandidates);
+      if (refreshed) {
+        return true;
       }
-
-      const tokens = await response.json();
-      if (!tokens?.access_token || !tokens?.refresh_token) {
-        clearStoredAuth();
-        return false;
-      }
-
-      persistTokens(tokens);
-      return true;
-    } catch {
       clearStoredAuth();
+      return false;
+    } catch {
       return false;
     } finally {
       refreshPromise = null;
@@ -242,10 +354,10 @@ class ApiClient {
       let errorDetail;
       try {
         errorDetail = JSON.parse(errorBody);
-      } catch (e) {
+      } catch (_e) {
         errorDetail = { detail: res.statusText };
       }
-      throw new Error(errorDetail.detail || "Request failed");
+      throw createApiError(errorDetail.detail || "Request failed", res.status);
     }
     return res.json();
   }
@@ -273,10 +385,10 @@ class ApiClient {
     });
     if (!res.ok) {
       const error = await res.json().catch(() => ({ detail: res.statusText }));
-      if (res.status !== 401) {
+      if (res.status >= 500) {
         console.error('[POST] Error response:', error);
       }
-      throw new Error(error.detail || "Request failed");
+      throw createApiError(formatApiErrorMessage(error, res.statusText || "Request failed"), res.status);
     }
     return res.json();
   }
@@ -445,6 +557,31 @@ export interface PlatformAuditLogListResponse {
   page_size: number;
 }
 
+export interface IdentityAuditLog {
+  id: string;
+  user_id?: string | null;
+  action: string;
+  actor_id?: string | null;
+  actor_email?: string | null;
+  target_user_id?: string | null;
+  target_email?: string | null;
+  details?: string | null;
+  ip_address?: string | null;
+  created_at: string;
+}
+
+export interface IdentityAuditLogListResponse {
+  logs: IdentityAuditLog[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface PlatformAuditFilterOptionsResponse {
+  actions: string[];
+  target_types: string[];
+}
+
 export interface TenantResponse {
   id: string;
   name: string;
@@ -520,6 +657,25 @@ export async function getPlatformAuditLogs(
   return api.get<PlatformAuditLogListResponse>(
     `/api/v1/superadmin/audit-log?${params.toString()}`
   );
+}
+
+export async function getPlatformAuditFilterOptions(): Promise<PlatformAuditFilterOptionsResponse> {
+  return api.get<PlatformAuditFilterOptionsResponse>("/api/v1/superadmin/audit-log/filter-options");
+}
+
+export async function getIdentityAuditLogs(
+  page: number = 1,
+  pageSize: number = 100,
+  action?: string
+): Promise<IdentityAuditLogListResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  if (action) {
+    params.set("action", action);
+  }
+  return api.get<IdentityAuditLogListResponse>(`/api/v1/identity/audit-logs?${params.toString()}`);
 }
 
 export async function exportPlatformAuditLogs(
@@ -632,7 +788,7 @@ export async function getTenantProgress(id: string): Promise<TenantSetupProgress
   return api.get<TenantSetupProgress>(`/api/v1/superadmin/tenants/${id}/progress`);
 }
 
-export async function updateTenant(id: string, data: any): Promise<TenantResponse> {
+export async function updateTenant(id: string, data: UpdateTenantRequest): Promise<TenantResponse> {
   return api.put<TenantResponse>(`/api/v1/superadmin/tenants/${id}`, data);
 }
 
@@ -644,7 +800,7 @@ export async function getTenantAdmin(tenantId: string): Promise<TenantAdminRespo
   try {
     const response = await api.get<{ admins: TenantAdminResponse[]; total: number; page: number; page_size: number }>(`/api/v1/superadmin/admins?page=1&page_size=1&tenantId=${tenantId}`);
     return response.admins.length > 0 ? response.admins[0] : null;
-  } catch (error) {
+  } catch (_error) {
     // If the endpoint doesn't exist or fails, return null
     return null;
   }
@@ -652,6 +808,26 @@ export async function getTenantAdmin(tenantId: string): Promise<TenantAdminRespo
 
 export async function unassignTenantAdmin(adminId: string): Promise<void> {
   return api.post(`/api/v1/superadmin/admins/${adminId}/unassign`, {});
+}
+
+export async function updateTenantAdminStatus(
+  adminId: string,
+  status: "active" | "suspended",
+  reason?: string
+): Promise<TenantAdminResponse> {
+  return api.patch<TenantAdminResponse>(`/api/v1/superadmin/admins/${adminId}/status`, {
+    status,
+    reason,
+  });
+}
+
+export async function resetTenantAdminPassword(
+  adminId: string
+): Promise<{ message: string; userId: string; email: string; tempPassword: string }> {
+  return api.post<{ message: string; userId: string; email: string; tempPassword: string }>(
+    `/api/v1/superadmin/admins/${adminId}/reset-password`,
+    {}
+  );
 }
 
 // Additional admin and tenant management functions
@@ -732,7 +908,7 @@ export async function deleteTenant(id: string): Promise<void> {
   return api.delete(`/api/v1/superadmin/tenants/${id}`);
 }
 
-export async function inviteAdmin(data: InviteAdminRequest): Promise<any> {
+export async function inviteAdmin(data: InviteAdminRequest): Promise<unknown> {
   return api.post("/api/v1/superadmin/admins/invite", data);
 }
 
@@ -1137,8 +1313,12 @@ export interface TeamActivityItem {
 
 export interface Goal {
   id: string;
+  user_id?: string;
   title: string;
   description?: string | null;
+  goal_type?: string;
+  clean_description?: string | null;
+  is_auto_tracked?: boolean;
   target_date?: string | null;
   target_count: number;
   xp_reward: number;
@@ -1200,6 +1380,7 @@ export interface Course {
   id: string;
   title: string;
   description?: string | null;
+  thumbnail?: string | null;
   category: string;
   difficulty: string;
   duration: number;
@@ -1347,50 +1528,51 @@ export interface TeamMemberProgress {
 }
 
 export async function getTeams(): Promise<Team[]> {
-  return api.get<Team[]>("/api/v1/learning/teams");
+  return api.get<Team[]>(`${LEARNING_URL}/api/v1/teams/`);
 }
 
 export async function getTeam(teamId: string): Promise<Team> {
-  return api.get<Team>(`/api/v1/learning/teams/${teamId}`);
+  return api.get<Team>(`${LEARNING_URL}/api/v1/teams/${teamId}`);
 }
 
-export async function createTeam(data: { name: string; description?: string }): Promise<Team> {
-  return api.post<Team>("/api/v1/learning/teams", data);
+export async function createTeam(data: { name: string; description?: string; tenant_id?: string }): Promise<Team> {
+  return api.post<Team>(`${LEARNING_URL}/api/v1/teams/`, data);
 }
 
 export async function updateTeam(teamId: string, data: { name?: string; description?: string }): Promise<Team> {
-  return api.put<Team>(`/api/v1/learning/teams/${teamId}`, data);
+  return api.put<Team>(`${LEARNING_URL}/api/v1/teams/${teamId}`, data);
 }
 
 export async function deleteTeam(teamId: string): Promise<void> {
-  return api.delete(`/api/v1/learning/teams/${teamId}`);
+  return api.delete(`${LEARNING_URL}/api/v1/teams/${teamId}`);
 }
 
 export async function addTeamMember(teamId: string, data: { user_id: string; role?: string }): Promise<void> {
-  return api.post<void>(`/api/v1/learning/teams/${teamId}/members`, data);
+  return api.post<void>(`${LEARNING_URL}/api/v1/teams/${teamId}/members`, data);
 }
 
 export async function removeTeamMember(teamId: string, userId: string): Promise<void> {
-  return api.delete(`/api/v1/learning/teams/${teamId}/members/${userId}`);
+  return api.delete(`${LEARNING_URL}/api/v1/teams/${teamId}/members/${userId}`);
 }
 
 export async function assignCourseToTeam(
   teamId: string,
   data: { course_id: string; deadline?: string; is_mandatory?: boolean }
 ): Promise<{ enrolled_count: number; failed_count: number }> {
-  return api.post(`/api/v1/learning/teams/${teamId}/courses`, data);
+  return api.post(`${LEARNING_URL}/api/v1/teams/${teamId}/courses`, data);
 }
 
 export async function getTeamProgress(teamId: string): Promise<TeamProgress> {
-  return api.get<TeamProgress>(`/api/v1/learning/teams/${teamId}/progress`);
+  return api.get<TeamProgress>(`${LEARNING_URL}/api/v1/teams/${teamId}/progress`);
 }
 
-export async function getTeamAvailableUsers(): Promise<TeamAvailableUser[]> {
-  return api.get<TeamAvailableUser[]>("/api/v1/learning/teams/available-users");
+export async function getTeamAvailableUsers(tenantId?: string | null): Promise<TeamAvailableUser[]> {
+  const query = tenantId ? `?tenant_id=${encodeURIComponent(tenantId)}` : "";
+  return api.get<TeamAvailableUser[]>(`${LEARNING_URL}/api/v1/teams/available-users${query}`);
 }
 
 export async function getTeamActivity(teamId: string): Promise<TeamActivityItem[]> {
-  return api.get<TeamActivityItem[]>(`/api/v1/learning/teams/${teamId}/activity`);
+  return api.get<TeamActivityItem[]>(`${LEARNING_URL}/api/v1/teams/${teamId}/activity`);
 }
 
 export async function getSyncStatus(): Promise<SyncStatusResponse> {
@@ -1401,12 +1583,21 @@ export async function triggerManualSync(): Promise<TriggerManualSyncResponse> {
   return api.post<TriggerManualSyncResponse>("/api/v1/sync/trigger", {});
 }
 
-export async function getGoals(status?: string): Promise<Goal[]> {
-  const query = status ? `?status=${encodeURIComponent(status)}` : "";
+export async function getGoals(userId?: string, status?: string): Promise<Goal[]> {
+  const params = new URLSearchParams();
+  if (userId) {
+    params.set("user_id", userId);
+  }
+  if (status) {
+    params.set("status", status);
+  }
+  const query = params.toString() ? `?${params.toString()}` : "";
   return api.get<Goal[]>(`/api/v1/learning/goals${query}`);
 }
 
 export async function createGoal(data: {
+  user_id: string;
+  goal_type: string;
   title: string;
   description?: string | null;
   target_date?: string | null;
@@ -1435,6 +1626,7 @@ export async function getTeamGoals(teamId?: string): Promise<TeamGoal[]> {
 
 export async function createTeamGoal(data: {
   team_id: string;
+  goal_type: string;
   title: string;
   description?: string | null;
   target_date?: string | null;
@@ -1478,6 +1670,7 @@ export async function getCourses(params?: {
 export async function createCourse(data: {
   title: string;
   description?: string | null;
+  thumbnail?: string | null;
   category: string;
   difficulty: string;
   duration: number;
@@ -1510,6 +1703,7 @@ export async function updateCourseById(
   data: {
     title?: string;
     description?: string | null;
+    thumbnail?: string | null;
     category?: string;
     difficulty?: string;
     duration?: number;

@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
+from sqlalchemy import inspect, text
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,12 +30,30 @@ from common.models import Base
 app = FastAPI(title="Identity & Access Service")
 
 
+def ensure_user_timezone_schema():
+    """Add user timezone override tracking for databases created before this field."""
+    inspector = inspect(engine)
+    user_columns = {column["name"] for column in inspector.get_columns("users")}
+    if "timezone_manually_set" in user_columns:
+        return
+
+    logger.info("Adding users.timezone_manually_set column...")
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "ALTER TABLE users "
+                "ADD COLUMN timezone_manually_set BOOLEAN NOT NULL DEFAULT FALSE"
+            )
+        )
+
+
 @app.on_event("startup")
 async def startup_event():
     """Ensure all tables are created on startup."""
     try:
         logger.info("Synchronizing database schema...")
         Base.metadata.create_all(bind=engine)
+        ensure_user_timezone_schema()
         logger.info("Database schema synchronized successfully.")
     except Exception as e:
         logger.error(f"Failed to synchronize database schema: {str(e)}")

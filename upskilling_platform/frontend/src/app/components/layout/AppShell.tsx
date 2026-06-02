@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/app/components/layout/Sidebar";
 import { SoloChallengeWelcomePopup } from "@/app/components/challenges/SoloChallengeWelcomePopup";
@@ -46,6 +46,7 @@ const SF_PREFERENCES_STORAGE_KEY = "sf_preferences";
 const SOLO_CHALLENGE_SESSION_KEY = "sf_solo_challenge_welcome_seen";
 const LOGIN_SESSION_STORAGE_KEY = "sf_login_session_id";
 const SOLO_CHALLENGE_PENDING_LOGIN_KEY = "sf_solo_challenge_pending_login_session";
+const WORKSPACE_VIEW_COOKIE = "sf_workspace_view";
 const GLOBAL_BADGE_BURSTS = [
   { kind: "sparkles", left: "10%", top: "18%", delay: "0s", duration: "3.1s" },
   { kind: "trophy", left: "22%", top: "76%", delay: "0.2s", duration: "3.5s" },
@@ -151,10 +152,23 @@ export function AppShell({
   const [soloChallengeSelectedOptionId, setSoloChallengeSelectedOptionId] = useState<string | null>(null);
   const [soloChallengeAnswerResult, setSoloChallengeAnswerResult] = useState<"correct" | "incorrect" | null>(null);
   const { user, logout } = useAuth();
+  const router = useRouter();
   const profileHref = routes.profile;
   const displayName = user
     ? [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email
     : "";
+
+  const hasLearningWorkspaceAccess = () =>
+    typeof document !== "undefined" &&
+    document.cookie.split("; ").some((entry) => entry === `${WORKSPACE_VIEW_COOKIE}=learning`);
+
+  const enterAdministrationWorkspace = () => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    document.cookie = `${WORKSPACE_VIEW_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  };
 
   const persistCompactSidebar = (nextCompactSidebar: boolean) => {
     if (typeof window === "undefined") {
@@ -278,6 +292,12 @@ export function AppShell({
       window.removeEventListener("keydown", handleEscape);
     };
   }, [isProfileMenuOpen]);
+
+  useEffect(() => {
+    if (user?.role === "Admin" && !hasLearningWorkspaceAccess() && !pathname.startsWith("/admin")) {
+      router.replace(routes.adminUsers);
+    }
+  }, [pathname, router, user?.role]);
 
   useEffect(() => {
     if (!user) {
@@ -506,7 +526,7 @@ export function AppShell({
 
   const handleSoloChallengeOpenCoach = () => {
     if (typeof window !== "undefined") {
-      window.location.href = "/coach";
+      window.location.href = "/coach-hindsight";
     }
   };
 
@@ -650,22 +670,20 @@ export function AppShell({
   const administrationHref =
     user?.role === "SuperAdmin"
       ? routes.superadmin
-      : ["Admin", "Manager"].includes(user?.role || "")
+      : user?.role === "Admin"
+        ? routes.adminCourses
+      : user?.role === "Manager"
         ? routes.dashboard
         : user?.role === "LearningExpert"
-          ? routes.adminAiCourseStudio
+          ? routes.adminCourses
         : user?.role === "TeamManager"
-          ? pathname.startsWith(routes.teamManagerTeams)
-            ? routes.courses
-            : routes.teamManagerTeams
+          ? routes.teamManagerTeams
         : null;
   const administrationLabel =
-    user?.role === "LearningExpert"
+    user?.role === "Admin" || user?.role === "LearningExpert"
       ? "Course Management"
       : user?.role === "TeamManager"
-        ? pathname.startsWith(routes.teamManagerTeams)
-          ? "Learning View"
-          : "Teams Workspace"
+        ? "Teams Workspace"
         : "Administration";
   return (
     <AuthGuard>
@@ -735,6 +753,7 @@ export function AppShell({
                 {user && administrationHref && (
                   <Link
                     href={administrationHref}
+                    onClick={enterAdministrationWorkspace}
                     className="inline-flex h-[46px] items-center gap-2 rounded-2xl border border-border bg-card px-4 text-sm font-medium text-text-primary shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/5"
                   >
                     <ShieldCheck className="h-4 w-4 text-primary" />

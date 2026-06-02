@@ -133,6 +133,23 @@ async def initialize_storage() -> None:
         )
         connection.execute(
             text(
+                "ALTER TABLE courses ADD COLUMN IF NOT EXISTS memory_retention_status VARCHAR NOT NULL DEFAULT 'pending'"
+            )
+        )
+        connection.execute(
+            text("ALTER TABLE courses ADD COLUMN IF NOT EXISTS memory_retention_error TEXT")
+        )
+        connection.execute(
+            text("ALTER TABLE courses ADD COLUMN IF NOT EXISTS memory_retention_updated_at TIMESTAMP")
+        )
+        connection.execute(
+            text(
+                "UPDATE courses SET memory_retention_status = 'pending' "
+                "WHERE memory_retention_status IS NULL OR TRIM(memory_retention_status) = ''"
+            )
+        )
+        connection.execute(
+            text(
                 """
                 CREATE TABLE IF NOT EXISTS learner_course_contexts (
                     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

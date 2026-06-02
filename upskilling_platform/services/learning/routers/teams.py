@@ -57,7 +57,7 @@ def _require_team_management_role(user: User) -> None:
     if user.role not in TEAM_MANAGEMENT_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only TeamManager, Manager, or Admin can manage teams",
+            detail="Only TeamManager, Manager, Admin, or SuperAdmin can manage teams",
         )
 
 
@@ -67,6 +67,18 @@ def _enforce_same_tenant(user: User, tenant_id: Optional[UUID], entity: str) -> 
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Access denied: {entity} belongs to another tenant",
         )
+
+
+def _parse_tenant_id(value: Optional[str], field_name: str = "tenant_id") -> Optional[UUID]:
+    if not value:
+        return None
+    try:
+        return UUID(str(value))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid {field_name}",
+        ) from exc
 
 
 def _assert_team_access(user: User, team: Team, write: bool = False) -> None:
@@ -149,6 +161,7 @@ def list_teams(
 
 @router.get("/available-users", response_model=list[dict])
 def list_available_team_users(
+    tenant_id: Optional[str] = Query(None),
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -156,7 +169,16 @@ def list_available_team_users(
     user_info = _get_user_from_payload(current_user, db)
     _require_team_management_role(user_info)
 
-    query = db.query(User).filter(User.tenant_id == user_info.tenant_id)
+    scoped_tenant_id = user_info.tenant_id
+    if user_info.role == "SuperAdmin":
+        scoped_tenant_id = _parse_tenant_id(tenant_id)
+        if scoped_tenant_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="tenant_id is required for SuperAdmin team user lookup",
+            )
+
+    query = db.query(User).filter(User.tenant_id == scoped_tenant_id)
     users = query.order_by(User.first_name.asc(), User.last_name.asc()).all()
     return [
         {
@@ -196,9 +218,18 @@ def create_team(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Create a new team within the caller's tenant."""
+    """Create a new team within the caller's tenant or selected SuperAdmin tenant."""
     user_info = _get_user_from_payload(current_user, db)
     _require_team_management_role(user_info)
+
+    team_tenant_id = user_info.tenant_id
+    if user_info.role == "SuperAdmin":
+        team_tenant_id = _parse_tenant_id(team_data.get("tenant_id"))
+        if team_tenant_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="tenant_id is required when SuperAdmin creates a team",
+            )
 
     manager_id = user_info.id if user_info.role == "TeamManager" else None
     if team_data.get("manager_id"):
@@ -209,6 +240,11 @@ def create_team(
         if not manager:
             raise HTTPException(status_code=404, detail="Manager not found")
         _enforce_same_tenant(user_info, manager.tenant_id, "manager")
+        if manager.tenant_id != team_tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Assigned manager must belong to the selected team tenant",
+            )
         if manager.role not in {"Manager", "TeamManager", "Admin"}:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -221,7 +257,7 @@ def create_team(
         name=team_data["name"],
         description=team_data.get("description"),
         manager_id=manager_id,
-        tenant_id=user_info.tenant_id if user_info.role != "SuperAdmin" else None,
+        tenant_id=team_tenant_id,
     )
     db.add(team)
     db.commit()
@@ -253,6 +289,11 @@ def update_team(
         if not manager:
             raise HTTPException(status_code=404, detail="Manager not found")
         _enforce_same_tenant(user_info, manager.tenant_id, "manager")
+        if manager.tenant_id != team.tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Assigned manager must belong to the team tenant",
+            )
         if manager.role not in {"Manager", "TeamManager", "Admin"}:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -311,6 +352,11 @@ def add_team_member(
         raise HTTPException(status_code=404, detail="User not found")
 
     _enforce_same_tenant(user_info, user.tenant_id, "user")
+    if user.tenant_id != team.tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User must belong to the team tenant",
+        )
 
     existing = (
         db.query(TeamMembership)
@@ -427,6 +473,11 @@ def assign_course_to_team(
         raise HTTPException(status_code=404, detail="Course not found")
 
     _enforce_same_tenant(user_info, course.tenant_id, "course")
+    if course.tenant_id != team.tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Course must belong to the team tenant",
+        )
 
     memberships = db.query(TeamMembership).filter(TeamMembership.team_id == team_id).all()
     enrolled_count = 0

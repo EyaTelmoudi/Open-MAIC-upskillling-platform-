@@ -8,7 +8,6 @@ import {
   Bookmark,
   Bot,
   Lightbulb,
-  GitBranchPlus,
   Trophy,
   Users,
   Target,
@@ -19,17 +18,28 @@ import { routes } from "@/app/lib/routes";
 import { cn } from "@/app/lib/utils";
 
 const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, href: routes.dashboard },
+  { label: "Home", icon: LayoutDashboard, href: routes.dashboard },
   { label: "Courses", icon: BookOpen, href: routes.courses },
   { label: "Bookmarks", icon: Bookmark, href: routes.bookmarks },
   { label: "Certificates", icon: Award, href: routes.certificates },
-  { label: "AI Coach", icon: Bot, href: routes.coach },
+  { label: "AI Coaching Agent", icon: Bot, href: routes.coachHindsight },
   { label: "Recommendations", icon: Lightbulb, href: routes.recommendations },
-  { label: "Skill Gap", icon: GitBranchPlus, href: routes.skillGap },
   { label: "Leaderboard", icon: Trophy, href: routes.leaderboard },
   { label: "My Team", icon: Users, href: routes.team },
   { label: "Goals", icon: Target, href: routes.goals },
 ];
+
+const WORKSPACE_VIEW_COOKIE = "sf_workspace_view";
+
+function isLearningWorkspaceActive() {
+  if (typeof document === "undefined") {
+    return false;
+  }
+
+  return document.cookie
+    .split("; ")
+    .some((entry) => entry === `${WORKSPACE_VIEW_COOKIE}=learning`);
+}
 
 export function Sidebar({
   isCompact,
@@ -39,16 +49,17 @@ export function Sidebar({
   const pathname = usePathname();
   const { user } = useAuth();
   const isSuperAdmin = user?.role === "SuperAdmin";
+  const learningWorkspaceActive = isLearningWorkspaceActive();
   const hideLearnerDashboard =
-    user?.role === "SuperAdmin" ||
-    user?.role === "Admin" ||
-    user?.role === "Manager" ||
-    user?.role === "LearningExpert" ||
-    user?.role === "TeamManager" ||
-    user?.role === "TeamMember";
+    !learningWorkspaceActive &&
+    (user?.role === "SuperAdmin" ||
+      user?.role === "Admin" ||
+      user?.role === "Manager" ||
+      user?.role === "LearningExpert" ||
+      user?.role === "TeamManager");
   const visibleNavItems = navItems.filter((item) => {
     if (hideLearnerDashboard && item.href === routes.dashboard) return false;
-    if (isSuperAdmin && item.href === routes.team) return false;
+    if (isSuperAdmin && !learningWorkspaceActive && item.href === routes.team) return false;
     return true;
   });
 
