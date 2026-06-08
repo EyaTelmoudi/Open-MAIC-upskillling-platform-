@@ -2,4 +2,18 @@
 \addvspace {10\p@ }
 \contentsline {xchapter}{Contexte général et étude de l’existant}{1}{chapter.1}%
 \addvspace {10\p@ }
-\contentsline {xchapter}{Méthodologie de Travail et Cadre de Développement}{14}{chapter.2}%
+\contentsline {xchapter}{Fondements IA, conception et architecture de la solution}{21}{chapter.2}%
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Workflow général d'un système RAG \blx@tocontentsinit {0}\cite {aws_rag}}}{26}{figure.caption.8}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Exemple de prompt système utilisé par l'Agent de recommandation}}{29}{figure.caption.10}%
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Architecture conceptuelle de Hindsight \blx@tocontentsinit {0}\cite {hindsight_homepage}}}{32}{figure.caption.11}%
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Fonctionnement de l'opération \textit {Retain} dans Hindsight \blx@tocontentsinit {0}\cite {hindsight_github}}}{33}{figure.2.4}%
+\contentsline {figure}{\numberline {2.5}{\ignorespaces Fonctionnement de l'opération \textit {Recall} dans Hindsight \blx@tocontentsinit {0}\cite {hindsight_github}}}{34}{figure.2.5}%
+\contentsline {figure}{\numberline {2.6}{\ignorespaces Fonctionnement de l'opération \textit {Reflect} dans Hindsight \blx@tocontentsinit {0}\cite {hindsight_github}}}{35}{figure.2.6}%
+\contentsline {figure}{\numberline {2.7}{\ignorespaces Vue d'ensemble de l'architecture en couches de la plateforme}}{39}{figure.caption.12}%
+\contentsline {figure}{\numberline {2.8}{\ignorespaces Diagramme de l'architecture microservices du backend}}{41}{figure.caption.13}%
+\contentsline {figure}{\numberline {2.9}{\ignorespaces Diagramme de cas d'utilisation UML des rôles dans l'architecture multi-tenant}}{43}{figure.caption.14}%
+\contentsline {figure}{\numberline {2.10}{\ignorespaces Diagramme d'activité UML de l'agent de création de cours}}{46}{figure.caption.15}%
+\contentsline {figure}{\numberline {2.11}{\ignorespaces Diagramme d'activité UML de l'agent de coaching pédagogique}}{47}{figure.caption.16}%
+\contentsline {figure}{\numberline {2.12}{\ignorespaces Diagramme d'activité UML de l'agent de mémoire apprenant}}{48}{figure.caption.17}%
+\contentsline {figure}{\numberline {2.13}{\ignorespaces Diagramme d'activité UML de l'agent de recommandation}}{50}{figure.caption.18}%
+\contentsline {figure}{\numberline {2.14}{\ignorespaces Diagramme d'activité UML de l'agent de défis personnalisés}}{52}{figure.caption.19}%

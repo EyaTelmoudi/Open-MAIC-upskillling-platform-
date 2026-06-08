@@ -3,8 +3,12 @@
 \contentsline {xchapter}{Contexte général et étude de l’existant}{1}{chapter.1}%
 \contentsline {table}{\numberline {1.1}{\ignorespaces Comparaison des solutions existantes}}{8}{table.caption.4}%
 \contentsline {table}{\numberline {1.2}{\ignorespaces Exigences fonctionnelles}}{10}{table.1.2}%
-\contentsline {table}{\numberline {1.3}{\ignorespaces Exigences non fonctionnelles}}{11}{table.1.3}%
+\contentsline {table}{\numberline {1.3}{\ignorespaces Exigences non fonctionnelles}}{12}{table.1.3}%
+\contentsline {table}{\numberline {1.4}{\ignorespaces Comparaison des frameworks AI-DLC disponibles en 2025--2026}}{17}{table.caption.5}%
+\contentsline {table}{\numberline {1.5}{\ignorespaces Benchmark des outils de développement assisté par IA}}{19}{table.caption.6}%
 \addvspace {10\p@ }
-\contentsline {xchapter}{Méthodologie de Travail et Cadre de Développement}{14}{chapter.2}%
-\contentsline {table}{\numberline {2.1}{\ignorespaces Comparaison des frameworks AI-DLC disponibles en 2025--2026}}{19}{table.caption.5}%
-\contentsline {table}{\numberline {2.2}{\ignorespaces Benchmark des outils de développement assisté par IA}}{21}{table.caption.6}%
+\contentsline {xchapter}{Fondements IA, conception et architecture de la solution}{21}{chapter.2}%
+\contentsline {table}{\numberline {2.1}{\ignorespaces Comparaison des LLMs compatibles avec OpenMAIC et Hindsight}}{23}{table.caption.7}%
+\contentsline {table}{\numberline {2.2}{\ignorespaces Comparaison des modèles d'embeddings utilisables pour le système RAG}}{28}{table.caption.9}%
+\contentsline {table}{\numberline {2.3}{\ignorespaces Tableau comparatif des technologies frontend et backend retenues}}{54}{table.caption.20}%
+\contentsline {table}{\numberline {2.4}{\ignorespaces Tableau comparatif des technologies de données, IA et infrastructure}}{54}{table.2.4}%

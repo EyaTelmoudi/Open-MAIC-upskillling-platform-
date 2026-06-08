@@ -1,22 +1,64 @@
-{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.1}Introduction}{\reset@font\mtcSfont 15}{section.2.1}}
-{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.2}Limites des Méthodologies Traditionnelles face à l'IA Générative}{\reset@font\mtcSfont 15}{section.2.2}}
-{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.1}Le modèle Agile et ses dérivés}{\reset@font\mtcSSfont 15}{subsection.2.2.1}}
-{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.2}Inadéquation structurelle avec le développement assisté par l'IA}{\reset@font\mtcSSfont 15}{subsection.2.2.2}}
-{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.3}Le vibe coding : une réponse insuffisante}{\reset@font\mtcSSfont 16}{subsection.2.2.3}}
-{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.3}Vers un Nouveau Paradigme : l'AI-Driven Development Lifecycle (AI-DLC)}{\reset@font\mtcSfont 16}{section.2.3}}
-{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.3.1}Définition}{\reset@font\mtcSSfont 16}{subsection.2.3.1}}
-{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.3.2}Principes fondamentaux}{\reset@font\mtcSSfont 16}{subsection.2.3.2}}
-{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.3.3}Phases de l'AI-DLC}{\reset@font\mtcSSfont 17}{subsection.2.3.3}}
-{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.4}Frameworks d'Implémentation de l'AI-DLC}{\reset@font\mtcSfont 18}{section.2.4}}
-{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.1}GitHub Spec Kit}{\reset@font\mtcSSfont 18}{subsection.2.4.1}}
-{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.2}BMAD Method}{\reset@font\mtcSSfont 18}{subsection.2.4.2}}
-{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.3}GSD Framework}{\reset@font\mtcSSfont 18}{subsection.2.4.3}}
-{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.4}AWS Kiro}{\reset@font\mtcSSfont 19}{subsection.2.4.4}}
-{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.5}Étude Comparative des Frameworks}{\reset@font\mtcSfont 19}{section.2.5}}
-{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.6}Framework Retenu : GSD enrichi de Skills Personnalisées}{\reset@font\mtcSfont 20}{section.2.6}}
-{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.6.1}Justification du choix}{\reset@font\mtcSSfont 20}{subsection.2.6.1}}
-{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.6.2}Démarche adoptée : approche hybride progressive}{\reset@font\mtcSSfont 21}{subsection.2.6.2}}
-{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.6.2.1}Phase 1 : Découverte et planification avec GSD}{\reset@font\mtcSSSfont 21}{subsubsection.2.6.2.1}}
-{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.6.2.2}Phase 2 : Sélection de l'outil de construction par benchmark empirique}{\reset@font\mtcSSSfont 21}{subsubsection.2.6.2.2}}
-{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.6.2.3}Phase 3 : Construction avec Codex CLI et skills personnalisées}{\reset@font\mtcSSSfont 22}{subsubsection.2.6.2.3}}
-{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.7}Synthèse}{\reset@font\mtcSfont 22}{section.2.7}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.1}Introduction}{\reset@font\mtcSfont 22}{section.2.1}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.2}Fondements de l'intelligence artificielle utilisée}{\reset@font\mtcSfont 22}{section.2.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.1}Les modèles de langage de grande taille (LLMs)}{\reset@font\mtcSSfont 22}{subsection.2.2.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.1.1}Définition des LLMs}{\reset@font\mtcSSSfont 22}{subsubsection.2.2.1.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.1.2}Utilisation dans le projet}{\reset@font\mtcSSSfont 23}{subsubsection.2.2.1.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.1.3}Étude du choix du LLM}{\reset@font\mtcSSSfont 23}{subsubsection.2.2.1.3}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.1.4}Choix retenu}{\reset@font\mtcSSSfont 24}{subsubsection.2.2.1.4}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.2}Les agents intelligents et les systèmes multi-agents}{\reset@font\mtcSSfont 24}{subsection.2.2.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.2.1}Définition des agents intelligents}{\reset@font\mtcSSSfont 24}{subsubsection.2.2.2.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.2.2}Définition des systèmes multi-agents}{\reset@font\mtcSSSfont 24}{subsubsection.2.2.2.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.2.3}Utilisation dans le projet}{\reset@font\mtcSSSfont 25}{subsubsection.2.2.2.3}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.3}Le Retrieval-Augmented Generation (RAG)}{\reset@font\mtcSSfont 26}{subsection.2.2.3}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.3.1}Définition du RAG}{\reset@font\mtcSSSfont 26}{subsubsection.2.2.3.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.3.2}Workflow général}{\reset@font\mtcSSSfont 26}{subsubsection.2.2.3.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.3.3}Agentic RAG}{\reset@font\mtcSSSfont 26}{subsubsection.2.2.3.3}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.3.4}Utilisation dans le projet}{\reset@font\mtcSSSfont 27}{subsubsection.2.2.3.4}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.4}Modèles d’Embeddings}{\reset@font\mtcSSfont 27}{subsection.2.2.4}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.4.1}Définition des embeddings}{\reset@font\mtcSSSfont 27}{subsubsection.2.2.4.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.4.2}Embeddings et recherche sémantique}{\reset@font\mtcSSSfont 27}{subsubsection.2.2.4.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.4.3}Étude du choix du modèle d'embeddings}{\reset@font\mtcSSSfont 27}{subsubsection.2.2.4.3}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.4.4}Choix retenu}{\reset@font\mtcSSSfont 28}{subsubsection.2.2.4.4}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.5}Les prompts système des agents IA}{\reset@font\mtcSSfont 28}{subsection.2.2.5}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.5.1}Définition}{\reset@font\mtcSSSfont 28}{subsubsection.2.2.5.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.5.2}Rôle dans les agents IA}{\reset@font\mtcSSSfont 28}{subsubsection.2.2.5.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.5.3}Utilisation dans le projet}{\reset@font\mtcSSSfont 29}{subsubsection.2.2.5.3}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.6}Les agent skills}{\reset@font\mtcSSfont 29}{subsection.2.2.6}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.6.1}Définition}{\reset@font\mtcSSSfont 29}{subsubsection.2.2.6.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.6.2}Besoin des skills dans le projet}{\reset@font\mtcSSSfont 29}{subsubsection.2.2.6.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.2.6.3}Skills ajoutés dans la plateforme}{\reset@font\mtcSSSfont 30}{subsubsection.2.2.6.3}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.3}Système de mémoire persistante des agents IA}{\reset@font\mtcSfont 30}{section.2.3}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.3.1}Présentation de Hindsight}{\reset@font\mtcSSfont 31}{subsection.2.3.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.3.2}Architecture générale de Hindsight}{\reset@font\mtcSSfont 31}{subsection.2.3.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.3.3}Fonctionnalités fondamentales utilisées}{\reset@font\mtcSSfont 32}{subsection.2.3.3}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.3.4}Infrastructure et configuration de Hindsight dans le projet}{\reset@font\mtcSSfont 35}{subsection.2.3.4}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.3.4.1}Position dans l'architecture}{\reset@font\mtcSSSfont 35}{subsubsection.2.3.4.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.3.4.2}Stockage et persistance}{\reset@font\mtcSSSfont 35}{subsubsection.2.3.4.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.3.4.3}Configuration des embeddings}{\reset@font\mtcSSSfont 36}{subsubsection.2.3.4.3}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.3.4.4}Configuration du LLM}{\reset@font\mtcSSSfont 36}{subsubsection.2.3.4.4}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.3.5}Structure des mémoires persistantes dans Hindsight}{\reset@font\mtcSSfont 36}{subsection.2.3.5}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.4}Architecture de la plateforme}{\reset@font\mtcSfont 37}{section.2.4}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.1}Vue d'ensemble de l'architecture}{\reset@font\mtcSSfont 37}{subsection.2.4.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.1.1}Organisation générale des couches}{\reset@font\mtcSSSfont 37}{subsubsection.2.4.1.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.1.2}Articulation entre les couches}{\reset@font\mtcSSSfont 39}{subsubsection.2.4.1.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.1.3}Séparation entre logique métier et logique IA}{\reset@font\mtcSSSfont 40}{subsubsection.2.4.1.3}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.2}Architecture microservices du backend}{\reset@font\mtcSSfont 40}{subsection.2.4.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.2.1}API Gateway}{\reset@font\mtcSSSfont 40}{subsubsection.2.4.2.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.2.2}Microservices réels et modules fonctionnels internes}{\reset@font\mtcSSSfont 40}{subsubsection.2.4.2.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.2.3}Communication entre les services}{\reset@font\mtcSSSfont 42}{subsubsection.2.4.2.3}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.3}Architecture multi-tenant}{\reset@font\mtcSSfont 42}{subsection.2.4.3}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.3.1}Isolation des données au niveau des services}{\reset@font\mtcSSSfont 42}{subsubsection.2.4.3.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.3.2}Gestion des rôles par tenant}{\reset@font\mtcSSSfont 42}{subsubsection.2.4.3.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.4}Modèle de données}{\reset@font\mtcSSfont 44}{subsection.2.4.4}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.4.1}Organisation générale des données}{\reset@font\mtcSSSfont 44}{subsubsection.2.4.4.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.4.2}Stockage hybride des ressources}{\reset@font\mtcSSSfont 44}{subsubsection.2.4.4.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.4.5}Architecture des agents IA}{\reset@font\mtcSSfont 45}{subsection.2.4.5}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.5.1}Agent de création de cours}{\reset@font\mtcSSSfont 45}{subsubsection.2.4.5.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.5.2}Agent de coaching pédagogique}{\reset@font\mtcSSSfont 46}{subsubsection.2.4.5.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.5.3}Agent de mémoire apprenant}{\reset@font\mtcSSSfont 47}{subsubsection.2.4.5.3}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.5.4}Agent de recommandation}{\reset@font\mtcSSSfont 49}{subsubsection.2.4.5.4}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {2.4.5.5}Agent de défis personnalisés}{\reset@font\mtcSSSfont 50}{subsubsection.2.4.5.5}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.5}Choix technologiques et justification}{\reset@font\mtcSfont 53}{section.2.5}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.5.1}Stack frontend et backend}{\reset@font\mtcSSfont 53}{subsection.2.5.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.5.2}Bases de données, IA et infrastructure}{\reset@font\mtcSSfont 54}{subsection.2.5.2}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.6}Conclusion}{\reset@font\mtcSfont 56}{section.2.6}}
