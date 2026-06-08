@@ -68,6 +68,7 @@ next-env.d.ts
 # generated data
 /data
 /logs
+/speech-to-text-module/hf-cache/
 
 # nested upskilling platform local artifacts
 /upskilling_platform/.git
