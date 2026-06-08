@@ -305,12 +305,12 @@ export default function ProfilePage() {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-[1440px] space-y-6 p-6">
-        <div className="overflow-hidden rounded-[28px] border border-white/70 bg-[radial-gradient(circle_at_top_left,rgba(14,163,122,0.14),transparent_28%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.12),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.94),rgba(244,249,250,0.96))] shadow-[0_20px_45px_rgba(15,23,42,0.06)]">
+      <div className="mx-auto max-w-[1440px] space-y-6">
+        <div className="overflow-hidden rounded-[30px] border border-emerald-200/70 bg-[radial-gradient(circle_at_12%_14%,rgba(52,211,153,0.2),transparent_30%),radial-gradient(circle_at_82%_10%,rgba(14,165,233,0.18),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.96),rgba(240,253,250,0.9),rgba(224,242,254,0.72))] shadow-[0_22px_54px_rgba(14,163,122,0.12)] backdrop-blur">
           <div className="grid gap-0 xl:grid-cols-[1.12fr_1fr]">
-            <div className="border-b border-border/70 p-6 xl:border-b-0 xl:border-r">
+            <div className="border-b border-white/80 p-6 xl:border-b-0 xl:border-r xl:border-white/80">
               <div className="flex items-start gap-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-3xl bg-[linear-gradient(135deg,#0ea37a_0%,#22c7b4_58%,#f2a51b_115%)] text-xl font-semibold text-white shadow-[0_16px_32px_rgba(14,163,122,0.22)]">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#0ea37a_0%,#22c7b4_58%,#f2a51b_115%)] text-xl font-semibold text-white shadow-[0_16px_32px_rgba(14,163,122,0.22)]">
                   {user.avatar ? (
                     <img
                       src={getAvatarUrl(user.avatar) || ""}
@@ -322,12 +322,12 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/75">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-700">
                     Personal Profile
                   </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+                  <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
                     {displayName}
-                  </h2>
+                  </h1>
                   <p className="mt-1 text-sm text-slate-600">{normalizedRole}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
@@ -347,7 +347,7 @@ export default function ProfilePage() {
                 {personalInfoCards.map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-2xl border border-white/80 bg-white/75 px-4 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
+                    className="rounded-2xl border border-white/80 bg-white/78 px-4 py-3 shadow-[0_12px_28px_rgba(15,23,42,0.05)]"
                   >
                     <div className="flex items-center gap-3">
                       <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${item.accent}`}>
@@ -368,7 +368,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="grid gap-4 p-6">
-              <div className="rounded-[24px] border border-white/80 bg-[linear-gradient(135deg,rgba(14,163,122,0.08),rgba(34,199,180,0.06),rgba(255,255,255,0.82))] p-5 shadow-[0_12px_28px_rgba(15,23,42,0.05)]">
+              <div className="rounded-[24px] border border-white/80 bg-white/78 p-5 shadow-[0_14px_32px_rgba(15,23,42,0.05)]">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <User className="h-4 w-4" />
@@ -390,7 +390,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="rounded-[24px] border border-white/80 bg-[linear-gradient(135deg,rgba(14,165,233,0.08),rgba(99,102,241,0.05),rgba(255,255,255,0.82))] p-5 shadow-[0_12px_28px_rgba(15,23,42,0.05)]">
+              <div className="rounded-[24px] border border-white/80 bg-white/78 p-5 shadow-[0_14px_32px_rgba(15,23,42,0.05)]">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
                     <BookOpen className="h-4 w-4" />
@@ -482,19 +482,19 @@ export default function ProfilePage() {
         </div>
 
         {loading ? (
-          <div className="flex h-64 items-center justify-center rounded-2xl border border-border bg-card">
+          <div className="flex min-h-[280px] items-center justify-center rounded-[28px] border border-white/70 bg-white/80 shadow-[0_20px_48px_rgba(14,163,122,0.1)] backdrop-blur">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : error ? (
-          <div className="flex h-64 items-center justify-center rounded-2xl border border-destructive/50 bg-card">
-            <p className="text-destructive">{error}</p>
+          <div className="rounded-[28px] border border-red-200 bg-red-50/90 px-6 py-10 text-center text-sm font-medium text-red-700 shadow-[0_20px_48px_rgba(239,68,68,0.08)]">
+            {error}
           </div>
         ) : (
-          <div className="rounded-2xl border border-border bg-gradient-to-r from-primary/10 to-secondary/10 p-8">
+          <div className="rounded-[28px] border border-emerald-200/70 bg-[radial-gradient(circle_at_14%_18%,rgba(16,185,129,0.2),transparent_30%),radial-gradient(circle_at_88%_10%,rgba(242,165,27,0.18),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.96),rgba(240,253,244,0.9),rgba(255,251,235,0.72))] p-6 shadow-[0_22px_54px_rgba(14,163,122,0.12)] backdrop-blur sm:p-8">
             <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
               <div className="relative">
                 <div
-                  className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-4 text-4xl font-bold text-white"
+                  className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-[32px] border-4 text-4xl font-bold text-white"
                   style={{
                     borderColor:
                       levelInfo?.tier === "gold"
@@ -520,9 +520,9 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex-1 text-center md:text-left">
-                <h1 className="text-2xl font-bold text-text-primary">{displayName}</h1>
-                <p className="mt-1 text-sm text-text-secondary">{normalizedRole}</p>
-                {user.department && <p className="text-sm text-text-secondary">{user.department}</p>}
+                <h2 className="text-2xl font-semibold text-slate-950">{displayName}</h2>
+                <p className="mt-1 text-sm text-slate-600">{normalizedRole}</p>
+                {user.department && <p className="text-sm text-slate-600">{user.department}</p>}
 
                 <div className="mt-4">
                   <XPProgressBar
@@ -533,33 +533,33 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <div className="rounded-xl border border-border bg-card/80 p-4 text-center backdrop-blur">
+                  <div className="rounded-2xl border border-white/80 bg-white/82 p-4 text-center shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur">
                     <Zap className="mx-auto h-5 w-5 text-gold" />
-                    <p className="mt-1 font-mono text-xl font-bold text-text-primary">
+                    <p className="mt-1 font-mono text-xl font-semibold text-slate-950">
                       {totalXp.toLocaleString()}
                     </p>
-                    <p className="text-xs text-text-secondary">Total XP</p>
+                    <p className="text-xs text-slate-500">Total XP</p>
                   </div>
-                  <div className="rounded-xl border border-border bg-card/80 p-4 text-center backdrop-blur">
+                  <div className="rounded-2xl border border-white/80 bg-white/82 p-4 text-center shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur">
                     <BookOpen className="mx-auto h-5 w-5 text-primary" />
-                    <p className="mt-1 font-mono text-xl font-bold text-text-primary">
+                    <p className="mt-1 font-mono text-xl font-semibold text-slate-950">
                       {completedCourses}
                     </p>
-                    <p className="text-xs text-text-secondary">Courses</p>
+                    <p className="text-xs text-slate-500">Courses</p>
                   </div>
-                  <div className="rounded-xl border border-border bg-card/80 p-4 text-center backdrop-blur">
+                  <div className="rounded-2xl border border-white/80 bg-white/82 p-4 text-center shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur">
                     <Flame className="mx-auto h-5 w-5 text-orange-500" />
-                    <p className="mt-1 font-mono text-xl font-bold text-text-primary">
+                    <p className="mt-1 font-mono text-xl font-semibold text-slate-950">
                       {activeDays}
                     </p>
-                    <p className="text-xs text-text-secondary">Active Days</p>
+                    <p className="text-xs text-slate-500">Active Days</p>
                   </div>
-                  <div className="rounded-xl border border-border bg-card/80 p-4 text-center backdrop-blur">
+                  <div className="rounded-2xl border border-white/80 bg-white/82 p-4 text-center shadow-[0_12px_28px_rgba(15,23,42,0.05)] backdrop-blur">
                     <Trophy className="mx-auto h-5 w-5 text-secondary" />
-                    <p className="mt-1 font-mono text-xl font-bold text-text-primary">
+                    <p className="mt-1 font-mono text-xl font-semibold text-slate-950">
                       #{rankInfo?.rank || "—"}
                     </p>
-                    <p className="text-xs text-text-secondary">Rank</p>
+                    <p className="text-xs text-slate-500">Rank</p>
                   </div>
                 </div>
               </div>
@@ -567,26 +567,26 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <div className="rounded-2xl border border-border bg-card shadow-sm">
-          <div className="flex flex-col gap-4 border-b border-border p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="overflow-hidden rounded-[28px] border border-teal-200/70 bg-[radial-gradient(circle_at_16%_18%,rgba(34,199,180,0.16),transparent_30%),radial-gradient(circle_at_86%_8%,rgba(14,165,233,0.14),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.96),rgba(236,253,245,0.9),rgba(224,242,254,0.72))] shadow-[0_22px_54px_rgba(14,163,122,0.12)] backdrop-blur">
+          <div className="flex flex-col gap-4 border-b border-white/80 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,rgba(14,163,122,0.14),rgba(34,199,180,0.12),rgba(242,165,27,0.08))] text-secondary">
                 <Target className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-text-primary">Activity</h2>
-                <p className="text-sm text-text-secondary">
+                <h2 className="text-lg font-semibold text-slate-950">Activity</h2>
+                <p className="text-sm text-slate-600">
                   Your recent learning rhythm across the platform.
                 </p>
               </div>
             </div>
-            <div className="inline-flex items-center gap-2 self-start rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary sm:self-auto">
+            <div className="inline-flex items-center gap-2 self-start rounded-full border border-emerald-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-emerald-700 shadow-[0_8px_18px_rgba(14,163,122,0.1)] sm:self-auto">
               <BookOpen className="h-3.5 w-3.5" />
               {activeDays} active days tracked
             </div>
           </div>
           <div className="overflow-x-auto p-6">
-            <div className="rounded-2xl border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(244,249,250,0.88))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] sm:p-5">
+            <div className="rounded-2xl border border-white/80 bg-white/82 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] sm:p-5">
               <ActivityHeatmap data={activityData} />
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sidebar } from "@/app/components/layout/Sidebar";
 import { SoloChallengeWelcomePopup } from "@/app/components/challenges/SoloChallengeWelcomePopup";
 import { AuthGuard } from "@/app/components/auth/AuthGuard";
@@ -86,6 +86,7 @@ export function AppShell({
   fullBleed?: boolean;
 }) {
   const pathname = usePathname();
+  const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
   const [isCompactSidebar, setIsCompactSidebar] = useState(() => {
     if (typeof window === "undefined") {
       return false;
@@ -157,6 +158,24 @@ export function AppShell({
   const displayName = user
     ? [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email
     : "";
+
+  const playNotificationSound = (soundUrl: unknown) => {
+    if (typeof window === "undefined" || typeof soundUrl !== "string" || !soundUrl.trim()) {
+      return;
+    }
+
+    try {
+      notificationAudioRef.current?.pause();
+      const audio = new Audio(soundUrl);
+      audio.volume = 0.38;
+      notificationAudioRef.current = audio;
+      void audio.play().catch(() => {
+        notificationAudioRef.current = null;
+      });
+    } catch {
+      notificationAudioRef.current = null;
+    }
+  };
 
   const hasLearningWorkspaceAccess = () =>
     typeof document !== "undefined" &&
@@ -308,12 +327,15 @@ export function AppShell({
     }
     const currentUser = user;
 
-    if (typeof window !== "undefined") {
-      const dismissedKey = `sf_goal_reminder_dismissed:${new Date().toISOString().slice(0, 10)}`;
-      if (window.localStorage.getItem(dismissedKey) === "1") {
-        setGoalReminder(null);
-        return;
-      }
+    const shouldSkipGoalReminder =
+      typeof window !== "undefined" &&
+      (() => {
+        const dismissedKey = `sf_goal_reminder_dismissed:${new Date().toISOString().slice(0, 10)}`;
+        return window.localStorage.getItem(dismissedKey) === "1";
+      })();
+
+    if (shouldSkipGoalReminder) {
+      setGoalReminder(null);
     }
 
     let cancelled = false;
@@ -332,7 +354,9 @@ export function AppShell({
         }
 
         const metrics = buildGoalMetricsSummary(progress, enrollments, profile);
-        setGoalReminder(buildGoalReminder(goals, metrics));
+        if (!shouldSkipGoalReminder) {
+          setGoalReminder(buildGoalReminder(goals, metrics));
+        }
         setCurrentStreak(profile?.streak?.current_streak ?? 0);
         setTotalXp(profile?.xp?.total ?? 0);
       } catch (error) {
@@ -560,6 +584,8 @@ export function AppShell({
   }, []);
 
   useGamificationRealtime(user?.id, Boolean(user), (event, payload) => {
+    playNotificationSound(payload.soundUrl);
+
     if (event === "badge.earned") {
       if (pathname.startsWith("/learn/")) {
         return;

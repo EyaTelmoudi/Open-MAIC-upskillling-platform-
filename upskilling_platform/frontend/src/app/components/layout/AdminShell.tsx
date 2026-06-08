@@ -53,6 +53,17 @@ const adminHeaderContent: Array<{
     description: 'Manage team structure, monitor team progress, and assign learning across teams.',
   },
   {
+    match: (pathname) => pathname.startsWith(routes.adminGoals),
+    title: 'Goal Management',
+    description: 'Create learner and team goals, then track visibility and progress from one workspace.',
+  },
+  {
+    match: (pathname) => pathname.startsWith(routes.adminBadges),
+    title: 'Badge Management',
+    description:
+      'Create company badge definitions for learning paths, skills, courses, teams, and challenges.',
+  },
+  {
     match: (pathname) => pathname.startsWith(routes.adminAudit),
     title: 'Company Audit Log',
     description:
@@ -101,7 +112,13 @@ function enterLearningWorkspace(router: ReturnType<typeof useRouter>) {
   router.push(routes.dashboard);
 }
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({
+  children,
+  showPageHeader = true,
+}: {
+  children: React.ReactNode;
+  showPageHeader?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
@@ -112,14 +129,22 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const isSuperAdminCourseWorkspace = user?.role === 'SuperAdmin' && pathname.startsWith(routes.adminCourses);
   const isUsersWorkspace = pathname.startsWith(routes.adminUsers);
   const isTeamsWorkspace = pathname.startsWith(routes.adminTeams);
+  const isBadgesWorkspace = pathname.startsWith(routes.adminBadges);
   const isAuditWorkspace = pathname.startsWith(routes.adminAudit);
-  const useSpecialHeader = isUsersWorkspace || isTeamsWorkspace || isAuditWorkspace;
+  const useSpecialHeader = isUsersWorkspace || isTeamsWorkspace || isBadgesWorkspace || isAuditWorkspace;
   const shouldShowPageHeader =
+    showPageHeader &&
     !pathname.startsWith(routes.adminAiCourseStudio) &&
     !pathname.startsWith(routes.adminCourses) &&
     !pathname.startsWith(routes.adminUsers);
   const header = isLearningExpert
-    ? pathname.startsWith(routes.adminAiCourseStudio)
+    ? pathname.startsWith(routes.adminBadges)
+      ? {
+          title: 'Badge Management',
+          description:
+            'Create tenant-scoped learning badges that stay private to your company workspace.',
+        }
+      : pathname.startsWith(routes.adminAiCourseStudio)
       ? {
           title: 'AI Course Studio',
           description: 'This workspace will host AI-assisted course creation for learning experts.',
@@ -143,7 +168,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       user?.role === 'LearningExpert' &&
       !isLearningWorkspaceActive() &&
       !pathname.startsWith(routes.adminCourses) &&
-      !pathname.startsWith(routes.adminAiCourseStudio)
+      !pathname.startsWith(routes.adminAiCourseStudio) &&
+      !pathname.startsWith(routes.adminBadges)
     ) {
       router.replace(routes.adminCourses);
     }

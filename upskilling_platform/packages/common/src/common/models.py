@@ -675,6 +675,39 @@ class UserBadge(Base):
     earned_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
+class CustomBadge(Base):
+    """Tenant-scoped badge definitions created by company roles."""
+
+    __tablename__ = "custom_badges"
+    __table_args__ = (
+        Index("ix_custom_badges_tenant_scope", "tenant_id", "scope_type"),
+        Index("ix_custom_badges_created_by", "created_by"),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    owner_role = Column(String(50), nullable=False)
+    scope_type = Column(String(50), nullable=False, default="tenant")
+    scope_id = Column(UUID(as_uuid=True), nullable=True)
+    name = Column(String(120), nullable=False)
+    description = Column(Text, nullable=True)
+    icon = Column(String(20), nullable=True)
+    tier = Column(String(30), nullable=False, default="bronze")
+    condition_type = Column(String(80), nullable=False)
+    condition_value = Column(Integer, nullable=True)
+    auto_award = Column(Boolean, nullable=False, default=True)
+    requires_approval = Column(Boolean, nullable=False, default=False)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    tenant = relationship("Tenant")
+    creator = relationship("User")
+
+
 class UserStreak(Base):
     """User streak tracking model."""
 

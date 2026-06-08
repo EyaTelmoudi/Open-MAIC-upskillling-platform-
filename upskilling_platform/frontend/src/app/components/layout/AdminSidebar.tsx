@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Award,
   BookOpen,
   PanelLeftClose,
   PanelLeftOpen,
+  Target,
   Users,
   Workflow,
 } from "lucide-react";
@@ -33,6 +35,18 @@ const adminNavItems = [
     icon: Workflow,
     href: routes.adminTeams,
   },
+  {
+    label: "Goals",
+    description: "Team and learner targets",
+    icon: Target,
+    href: routes.adminGoals,
+  },
+  {
+    label: "Badges",
+    description: "Company badge definitions",
+    icon: Award,
+    href: routes.adminBadges,
+  },
 ];
 
 export function AdminSidebar({
@@ -52,6 +66,12 @@ export function AdminSidebar({
           description: "Authoring and publishing",
           icon: BookOpen,
           href: routes.adminCourses,
+        },
+        {
+          label: "Badges",
+          description: "Learning badge definitions",
+          icon: Award,
+          href: routes.adminBadges,
         },
       ]
     : adminNavItems;

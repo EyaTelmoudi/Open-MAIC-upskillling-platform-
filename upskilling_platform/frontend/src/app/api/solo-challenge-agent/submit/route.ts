@@ -4,6 +4,8 @@ import {
   getSoloChallengeAttempt,
 } from "@/app/lib/solo-challenge-db";
 
+const DEFAULT_LEARNING_URL = process.env.LEARNING_URL || process.env.NEXT_PUBLIC_LEARNING_URL || "http://localhost:8002";
+
 function decodeJwtClaims(token: string | null): { tenantId?: string | null; sub?: string | null; role?: string | null } | null {
   if (!token) {
     return null;
@@ -31,6 +33,42 @@ function getTokenFromRequest(request: Request) {
   const cookie = request.headers.get("cookie") || "";
   const match = cookie.match(/(?:^|;\s*)access_token=([^;]+)/);
   return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+async function evaluateChallengeBadges(input: {
+  token: string | null;
+  challengeId: string;
+  courseId: string;
+  lessonId?: string | null;
+  isCorrect: boolean;
+}) {
+  if (!input.token || !input.isCorrect) {
+    return [];
+  }
+
+  const response = await fetch(`${DEFAULT_LEARNING_URL}/api/v1/gamification/custom-badges/evaluate`, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${input.token}`,
+    },
+    body: JSON.stringify({
+      event_type: "solo_challenge.completed",
+      challenge_id: input.challengeId,
+      course_id: input.courseId,
+      completed: true,
+      won: true,
+      fast_finish: false,
+      score: 100,
+    }),
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(payload?.detail || payload?.error || "Custom badge evaluation failed.");
+  }
+  return Array.isArray(payload?.awarded) ? payload.awarded : [];
 }
 
 export async function POST(request: Request) {
@@ -115,11 +153,28 @@ export async function POST(request: Request) {
       supportReferences: [],
     });
 
+    let awardedBadges: unknown[] = [];
+    try {
+      awardedBadges = await evaluateChallengeBadges({
+        token,
+        challengeId,
+        courseId: challenge.courseId,
+        lessonId: challenge.quiz.lessonId || null,
+        isCorrect,
+      });
+    } catch (badgeError) {
+      console.error(
+        "[Solo Challenge] Custom badge evaluation failed:",
+        badgeError instanceof Error ? badgeError.message : badgeError,
+      );
+    }
+
     return Response.json({
       success: true,
       challengeId,
       isCorrect,
       xpAwarded: isCorrect ? 50 : 0,
+      awardedBadges,
       explanation: activeQuestion.explanation || null,
     });
   } catch (error) {

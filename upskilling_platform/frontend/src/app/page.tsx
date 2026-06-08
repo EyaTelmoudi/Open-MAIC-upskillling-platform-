@@ -13,6 +13,7 @@ import {
   getEnrollments,
   getGamificationProfile,
   getGoals,
+  getTeamGoals,
   getTeams,
   getUserProgress,
   type Course,
@@ -20,6 +21,7 @@ import {
   type EnrollmentResponse,
   type GamificationProfileResponse,
   type Goal,
+  type TeamGoal,
   type UserProgressResponse,
 } from "@/app/lib/api";
 import {
@@ -30,12 +32,10 @@ import {
 import { routes } from "@/app/lib/routes";
 import {
   ArrowRight,
-  Award,
   BellRing,
   BookOpen,
   ChevronRight,
   CheckCircle2,
-  Clock,
   Flame,
   Lightbulb,
   Loader2,
@@ -44,7 +44,6 @@ import {
   Trophy,
   Users,
   Workflow,
-  Zap,
 } from "lucide-react";
 
 type DashboardRecommendation = {
@@ -61,18 +60,9 @@ type DashboardRecommendation = {
 
 function getGreeting(): string {
   const hour = new Date().getHours();
-  if (hour < 12) return "Good morning!";
-  if (hour < 18) return "Good afternoon!";
-  return "Good evening!";
-}
-
-function formatDate(value?: string | null): string {
-  if (!value) return "No deadline";
-  return new Date(value).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
 }
 
 const WORKSPACE_VIEW_COOKIE = "sf_workspace_view";
@@ -286,6 +276,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<GamificationProfileResponse | null>(null);
   const [enrollments, setEnrollments] = useState<EnrollmentResponse[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [teamGoals, setTeamGoals] = useState<TeamGoal[]>([]);
   const [progress, setProgress] = useState<UserProgressResponse[]>([]);
   const [courseDetails, setCourseDetails] = useState<CourseDetailResponse[]>([]);
   const [publishedCourses, setPublishedCourses] = useState<Course[]>([]);
@@ -311,10 +302,11 @@ export default function DashboardPage() {
       setDashboardLoading(true);
       setDashboardError(null);
       try {
-        const [profileData, enrollmentData, goalData, progressData, publishedCourseData, recommendationData] = await Promise.all([
+        const [profileData, enrollmentData, goalData, teamGoalData, progressData, publishedCourseData, recommendationData] = await Promise.all([
           getGamificationProfile().catch(() => null),
           getEnrollments(user.id).catch(() => []),
           getGoals().catch(() => []),
+          getTeamGoals().catch(() => []),
           getUserProgress(user.id).catch(() => []),
           getCourses({ page: 1, page_size: 8, is_published: true }).catch(() => ({ items: [] })),
           fetch("/api/recommendation-agent/recommendations", {
@@ -343,6 +335,7 @@ export default function DashboardPage() {
         setProfile(profileData);
         setEnrollments(enrollmentData);
         setGoals(goalData);
+        setTeamGoals(teamGoalData);
         setProgress(progressData);
         setPublishedCourses(publishedCourseData.items || []);
         setCourseDetails(
@@ -376,6 +369,8 @@ export default function DashboardPage() {
     ).length;
     const activeGoals = goals.filter((goal) => goal.status !== "completed");
     const completedGoals = goals.filter((goal) => goal.status === "completed").length;
+    const activeTeamGoals = teamGoals.filter((goal) => goal.status !== "completed");
+    const completedTeamGoals = teamGoals.filter((goal) => goal.status === "completed").length;
     const courseMap = new Map(courseDetails.map((course) => [course.id, course]));
     const lessonCourseMap = new Map<string, string>();
     courseDetails.forEach((course) => {
@@ -437,6 +432,9 @@ export default function DashboardPage() {
     const focusGoal = activeGoals
       .map((goal) => ({ goal, insight: buildGoalInsight(goal, goalMetrics) }))
       .sort((left, right) => left.insight.remaining - right.insight.remaining)[0] || null;
+    const focusTeamGoal = activeTeamGoals
+      .map((goal) => ({ goal, insight: buildGoalInsight(goal, goalMetrics) }))
+      .sort((left, right) => left.insight.remaining - right.insight.remaining)[0] || null;
     const enrolledCourseIds = new Set(enrollments.map((item) => item.course_id));
     const fallbackRecommendations = publishedCourses
       .filter((course) => !enrolledCourseIds.has(course.id))
@@ -447,8 +445,11 @@ export default function DashboardPage() {
       inProgressCourses,
       notStartedCourses,
       totalEnrollments: enrollments.length,
-      activeGoals: activeGoals.length,
+      activeGoals: activeGoals.length + activeTeamGoals.length,
+      personalActiveGoals: activeGoals.length,
+      teamActiveGoals: activeTeamGoals.length,
       completedGoals,
+      completedTeamGoals,
       completedLessons,
       studyMinutes,
       continueEnrollment: latestEnrollment || null,
@@ -461,6 +462,7 @@ export default function DashboardPage() {
           : 0,
       goalReminder,
       focusGoal,
+      focusTeamGoal,
       fallbackRecommendations,
       nextGoalDeadline: activeGoals
         .filter((goal) => goal.target_date)
@@ -469,7 +471,7 @@ export default function DashboardPage() {
       latestEnrollment: latestEnrollment?.enrolled_at,
       latestCompletion: latestCompletion?.completed_at,
     };
-  }, [courseDetails, enrollments, goals, profile, progress, publishedCourses]);
+  }, [courseDetails, enrollments, goals, profile, progress, publishedCourses, teamGoals]);
 
   if (isLoading) {
     return (
@@ -524,7 +526,6 @@ export default function DashboardPage() {
     rawFirstName && !["platform", "user", "learner"].includes(rawFirstName.toLowerCase())
       ? rawFirstName
       : "";
-  const totalXp = profile?.xp.total || 0;
   const currentStreak = profile?.streak.current_streak || 0;
   const teamRank = profile?.rank?.rank ? `#${profile.rank.rank}` : "Unranked";
   const level = profile?.level.level || 1;
@@ -552,8 +553,8 @@ export default function DashboardPage() {
                 Learning Home
               </h1>
               <p className="mt-4 text-sm leading-7 text-emerald-50 sm:text-base">
-                {getGreeting()} {firstName ? `Welcome back, ${firstName}. ` : ""}
-                Your next learning action is built from real enrollments, lesson progress, goals, and recommendations.
+                {firstName ? `${getGreeting()}, ${firstName}. ` : `${getGreeting()}. `}
+                Welcome back. Continue your progress and discover the next recommended activities to develop your skills.
               </p>
           </div>
         </section>
@@ -661,7 +662,7 @@ export default function DashboardPage() {
                 { label: "Enrolled Courses", value: stats.totalEnrollments, hint: `${stats.inProgressCourses} active`, icon: BookOpen, card: "border-sky-200 bg-[linear-gradient(135deg,#ffffff,#eff6ff)]", iconTone: "bg-sky-100 text-sky-700", hintTone: "text-sky-700" },
                 { label: "Completed Lessons", value: stats.completedLessons, hint: `${stats.studyMinutes} study minutes`, icon: CheckCircle2, card: "border-emerald-200 bg-[linear-gradient(135deg,#ffffff,#ecfdf5)]", iconTone: "bg-emerald-100 text-emerald-700", hintTone: "text-emerald-700" },
                 { label: "Current Streak", value: `${currentStreak}`, hint: `${profile?.streak.longest_streak || 0} longest`, icon: Flame, card: "border-amber-200 bg-[linear-gradient(135deg,#ffffff,#fffbeb)]", iconTone: "bg-amber-100 text-amber-700", hintTone: "text-amber-700" },
-                { label: "Active Goals", value: stats.activeGoals, hint: `${stats.completedGoals} completed`, icon: Target, card: "border-teal-200 bg-[linear-gradient(135deg,#ffffff,#f0fdfa)]", iconTone: "bg-teal-100 text-teal-700", hintTone: "text-teal-700" },
+                { label: "Active Goals", value: stats.activeGoals, hint: `${stats.completedGoals + stats.completedTeamGoals} completed`, icon: Target, card: "border-teal-200 bg-[linear-gradient(135deg,#ffffff,#f0fdfa)]", iconTone: "bg-teal-100 text-teal-700", hintTone: "text-teal-700" },
               ].map((stat) => (
                 <div key={stat.label} className={`rounded-[24px] border p-5 shadow-[0_14px_34px_rgba(15,23,42,0.05)] ${stat.card}`}>
                   <div className="flex items-center gap-3 text-text-secondary">
@@ -675,6 +676,75 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
+
+            <section className="grid gap-5 lg:grid-cols-2">
+              <div className="rounded-[28px] border border-emerald-200 bg-[linear-gradient(135deg,#ffffff_0%,#ecfdf5_100%)] p-6 shadow-[0_18px_42px_rgba(15,118,110,0.08)]">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                      <Target className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-950">Personal Goals</h2>
+                      <p className="mt-1 text-sm text-emerald-800">Targets assigned directly to you.</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-sm font-semibold text-emerald-700">
+                    {stats.personalActiveGoals} active
+                  </span>
+                </div>
+                <div className="mt-5 rounded-2xl border border-emerald-200 bg-white px-4 py-4 shadow-sm">
+                  <p className="text-sm font-semibold text-slate-950">
+                    {stats.focusGoal?.goal.title || "No active personal goal"}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">
+                    {stats.focusGoal?.insight.nextAction ||
+                      "When an admin or manager assigns you a personal goal, it will appear here."}
+                  </p>
+                  <div className="mt-4 flex items-center justify-between text-xs font-medium text-slate-600">
+                    <span>{stats.completedGoals} completed</span>
+                    <Link href={routes.goals} className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+                      Open goals
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[28px] border border-sky-200 bg-[linear-gradient(135deg,#ffffff_0%,#eff6ff_100%)] p-6 shadow-[0_18px_42px_rgba(14,116,144,0.08)]">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                      <Users className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-950">Team Goals</h2>
+                      <p className="mt-1 text-sm text-sky-800">Shared targets for your team.</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full border border-sky-200 bg-white px-3 py-1 text-sm font-semibold text-sky-700">
+                    {stats.teamActiveGoals} active
+                  </span>
+                </div>
+                <div className="mt-5 rounded-2xl border border-sky-200 bg-white px-4 py-4 shadow-sm">
+                  <p className="text-sm font-semibold text-slate-950">
+                    {stats.focusTeamGoal?.goal.title || "No active team goal"}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">
+                    {stats.focusTeamGoal
+                      ? `${stats.focusTeamGoal.goal.team_name}: ${stats.focusTeamGoal.insight.nextAction}`
+                      : "When your team receives a shared goal, it will appear here separately from personal goals."}
+                  </p>
+                  <div className="mt-4 flex items-center justify-between text-xs font-medium text-slate-600">
+                    <span>{stats.completedTeamGoals} completed</span>
+                    <Link href={routes.goals} className="inline-flex items-center gap-1 font-semibold text-sky-700">
+                      Open goals
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </section>
 
             <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               <div className="rounded-[28px] border border-emerald-200/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(236,253,245,0.9),rgba(240,249,255,0.76))] p-6 shadow-[0_18px_42px_rgba(15,23,42,0.06)]">

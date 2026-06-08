@@ -40,6 +40,57 @@ REALTIME_ROUTING_KEY = "learning.gamification"
 LEARNING_NOTIFICATION_QUEUE = "learning.notifications"
 LEARNING_NOTIFICATION_ROUTING_KEY = "learning.notifications"
 
+LEARNING_REALTIME_ROUTING_KEYS = {
+    REALTIME_ROUTING_KEY,
+    LEARNING_NOTIFICATION_ROUTING_KEY,
+    "learning.course.assigned",
+    "learning.enrollment.created",
+    "learning.lessons.completed",
+    "certificate.generated",
+    "notif.email",
+    "team.member.added",
+    "team.course.assigned",
+}
+
+SUPPORTED_REALTIME_EVENTS = {
+    "xp.gained",
+    "level.up",
+    "badge.earned",
+    "streak.update",
+    "course.assigned",
+    "enrollment.created",
+    "lesson.completed",
+    "certificate.generated",
+    "deadline.overdue",
+    "deadline.extended",
+    "team.member.added",
+    "team.course.assigned",
+    "course_memory.completed",
+    "course_memory.failed",
+}
+
+SOUND_KIND_BY_EVENT = {
+    "xp.gained": "progress",
+    "level.up": "achievement",
+    "badge.earned": "achievement",
+    "streak.update": "progress",
+    "course.assigned": "course",
+    "enrollment.created": "course",
+    "lesson.completed": "progress",
+    "certificate.generated": "achievement",
+    "deadline.overdue": "reminder",
+    "deadline.extended": "reminder",
+    "team.member.added": "team",
+    "team.course.assigned": "team",
+    "course_memory.completed": "progress",
+    "course_memory.failed": "reminder",
+}
+
+SOUND_URL_BY_KIND = {
+    kind: f"/api/learning/content/media/notification-assets/sounds/{kind}.wav"
+    for kind in {"achievement", "progress", "course", "reminder", "team"}
+}
+
 
 class RealtimeConnectionManager:
     """Tracks websocket connections per user."""
@@ -133,10 +184,14 @@ def publish_realtime_notification(message: dict[str, Any]) -> None:
     if not user_id or event_loop is None:
         return
 
+    event_name = message.get("event")
+    sound_kind = SOUND_KIND_BY_EVENT.get(event_name, "progress")
     payload = {
         "channel": "gamification",
-        "event": message.get("event"),
+        "event": event_name,
         "userId": user_id,
+        "soundKind": sound_kind,
+        "soundUrl": SOUND_URL_BY_KIND[sound_kind],
         "data": message,
     }
 
@@ -175,14 +230,7 @@ def handle_auth_event(message: dict[str, Any]) -> None:
 def handle_learning_event(message: dict[str, Any]) -> None:
     """Handle learning-domain realtime events."""
     event_type = message.get("event")
-    if event_type in {
-        "xp.gained",
-        "level.up",
-        "badge.earned",
-        "streak.update",
-        "course_memory.completed",
-        "course_memory.failed",
-    }:
+    if event_type in SUPPORTED_REALTIME_EVENTS:
         publish_realtime_notification(message)
 
 
@@ -270,6 +318,17 @@ def consume_messages():
             queue=LEARNING_NOTIFICATION_QUEUE,
             routing_key=LEARNING_NOTIFICATION_ROUTING_KEY,
         )
+        for routing_key in LEARNING_REALTIME_ROUTING_KEYS:
+            channel.queue_bind(
+                exchange="learning.exchange",
+                queue=LEARNING_NOTIFICATION_QUEUE,
+                routing_key=routing_key,
+            )
+        channel.exchange_declare(exchange="notifications.exchange", exchange_type="fanout", durable=True)
+        channel.queue_bind(
+            exchange="notifications.exchange",
+            queue=LEARNING_NOTIFICATION_QUEUE,
+        )
 
         def callback(ch, method, properties, body):
             try:
@@ -286,7 +345,7 @@ def consume_messages():
                     handle_auth_event(message)
                 elif method.routing_key == "tenant.suspended":
                     handle_auth_event(message)
-                elif method.routing_key in {REALTIME_ROUTING_KEY, LEARNING_NOTIFICATION_ROUTING_KEY}:
+                elif method.routing_key in LEARNING_REALTIME_ROUTING_KEYS:
                     handle_learning_event(message)
 
                 ch.basic_ack(delivery_tag=method.delivery_tag)

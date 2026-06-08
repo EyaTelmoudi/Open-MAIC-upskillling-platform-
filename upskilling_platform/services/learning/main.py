@@ -18,11 +18,13 @@ from common.models import (
     AICourseDraft,
     Base,
     CertificateVerificationAudit,
+    CustomBadge,
     LearnerCourseContext,
     Skill,
     SkillEdge,
 )
 from common.storage import ensure_buckets
+from common.notification_sounds import ensure_notification_sounds
 
 from services.learning.routers import (
     courses,
@@ -86,6 +88,7 @@ app.include_router(teams.router, prefix="/api/v1")
 @app.on_event("startup")
 async def initialize_storage() -> None:
     ensure_buckets()
+    ensure_notification_sounds()
     Base.metadata.create_all(
         bind=engine,
         tables=[
@@ -94,6 +97,7 @@ async def initialize_storage() -> None:
             Skill.__table__,
             SkillEdge.__table__,
             CertificateVerificationAudit.__table__,
+            CustomBadge.__table__,
         ],
     )
     with engine.begin() as connection:

@@ -42,6 +42,10 @@ function decodeJwtPayload(token: string | null): Record<string, unknown> | null 
 }
 
 function resolveBaseUrl(path: string): string {
+  if (isBrowser() && path.startsWith("/api/") && !path.startsWith("/api/v1/")) {
+    return "";
+  }
+
   if (
     path.startsWith("/api/v1/auth") ||
     path.startsWith("/api/v1/identity") ||
@@ -928,6 +932,39 @@ export interface BadgeResponse {
   earned_at?: string | null;
 }
 
+export interface CustomBadgeResponse {
+  id: string;
+  tenant_id: string;
+  created_by: string;
+  owner_role: string;
+  scope_type: string;
+  scope_id?: string | null;
+  name: string;
+  description?: string | null;
+  icon?: string | null;
+  tier: string;
+  condition_type: string;
+  condition_value?: number | null;
+  auto_award: boolean;
+  requires_approval: boolean;
+  is_active: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface CustomBadgePayload {
+  name: string;
+  description?: string | null;
+  icon?: string | null;
+  tier: string;
+  scope_type: string;
+  scope_id?: string | null;
+  condition_type: string;
+  condition_value?: number | null;
+  auto_award: boolean;
+  requires_approval: boolean;
+}
+
 export interface LevelInfoResponse {
   level: number;
   total_xp: number;
@@ -1152,6 +1189,34 @@ export async function getUserBadges(): Promise<{ badges: BadgeResponse[] }> {
 
 export async function getBadgeDefinitions(): Promise<{ badges: BadgeResponse[] }> {
   return api.get<{ badges: BadgeResponse[] }>("/api/v1/learning/gamification/badges/definitions");
+}
+
+export async function getCustomBadges(
+  includeInactive = true
+): Promise<{ badges: CustomBadgeResponse[] }> {
+  return api.get<{ badges: CustomBadgeResponse[] }>(
+    `/api/v1/learning/gamification/custom-badges?include_inactive=${includeInactive}`
+  );
+}
+
+export async function createCustomBadge(
+  payload: CustomBadgePayload
+): Promise<CustomBadgeResponse> {
+  return api.post<CustomBadgeResponse>("/api/v1/learning/gamification/custom-badges", payload);
+}
+
+export async function updateCustomBadge(
+  badgeId: string,
+  payload: Partial<CustomBadgePayload> & { is_active?: boolean }
+): Promise<CustomBadgeResponse> {
+  return api.put<CustomBadgeResponse>(
+    `/api/v1/learning/gamification/custom-badges/${badgeId}`,
+    payload
+  );
+}
+
+export async function deleteCustomBadge(badgeId: string): Promise<void> {
+  return api.delete(`/api/v1/learning/gamification/custom-badges/${badgeId}`);
 }
 
 export async function getGamificationProfile(): Promise<GamificationProfileResponse> {

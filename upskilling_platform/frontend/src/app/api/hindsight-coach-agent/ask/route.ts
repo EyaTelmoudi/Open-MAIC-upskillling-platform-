@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       tenantId?: string | null;
       courseId?: string | null;
       question?: string | null;
+      source?: "coach-page" | "course-page" | "course-lesson-coach" | "hindsight-coach-page" | null;
       lessonId?: string | null;
       pagePath?: string | null;
       sessionId?: string | null;
@@ -60,7 +61,10 @@ export async function POST(request: Request) {
     const pagePath = cleanText(body.pagePath) || "/coach-hindsight";
     const requestedSessionId = cleanText(body.sessionId) || null;
     const messageCreatedAt = cleanText(body.messageCreatedAt) || null;
-    const sessionSource: CoachSessionSource = "hindsight-coach-page";
+    const sessionSource: CoachSessionSource =
+      body.source === "course-lesson-coach" || body.source === "course-page"
+        ? body.source
+        : "hindsight-coach-page";
 
     if (!tenantId) {
       return Response.json({ success: false, error: "tenantId is required" }, { status: 400 });

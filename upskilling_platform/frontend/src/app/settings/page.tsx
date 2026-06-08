@@ -36,7 +36,6 @@ import {
   Camera,
   X,
   Clock,
-  BookOpen,
 } from "lucide-react";
 
 /* ──────────────────────────────────────────────────
@@ -150,9 +149,6 @@ const THEME_PREF_VERSION = 2;
 type SavedPreferences = {
   language: string;
   timezone: string;
-  darkMode: boolean;
-  compactSidebar: boolean;
-  emailDigest: boolean;
   themeVersion?: number;
 };
 
@@ -160,9 +156,6 @@ function getDefaultPreferences(): SavedPreferences {
   return {
     language: "English",
     timezone: "UTC+01:00",
-    darkMode: false,
-    compactSidebar: false,
-    emailDigest: true,
     themeVersion: THEME_PREF_VERSION,
   };
 }
@@ -184,12 +177,6 @@ function loadSavedPreferences(): SavedPreferences {
     const migrated: SavedPreferences = {
       language: parsed.language ?? defaults.language,
       timezone: parsed.timezone ?? defaults.timezone,
-      darkMode:
-        parsed.themeVersion === THEME_PREF_VERSION
-          ? parsed.darkMode ?? defaults.darkMode
-          : false,
-      compactSidebar: parsed.compactSidebar ?? defaults.compactSidebar,
-      emailDigest: parsed.emailDigest ?? defaults.emailDigest,
       themeVersion: THEME_PREF_VERSION,
     };
 
@@ -229,7 +216,7 @@ export default function SettingsPage() {
     jobTitle: user?.department || "",
     email: user?.email || "",
     bio: user?.bio || "",
-    skills: (user?.skills as string[]) || ["React", "TypeScript", "Python", "UI/UX Design", "Product Management"],
+    skills: Array.isArray(user?.skills) ? user.skills : [],
   });
   const [skillInput, setSkillInput] = useState("");
   const [learningPace, setLearningPace] = useState("Moderate - 3–5 lessons per week");
@@ -238,6 +225,16 @@ export default function SettingsPage() {
   const [showTimesModal, setShowTimesModal] = useState(false);
   const [tempPace, setTempPace] = useState(learningPace);
   const [tempTimes, setTempTimes] = useState<string[]>(["Weekday mornings", "Weekend afternoons"]);
+
+  useEffect(() => {
+    setProfileForm({
+      fullName: `${user?.first_name || ""} ${user?.last_name || ""}`.trim(),
+      jobTitle: user?.department || "",
+      email: user?.email || "",
+      bio: user?.bio || "",
+      skills: Array.isArray(user?.skills) ? user.skills : [],
+    });
+  }, [user?.bio, user?.department, user?.email, user?.first_name, user?.last_name, user?.skills]);
 
   /* Notifications — load from localStorage */
   const [notificationSettings, setNotificationSettings] = useState<{
@@ -266,9 +263,6 @@ export default function SettingsPage() {
   const [preferences, setPreferences] = useState<{
     language: string;
     timezone: string;
-    darkMode: boolean;
-    compactSidebar: boolean;
-    emailDigest: boolean;
   }>(() => loadSavedPreferences());
 
   useEffect(() => {
@@ -325,11 +319,6 @@ export default function SettingsPage() {
   const removeSkill = (skill: string) => {
     setProfileForm((p) => ({ ...p, skills: p.skills.filter((s) => s !== skill) }));
   };
-
-  /* ── Dark mode effect ── */
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", preferences.darkMode);
-  }, [preferences.darkMode]);
 
   /* ── Save Notifications ── */
   const handleSaveNotifications = useCallback(() => {
@@ -417,9 +406,6 @@ export default function SettingsPage() {
     if (item.adminManager) return isAdmin || isManager;
     return true;
   });
-  const activeNavMeta =
-    filteredNavItems.find((item) => item.key === activeTab) || filteredNavItems[0];
-
   useEffect(() => {
     if (
       (hideNotificationsTab && activeTab === "notifications") ||
@@ -433,13 +419,14 @@ export default function SettingsPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-[1320px] px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-        <div className="mb-6 overflow-hidden rounded-3xl border border-border/80 bg-[radial-gradient(circle_at_top_left,rgba(14,163,122,0.2),transparent_32%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.14),transparent_28%),radial-gradient(circle_at_18%_82%,rgba(242,165,27,0.12),transparent_22%),linear-gradient(135deg,rgba(245,252,248,0.96),rgba(231,245,247,0.94),rgba(221,234,241,0.96))] p-6 text-text-primary shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary/80">
+        <div className="mb-6 overflow-hidden rounded-[30px] border border-emerald-300/55 bg-[radial-gradient(circle_at_12%_18%,_rgba(52,211,153,0.46),_transparent_30%),radial-gradient(circle_at_76%_14%,_rgba(14,165,233,0.42),_transparent_28%),radial-gradient(circle_at_88%_82%,_rgba(242,165,27,0.24),_transparent_24%),linear-gradient(135deg,_#063B35_0%,_#075E63_42%,_#0B315F_72%,_#101827_100%)] p-6 text-white shadow-[0_30px_80px_rgba(6,78,59,0.36)] sm:p-8">
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-100/85">
+            <Settings className="h-3.5 w-3.5" />
             Personal Workspace
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">Settings</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
-            Manage your account details, application behavior, and learning preferences from one cleaner workspace.
+          </div>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white drop-shadow-sm sm:text-[2.25rem]">Settings</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-emerald-50 sm:text-base">
+            Update profile, preferences, and notifications.
           </p>
         </div>
 
@@ -447,34 +434,29 @@ export default function SettingsPage() {
         {success && <div className="mb-4 rounded-2xl border border-green-500/20 bg-green-500/10 p-4 text-sm text-green-500">{success}</div>}
         {error && <div className="mb-4 rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>}
 
-        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start">
+        <div className="space-y-6">
           {/* ── LEFT NAV ── */}
-          <nav className="rounded-3xl border border-border/90 bg-card p-3 shadow-[0_16px_40px_rgba(15,23,42,0.06)] lg:sticky lg:top-6">
-            <div className="mb-3 px-2 pt-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
-                Navigation
-              </p>
-            </div>
-            <div className="space-y-2">
+          <nav className="overflow-hidden rounded-[26px] border border-emerald-200/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(236,253,245,0.84),rgba(224,242,254,0.72))] p-2 shadow-[0_18px_44px_rgba(14,163,122,0.1)] backdrop-blur">
+            <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {filteredNavItems.map((item) => (
               <button
                 key={item.key}
                 onClick={() => setActiveTab(item.key)}
-                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition-colors ${
+                className={`flex min-w-[230px] flex-1 items-center gap-3 rounded-2xl border px-4 py-3 text-left text-sm font-medium transition-all ${
                   activeTab === item.key
-                    ? "bg-primary/10 text-primary shadow-sm"
-                    : "text-text-secondary hover:bg-accent/40 hover:text-text-primary"
+                    ? "border-emerald-300 bg-[linear-gradient(135deg,rgba(14,163,122,0.14),rgba(34,199,180,0.12),rgba(14,165,233,0.1))] text-primary shadow-[0_14px_30px_rgba(14,163,122,0.14)]"
+                    : "border-transparent bg-white/58 text-slate-600 hover:border-emerald-200 hover:bg-white/82 hover:text-slate-950"
                 }`}
               >
                 <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                  activeTab === item.key ? "bg-primary/15" : "bg-background"
+                  activeTab === item.key ? "bg-primary/15 text-primary" : "bg-white/80 text-slate-500"
                 }`}>
                   <item.icon className="h-[18px] w-[18px]" />
                 </div>
                 <div className="min-w-0">
-                  <p>{item.label}</p>
+                  <p className="font-semibold">{item.label}</p>
                   <p className={`mt-1 text-xs leading-5 ${
-                    activeTab === item.key ? "text-primary/80" : "text-text-secondary"
+                    activeTab === item.key ? "text-primary/80" : "text-slate-500"
                   }`}>
                     {item.description}
                   </p>
@@ -486,34 +468,30 @@ export default function SettingsPage() {
 
           {/* ── MAIN CONTENT ── */}
           <div className="min-w-0">
-            {activeNavMeta && (
-              <div className="mb-5 rounded-3xl border border-border/80 bg-card px-5 py-4 shadow-[0_14px_36px_rgba(15,23,42,0.05)] sm:px-6">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-                    <activeNavMeta.icon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-semibold text-text-primary">{activeNavMeta.label}</h2>
-                    <p className="mt-1 text-sm text-text-secondary">{activeNavMeta.description}</p>
-                  </div>
-                </div>
-              </div>
-            )}
             {/* ═══════════════════ PROFILE ═══════════════════ */}
             {activeTab === "profile" && (
-              <div className="overflow-hidden rounded-3xl border border-border/90 bg-card shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-                <div className="border-b border-border/80 p-6">
-                  <h2 className="text-lg font-semibold text-text-primary">Profile Information</h2>
+              <div className="overflow-hidden rounded-[28px] border border-emerald-200/70 bg-[radial-gradient(circle_at_14%_10%,rgba(34,199,180,0.16),transparent_28%),radial-gradient(circle_at_88%_8%,rgba(14,165,233,0.14),transparent_26%),linear-gradient(135deg,rgba(255,255,255,0.96),rgba(240,253,250,0.9),rgba(224,242,254,0.72))] shadow-[0_22px_54px_rgba(14,163,122,0.12)] backdrop-blur">
+                <div className="border-b border-white/80 px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0ea37a,#22c7b4,#0ea5e9)] text-white shadow-[0_12px_28px_rgba(14,163,122,0.24)]">
+                      <User className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-950">Profile Information</h2>
+                      <p className="mt-1 text-sm text-slate-600">Keep your identity and learning preferences up to date.</p>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-6 p-6">
                   {/* Profile Picture */}
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col gap-4 rounded-2xl border border-white/80 bg-white/72 p-4 shadow-[0_14px_32px_rgba(15,23,42,0.05)] sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4">
                     <div
-                      className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 text-2xl font-bold text-white"
+                      className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 text-2xl font-bold text-white"
                       style={{
-                        borderColor: "#FFD700",
-                        boxShadow: "0 0 16px rgba(255,215,0,0.2)",
-                        background: "linear-gradient(135deg, #6C63FF, #00D4AA)",
+                        borderColor: "rgba(255,255,255,0.9)",
+                        boxShadow: "0 16px 34px rgba(14,163,122,0.2)",
+                        background: "linear-gradient(135deg, #0EA37A, #22C7B4, #0EA5E9)",
                       }}
                     >
                       {user?.avatar ? (
@@ -529,42 +507,49 @@ export default function SettingsPage() {
                         <Camera className="h-5 w-5 text-white" />
                       </button>
                     </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950">
+                        {profileForm.fullName || user?.email || "Profile photo"}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">Use a clear photo for your workspace profile.</p>
+                    </div>
+                    </div>
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                    <Button variant="outline" size="sm" className="bg-white/80" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
                       <Upload className="h-4 w-4" />
                       {isUploading ? "Uploading..." : "Upload New Photo"}
                     </Button>
                   </div>
 
                   {/* Name + Job Title */}
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-4 rounded-2xl border border-white/80 bg-white/72 p-4 shadow-[0_14px_32px_rgba(15,23,42,0.04)] sm:grid-cols-2">
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-text-secondary">Full Name</label>
+                      <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Full Name</label>
                       <Input
                         value={profileForm.fullName}
                         onChange={(e) => setProfileForm((p) => ({ ...p, fullName: e.target.value }))}
-                        placeholder="Full name"
+                        placeholder="Add your full name"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-text-secondary">Job Title</label>
+                      <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Job Title</label>
                       <Input
                         value={profileForm.jobTitle}
                         onChange={(e) => setProfileForm((p) => ({ ...p, jobTitle: e.target.value }))}
-                        placeholder="Job title"
+                        placeholder="Add your job title"
                       />
                     </div>
                   </div>
 
                   {/* Email */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-text-secondary">Email</label>
+                  <div className="space-y-2 rounded-2xl border border-white/80 bg-white/72 p-4 shadow-[0_14px_32px_rgba(15,23,42,0.04)]">
+                    <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Email</label>
                     <Input value={profileForm.email} disabled className="opacity-60" />
                   </div>
 
                   {/* Bio */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-text-secondary">Bio</label>
+                  <div className="space-y-2 rounded-2xl border border-white/80 bg-white/72 p-4 shadow-[0_14px_32px_rgba(15,23,42,0.04)]">
+                    <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Bio</label>
                     <Textarea
                       rows={3}
                       value={profileForm.bio}
@@ -574,13 +559,13 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Skills */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-text-secondary">Skills</label>
+                  <div className="space-y-3 rounded-2xl border border-white/80 bg-white/72 p-4 shadow-[0_14px_32px_rgba(15,23,42,0.04)]">
+                    <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Skills</label>
                     <div className="flex flex-wrap gap-2">
                       {profileForm.skills.map((skill) => (
                         <span
                           key={skill}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-[linear-gradient(135deg,#ecfdf5,#ecfeff)] px-3 py-1.5 text-sm font-semibold text-emerald-700 shadow-sm"
                         >
                           {skill}
                           <button onClick={() => removeSkill(skill)} className="hover:text-destructive">
@@ -588,6 +573,9 @@ export default function SettingsPage() {
                           </button>
                         </span>
                       ))}
+                      {profileForm.skills.length === 0 && (
+                        <p className="text-sm text-slate-500">No skills added yet.</p>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <Input
@@ -609,25 +597,29 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Learning Preferences */}
-                  <div className="space-y-3">
-                    <label className="text-xs font-medium text-text-secondary">Learning Preferences</label>
+                  <div className="space-y-3 rounded-2xl border border-white/80 bg-white/72 p-4 shadow-[0_14px_32px_rgba(15,23,42,0.04)]">
+                    <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Learning Preferences</label>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-xl border border-border bg-background p-4">
+                      <div className="rounded-2xl border border-emerald-200 bg-[linear-gradient(135deg,rgba(236,253,245,0.95),rgba(207,250,254,0.72))] p-4 shadow-[0_12px_28px_rgba(14,163,122,0.08)]">
                         <div className="flex items-center gap-2">
-                          <Zap className="h-4 w-4 text-primary" />
-                          <p className="text-xs font-medium text-text-secondary">Learning Pace</p>
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white">
+                            <Zap className="h-4 w-4" />
+                          </div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Learning Pace</p>
                         </div>
-                        <p className="mt-1 text-sm font-medium text-text-primary">{learningPace}</p>
+                        <p className="mt-3 text-sm font-semibold text-slate-950">{learningPace}</p>
                         <Button variant="ghost" size="sm" className="mt-2" onClick={() => { setTempPace(learningPace); setShowPaceModal(true); }}>
                           Change
                         </Button>
                       </div>
-                      <div className="rounded-xl border border-border bg-background p-4">
+                      <div className="rounded-2xl border border-cyan-200 bg-[linear-gradient(135deg,rgba(236,254,255,0.94),rgba(240,253,250,0.74))] p-4 shadow-[0_12px_28px_rgba(14,165,233,0.08)]">
                         <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-secondary" />
-                          <p className="text-xs font-medium text-text-secondary">Preferred Learning Times</p>
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-600 text-white">
+                            <Clock className="h-4 w-4" />
+                          </div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Preferred Learning Times</p>
                         </div>
-                        <p className="mt-1 text-sm font-medium text-text-primary">{learningTimes}</p>
+                        <p className="mt-3 text-sm font-semibold text-slate-950">{learningTimes}</p>
                         <Button variant="ghost" size="sm" className="mt-2" onClick={() => { setTempTimes(learningTimes.split(", ")); setShowTimesModal(true); }}>
                           Edit
                         </Button>
@@ -637,8 +629,8 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Save */}
-                <div className="flex justify-end border-t border-border p-6">
-                  <Button className="gap-2" onClick={handleSaveProfile} disabled={isSaving}>
+                <div className="flex justify-end border-t border-white/80 bg-white/62 p-6">
+                  <Button className="gap-2 shadow-[0_14px_30px_rgba(14,163,122,0.18)]" onClick={handleSaveProfile} disabled={isSaving}>
                     <Upload className="h-4 w-4" />
                     {isSaving ? "Saving..." : "Save Changes"}
                   </Button>
@@ -769,9 +761,6 @@ export default function SettingsPage() {
                       </select>
                     </div>
                   </div>
-                  <ToggleCard label="Dark mode" description="Use dark theme across the platform" checked={preferences.darkMode} onCheckedChange={(v) => setPreferences((p) => ({ ...p, darkMode: v }))} />
-                  <ToggleCard label="Compact sidebar" description="Show icons only in the sidebar" checked={preferences.compactSidebar} onCheckedChange={(v) => setPreferences((p) => ({ ...p, compactSidebar: v }))} />
-                  <ToggleCard label="Weekly email digest" description="Receive a weekly summary of your learning progress" checked={preferences.emailDigest} onCheckedChange={(v) => setPreferences((p) => ({ ...p, emailDigest: v }))} />
                 </div>
                 <div className="flex justify-end border-t border-border p-6">
                   <Button className="gap-2" onClick={handleSavePreferences}><Settings className="h-4 w-4" /> Save Preferences</Button>

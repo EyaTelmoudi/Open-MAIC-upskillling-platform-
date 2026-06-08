@@ -89,6 +89,7 @@ class DeadlineChecker:
                 exchange="notifications",
                 routing_key="notif.email",
                 message={
+                    "event": "deadline.overdue",
                     "type": "email",
                     "userId": user_id,
                     "email": user_email,
@@ -134,6 +135,7 @@ class DeadlineChecker:
                     exchange="notifications",
                     routing_key="notif.email",
                     message={
+                        "event": "deadline.extended",
                         "type": "email",
                         "userId": str(user.id),
                         "email": user.email,

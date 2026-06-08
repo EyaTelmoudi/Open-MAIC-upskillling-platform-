@@ -146,22 +146,23 @@ export default function ProgressPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-[1440px] space-y-6">
-        <section className="overflow-hidden rounded-[30px] border border-white/70 bg-[radial-gradient(circle_at_top_left,rgba(14,163,122,0.18),transparent_30%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(242,165,27,0.12),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.92),rgba(245,250,251,0.95))] px-6 py-7 shadow-[0_20px_50px_rgba(15,23,42,0.08)] sm:px-8">
+        <section className="overflow-hidden rounded-[30px] border border-emerald-300/55 bg-[radial-gradient(circle_at_12%_18%,_rgba(52,211,153,0.46),_transparent_30%),radial-gradient(circle_at_76%_14%,_rgba(14,165,233,0.42),_transparent_28%),radial-gradient(circle_at_88%_82%,_rgba(242,165,27,0.24),_transparent_24%),linear-gradient(135deg,_#063B35_0%,_#075E63_42%,_#0B315F_72%,_#101827_100%)] px-6 py-7 text-white shadow-[0_30px_80px_rgba(6,78,59,0.36)] sm:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/75">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-100/85">
                 Learning Progress
               </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 sm:text-[2.25rem]">
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white drop-shadow-sm sm:text-[2.25rem]">
                 See how far your learning is really moving.
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-                Track your live XP, level, streak, completed learning, and momentum from one focused page instead of inside the profile menu.
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-emerald-50 sm:text-base">
+                Track your live XP, level, streak, completed learning, and momentum.
               </p>
             </div>
-            <div className="grid min-w-[260px] grid-cols-2 gap-3 rounded-[28px] border border-white/70 bg-white/70 p-4 shadow-[0_16px_36px_rgba(14,163,122,0.08)] backdrop-blur">
-              <div className="rounded-2xl bg-emerald-50/90 px-4 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+            <div className="grid min-w-[260px] grid-cols-2 gap-3 rounded-[28px] border border-white/30 bg-white/16 p-4 shadow-[0_20px_48px_rgba(6,78,59,0.18)] backdrop-blur">
+              <div className="rounded-2xl border border-white/60 bg-white/88 px-4 py-3 shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
+                <div className="mb-3 h-1.5 w-10 rounded-full bg-emerald-500" />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                   Current level
                 </p>
                 <div className="mt-2 flex items-center gap-3">
@@ -171,8 +172,9 @@ export default function ProgressPage() {
                   </span>
                 </div>
               </div>
-              <div className="rounded-2xl bg-amber-50/90 px-4 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+              <div className="rounded-2xl border border-white/60 bg-white/88 px-4 py-3 shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
+                <div className="mb-3 h-1.5 w-10 rounded-full bg-gold" />
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                   Current streak
                 </p>
                 <div className="mt-2 flex items-center gap-2 text-slate-950">
@@ -269,53 +271,60 @@ export default function ProgressPage() {
                     </p>
                   </div>
                 </div>
-                <div className="mt-6 grid gap-6 lg:grid-cols-[auto_1fr] lg:items-center">
-                  <div className="flex justify-center lg:justify-start">
+                <div className="mt-6 grid gap-5 lg:grid-cols-[auto_1fr] lg:items-stretch">
+                  <div className="flex min-h-[190px] flex-col items-center justify-center rounded-[24px] border border-emerald-100 bg-[linear-gradient(135deg,rgba(236,253,245,0.9),rgba(224,242,254,0.72))] px-6 py-5 text-center">
                     <LevelBadge level={levelInfo?.level || 1} size="lg" />
+                    <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      Current level
+                    </p>
+                    <p className="mt-1 text-xl font-semibold text-slate-950">
+                      Level {levelInfo?.level || 1}
+                    </p>
                   </div>
-                  <div className="space-y-4">
+
+                  <div className="rounded-[24px] border border-slate-100 bg-white/72 px-5 py-5">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm text-slate-500">Current level</p>
-                        <p className="text-2xl font-semibold text-slate-950">
-                          Level {levelInfo?.level || 1}
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                          Progress to next level
+                        </p>
+                        <p className="mt-2 font-mono text-2xl font-semibold text-slate-950">
+                          {(levelInfo?.progress ?? 0).toFixed(0)}%
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-slate-500">XP to next level</p>
-                        <p className="text-xl font-semibold text-slate-950">
+                      <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-right">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                          Remaining
+                        </p>
+                        <p className="mt-1 font-mono text-xl font-semibold text-slate-950">
                           {(levelInfo?.next_level_xp ?? 0).toLocaleString()} XP
                         </p>
                       </div>
                     </div>
-                    <XPProgressBar
-                      currentXP={levelInfo?.xp_in_level ?? 0}
-                      maxXP={levelInfo?.xp_needed ?? 1}
-                      level={levelInfo?.level ?? 1}
-                    />
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-2xl bg-slate-50 px-4 py-3">
+
+                    <div className="mt-5">
+                      <XPProgressBar
+                        currentXP={levelInfo?.xp_in_level ?? 0}
+                        maxXP={levelInfo?.xp_needed ?? 1}
+                        level={levelInfo?.level ?? 1}
+                      />
+                    </div>
+
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3">
                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                           Total XP
                         </p>
-                        <p className="mt-2 text-lg font-semibold text-slate-950">
+                        <p className="mt-2 font-mono text-xl font-semibold text-slate-950">
                           {totalXp.toLocaleString()}
                         </p>
                       </div>
-                      <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3">
                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                           Tier
                         </p>
-                        <p className="mt-2 text-lg font-semibold capitalize text-slate-950">
+                        <p className="mt-2 text-xl font-semibold capitalize text-slate-950">
                           {levelInfo?.tier ?? "bronze"}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                          Progress
-                        </p>
-                        <p className="mt-2 text-lg font-semibold text-slate-950">
-                          {(levelInfo?.progress ?? 0).toFixed(0)}%
                         </p>
                       </div>
                     </div>

@@ -178,12 +178,11 @@ export default function CoachHindsightPage() {
         return;
       }
 
-      const scopeKey = `${user.id}:${selectedCourseId}:hindsight-coach-page`;
+      const scopeKey = `${user.id}:${selectedCourseId}:all-ai-coaching-2`;
 
       try {
         const sessions = (await listCoachSessions({
           courseId: selectedCourseId,
-          source: "hindsight-coach-page",
         })).filter((session) => session.turnCount > 0);
 
         setConversations(sessions);
@@ -302,7 +301,7 @@ export default function CoachHindsightPage() {
   }, [availableCourses]);
 
   const createNewConversation = async () => {
-    const scopeKey = `${user?.id || "anonymous"}:${selectedCourseId}:hindsight-coach-page`;
+    const scopeKey = `${user?.id || "anonymous"}:${selectedCourseId}:all-ai-coaching-2`;
     draftConversationKeysRef.current.add(scopeKey);
     setActiveConversation("");
     setMessages(starterMessages(selectedCourse?.title || null));
@@ -314,7 +313,6 @@ export default function CoachHindsightPage() {
       const [sessions, detail] = await Promise.all([
         listCoachSessions({
           courseId: selectedCourseId,
-          source: "hindsight-coach-page",
         }),
         getCoachSessionDetail(sessionId),
       ]);
@@ -397,7 +395,6 @@ export default function CoachHindsightPage() {
         const [sessions, detail] = await Promise.all([
           listCoachSessions({
             courseId: selectedCourseId,
-            source: "hindsight-coach-page",
           }),
           getCoachSessionDetail(effectiveSessionId),
         ]);

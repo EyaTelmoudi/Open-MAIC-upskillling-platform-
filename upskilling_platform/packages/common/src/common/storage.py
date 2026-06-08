@@ -21,6 +21,7 @@ DEFAULT_BUCKETS = [
     "course-files",
     "quiz-media",
     "user-avatars",
+    "notification-assets",
 ]
 
 

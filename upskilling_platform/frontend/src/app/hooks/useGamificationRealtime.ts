@@ -9,11 +9,21 @@ type LearningRealtimeEvent =
   | "level.up"
   | "badge.earned"
   | "streak.update"
+  | "course.assigned"
+  | "enrollment.created"
+  | "lesson.completed"
+  | "certificate.generated"
+  | "deadline.overdue"
+  | "deadline.extended"
+  | "team.member.added"
+  | "team.course.assigned"
   | "course_memory.completed"
   | "course_memory.failed";
 
 type LearningRealtimePayload = {
   event: LearningRealtimeEvent;
+  soundKind?: string;
+  soundUrl?: string;
   [key: string]: unknown;
 };
 
@@ -22,6 +32,14 @@ const SUPPORTED_EVENTS = new Set<LearningRealtimeEvent>([
   "level.up",
   "badge.earned",
   "streak.update",
+  "course.assigned",
+  "enrollment.created",
+  "lesson.completed",
+  "certificate.generated",
+  "deadline.overdue",
+  "deadline.extended",
+  "team.member.added",
+  "team.course.assigned",
   "course_memory.completed",
   "course_memory.failed",
 ]);
@@ -70,7 +88,11 @@ export function useGamificationRealtime(
         try {
           const payload = JSON.parse(messageEvent.data);
           if (SUPPORTED_EVENTS.has(payload.event)) {
-            onEventRef.current(payload.event, payload);
+            const eventPayload =
+              payload.data && typeof payload.data === "object"
+                ? { ...payload.data, ...payload }
+                : payload;
+            onEventRef.current(payload.event, eventPayload);
           }
         } catch (error) {
           console.error("Failed to parse realtime notification:", error);

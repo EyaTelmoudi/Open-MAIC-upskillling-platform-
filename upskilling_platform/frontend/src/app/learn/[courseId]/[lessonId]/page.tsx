@@ -845,10 +845,10 @@ export default function LearnPage() {
       let next: { moduleId: string; lessonId: string } | null = null;
       if (course?.modules) {
         let foundCurrent = false;
-        for (const module of course.modules) {
-          for (const lesson of module.lessons) {
+        for (const courseModule of course.modules) {
+          for (const lesson of courseModule.lessons) {
             if (foundCurrent) {
-              next = { moduleId: module.id, lessonId: lesson.id };
+              next = { moduleId: courseModule.id, lessonId: lesson.id };
               break;
             }
             if (lesson.id === lessonId) {
@@ -1243,7 +1243,7 @@ export default function LearnPage() {
       setCoachTyping(true);
 
       try {
-        const response = await fetch("/api/chat-coach-agent/ask", {
+        const response = await fetch("/api/hindsight-coach-agent/ask", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

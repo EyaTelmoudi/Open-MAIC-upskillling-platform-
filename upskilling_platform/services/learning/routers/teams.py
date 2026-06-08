@@ -379,6 +379,18 @@ def add_team_member(
     db.refresh(membership)
 
     try:
+        RabbitMQClient().publish(
+            exchange="learning.exchange",
+            routing_key="team.member.added",
+            message={
+                "event": "team.member.added",
+                "userId": str(user_id),
+                "teamId": str(team_id),
+                "role": membership.role,
+                "timestamp": datetime.utcnow().isoformat(),
+            },
+        )
+
         from services.learning.gamification.badges import BadgeManager
 
         BadgeManager(db, RabbitMQClient()).check_and_award_badges(
@@ -512,6 +524,27 @@ def assign_course_to_team(
         enrolled_count += 1
 
     db.commit()
+
+    try:
+        mq = RabbitMQClient()
+        for membership in memberships:
+            if any(failure["user_id"] == str(membership.user_id) for failure in failures):
+                continue
+            mq.publish(
+                exchange="learning.exchange",
+                routing_key="team.course.assigned",
+                message={
+                    "event": "team.course.assigned",
+                    "userId": str(membership.user_id),
+                    "teamId": str(team_id),
+                    "courseId": str(course_id),
+                    "timestamp": datetime.utcnow().isoformat(),
+                },
+            )
+        mq.close()
+    except Exception:
+        pass
+
     return {
         "team_id": str(team_id),
         "course_id": str(course_id),

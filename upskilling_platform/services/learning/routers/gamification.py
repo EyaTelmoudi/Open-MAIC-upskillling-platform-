@@ -1,6 +1,7 @@
 """Gamification API router."""
 
 import logging
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -12,7 +13,7 @@ from sqlalchemy.orm import Session
 from common.database import get_db
 from common.auth import decode_token
 from common.messaging import RabbitMQClient
-from common.models import User
+from common.models import CustomBadge, User, UserBadge
 from services.learning.services.goal_tracking import sync_user_goals
 from services.learning.gamification import (
     XPManager,
@@ -105,6 +106,274 @@ class UserRankResponse(BaseModel):
     rank: int
     total_xp: int
     level: int
+
+
+CUSTOM_BADGE_ROLES = {"Admin", "Manager", "LearningExpert", "TeamManager"}
+CUSTOM_BADGE_TIERS = {"bronze", "silver", "gold", "platinum"}
+CUSTOM_BADGE_CONDITIONS = {
+    "challenge_completed",
+    "challenge_won",
+    "challenge_fast_finish",
+    "course_completed",
+    "course_category_completed",
+    "learning_path_completed",
+    "quiz_score",
+    "skill_validated",
+    "team_participation",
+    "streak_days",
+    "manual_award",
+}
+CUSTOM_BADGE_SCOPES_BY_ROLE = {
+    "TeamManager": {"tenant", "team", "challenge"},
+    "LearningExpert": {"tenant", "course", "category", "skill", "learning_path"},
+    "Admin": {"tenant", "team", "challenge", "course", "category", "skill", "learning_path"},
+    "Manager": {"tenant", "team", "challenge", "course", "category", "skill", "learning_path"},
+}
+
+
+class CustomBadgeCreateRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    tier: str = "bronze"
+    scope_type: str = "tenant"
+    scope_id: Optional[str] = None
+    condition_type: str
+    condition_value: Optional[int] = None
+    auto_award: bool = True
+    requires_approval: bool = False
+
+
+class CustomBadgeUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    tier: Optional[str] = None
+    scope_type: Optional[str] = None
+    scope_id: Optional[str] = None
+    condition_type: Optional[str] = None
+    condition_value: Optional[int] = None
+    auto_award: Optional[bool] = None
+    requires_approval: Optional[bool] = None
+    is_active: Optional[bool] = None
+
+
+class CustomBadgeEvaluationRequest(BaseModel):
+    event_type: str
+    challenge_id: Optional[str] = None
+    course_id: Optional[str] = None
+    team_id: Optional[str] = None
+    completed: bool = False
+    won: bool = False
+    fast_finish: bool = False
+    score: Optional[float] = None
+
+
+def _require_custom_badge_role(payload: dict, db: Session) -> User:
+    user = _get_user_from_payload(payload, db)
+    if user.role not in CUSTOM_BADGE_ROLES:
+        raise HTTPException(status_code=403, detail="Not allowed to manage badges")
+    if not user.tenant_id:
+        raise HTTPException(status_code=403, detail="User is not attached to a company")
+    return user
+
+
+def _parse_optional_uuid(value: Optional[str], field_name: str) -> Optional[UUID]:
+    if not value:
+        return None
+    try:
+        return UUID(value)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid {field_name}")
+
+
+def _validate_custom_badge_fields(
+    *,
+    user: User,
+    name: Optional[str] = None,
+    tier: Optional[str] = None,
+    scope_type: Optional[str] = None,
+    condition_type: Optional[str] = None,
+    condition_value: Optional[int] = None,
+) -> dict:
+    values = {}
+
+    if name is not None:
+        clean_name = name.strip()
+        if not clean_name:
+            raise HTTPException(status_code=400, detail="Badge name is required")
+        if len(clean_name) > 120:
+            raise HTTPException(status_code=400, detail="Badge name is too long")
+        values["name"] = clean_name
+
+    if tier is not None:
+        clean_tier = tier.lower().strip()
+        if clean_tier not in CUSTOM_BADGE_TIERS:
+            raise HTTPException(status_code=400, detail="Invalid badge tier")
+        values["tier"] = clean_tier
+
+    if scope_type is not None:
+        clean_scope = scope_type.lower().strip()
+        allowed_scopes = CUSTOM_BADGE_SCOPES_BY_ROLE.get(user.role, set())
+        if clean_scope not in allowed_scopes:
+            raise HTTPException(status_code=403, detail="Scope not allowed for this role")
+        values["scope_type"] = clean_scope
+
+    if condition_type is not None:
+        clean_condition = condition_type.lower().strip()
+        if clean_condition not in CUSTOM_BADGE_CONDITIONS:
+            raise HTTPException(status_code=400, detail="Invalid badge condition")
+        values["condition_type"] = clean_condition
+
+    if condition_value is not None and condition_value < 0:
+        raise HTTPException(status_code=400, detail="Condition value must be positive")
+
+    return values
+
+
+def _serialize_custom_badge(badge: CustomBadge) -> dict:
+    return {
+        "id": str(badge.id),
+        "tenant_id": str(badge.tenant_id),
+        "created_by": str(badge.created_by),
+        "owner_role": badge.owner_role,
+        "scope_type": badge.scope_type,
+        "scope_id": str(badge.scope_id) if badge.scope_id else None,
+        "name": badge.name,
+        "description": badge.description,
+        "icon": badge.icon,
+        "tier": badge.tier,
+        "condition_type": badge.condition_type,
+        "condition_value": badge.condition_value,
+        "auto_award": badge.auto_award,
+        "requires_approval": badge.requires_approval,
+        "is_active": badge.is_active,
+        "created_at": badge.created_at.isoformat() if badge.created_at else None,
+        "updated_at": badge.updated_at.isoformat() if badge.updated_at else None,
+    }
+
+
+def _custom_badge_definition(badge: CustomBadge) -> dict:
+    return {
+        "badge_id": f"custom:{badge.id}",
+        "name": badge.name,
+        "tier": badge.tier,
+        "icon": badge.icon or "award",
+        "description": badge.description or "",
+        "earned_at": None,
+    }
+
+
+def _get_tenant_custom_badge_definitions(db: Session, tenant_id: UUID) -> list[dict]:
+    badges = (
+        db.query(CustomBadge)
+        .filter(CustomBadge.tenant_id == tenant_id, CustomBadge.is_active.is_(True))
+        .order_by(CustomBadge.created_at.desc())
+        .all()
+    )
+    return [_custom_badge_definition(badge) for badge in badges]
+
+
+def _numeric_condition_value(value: object) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value.strip())
+        except ValueError:
+            return None
+    return None
+
+
+def _custom_badge_scope_matches(
+    badge: CustomBadge,
+    request: CustomBadgeEvaluationRequest,
+) -> bool:
+    if not badge.scope_id:
+        return badge.scope_type in {"tenant", "company-wide"}
+
+    scope_id = str(badge.scope_id)
+    if badge.scope_type == "challenge":
+        return scope_id == str(request.challenge_id or "")
+    if badge.scope_type == "course":
+        return scope_id == str(request.course_id or "")
+    if badge.scope_type == "team":
+        return scope_id == str(request.team_id or "")
+    return badge.scope_type in {"tenant", "company-wide"}
+
+
+def _custom_badge_condition_matches(
+    badge: CustomBadge,
+    request: CustomBadgeEvaluationRequest,
+) -> bool:
+    condition = badge.condition_type
+    event = request.event_type
+    score = request.score
+    required_score = _numeric_condition_value(badge.condition_value)
+
+    if condition == "challenge_completed":
+        if event not in {"challenge.completed", "solo_challenge.completed"} or not request.completed:
+            return False
+        return required_score is None or (score is not None and score >= required_score)
+
+    if condition == "challenge_won":
+        return event in {"challenge.completed", "solo_challenge.completed"} and request.won
+
+    if condition == "challenge_fast_finish":
+        return event in {"challenge.completed", "solo_challenge.completed"} and request.fast_finish
+
+    return False
+
+
+def _publish_custom_badge_event(user_id: str, badge_id: str, badge: CustomBadge) -> None:
+    event = {
+        "event": "badge.earned",
+        "userId": user_id,
+        "badge_id": badge_id,
+        "badge_name": badge.name,
+        "tier": badge.tier,
+        "icon": badge.icon or "award",
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+    try:
+        rabbitmq_client.publish(
+            exchange="learning.exchange",
+            routing_key="learning.gamification",
+            message=event,
+        )
+    except Exception as exc:
+        logger.error("Failed to publish custom badge event: %s", exc)
+
+
+def _award_custom_badge_if_needed(db: Session, user_id: str, badge: CustomBadge) -> Optional[dict]:
+    badge_id = f"custom:{badge.id}"
+    existing = (
+        db.query(UserBadge)
+        .filter(UserBadge.user_id == UUID(user_id), UserBadge.badge_id == badge_id)
+        .first()
+    )
+    if existing:
+        return None
+
+    user_badge = UserBadge(
+        user_id=UUID(user_id),
+        badge_id=badge_id,
+        badge_name=badge.name,
+        badge_tier=badge.tier,
+        badge_icon=badge.icon or "award",
+        description=badge.description,
+    )
+    db.add(user_badge)
+    db.commit()
+    _publish_custom_badge_event(user_id, badge_id, badge)
+    return {
+        "badge_id": badge_id,
+        "name": badge.name,
+        "tier": badge.tier,
+        "icon": badge.icon or "award",
+    }
 
 
 @router.get("/xp")
@@ -220,6 +489,157 @@ async def record_activity(
     return result
 
 
+@router.get("/custom-badges")
+async def list_custom_badges(
+    include_inactive: bool = False,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List custom badges for the current user's company only."""
+    user = _require_custom_badge_role(current_user, db)
+    query = db.query(CustomBadge).filter(CustomBadge.tenant_id == user.tenant_id)
+    if not include_inactive:
+        query = query.filter(CustomBadge.is_active.is_(True))
+    badges = query.order_by(CustomBadge.created_at.desc()).all()
+    return {"badges": [_serialize_custom_badge(badge) for badge in badges]}
+
+
+@router.post("/custom-badges")
+async def create_custom_badge(
+    request: CustomBadgeCreateRequest,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create a tenant-scoped badge definition."""
+    user = _require_custom_badge_role(current_user, db)
+    values = _validate_custom_badge_fields(
+        user=user,
+        name=request.name,
+        tier=request.tier,
+        scope_type=request.scope_type,
+        condition_type=request.condition_type,
+        condition_value=request.condition_value,
+    )
+    badge = CustomBadge(
+        tenant_id=user.tenant_id,
+        created_by=user.id,
+        owner_role=user.role,
+        scope_id=_parse_optional_uuid(request.scope_id, "scope_id"),
+        description=request.description.strip() if request.description else None,
+        icon=(request.icon or "award").strip()[:20],
+        condition_value=request.condition_value,
+        auto_award=request.auto_award,
+        requires_approval=request.requires_approval,
+        **values,
+    )
+    db.add(badge)
+    db.commit()
+    db.refresh(badge)
+    return _serialize_custom_badge(badge)
+
+
+@router.put("/custom-badges/{badge_id}")
+async def update_custom_badge(
+    badge_id: UUID,
+    request: CustomBadgeUpdateRequest,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update a custom badge inside the current user's company."""
+    user = _require_custom_badge_role(current_user, db)
+    badge = (
+        db.query(CustomBadge)
+        .filter(CustomBadge.id == badge_id, CustomBadge.tenant_id == user.tenant_id)
+        .first()
+    )
+    if not badge:
+        raise HTTPException(status_code=404, detail="Badge not found")
+
+    values = _validate_custom_badge_fields(
+        user=user,
+        name=request.name,
+        tier=request.tier,
+        scope_type=request.scope_type,
+        condition_type=request.condition_type,
+        condition_value=request.condition_value,
+    )
+    for field, value in values.items():
+        setattr(badge, field, value)
+
+    if request.description is not None:
+        badge.description = request.description.strip() or None
+    if request.icon is not None:
+        badge.icon = (request.icon or "award").strip()[:20]
+    if request.scope_id is not None:
+        badge.scope_id = _parse_optional_uuid(request.scope_id, "scope_id")
+    if request.condition_value is not None:
+        badge.condition_value = request.condition_value
+    if request.auto_award is not None:
+        badge.auto_award = request.auto_award
+    if request.requires_approval is not None:
+        badge.requires_approval = request.requires_approval
+    if request.is_active is not None:
+        badge.is_active = request.is_active
+
+    db.commit()
+    db.refresh(badge)
+    return _serialize_custom_badge(badge)
+
+
+@router.delete("/custom-badges/{badge_id}")
+async def deactivate_custom_badge(
+    badge_id: UUID,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Deactivate a custom badge inside the current user's company."""
+    user = _require_custom_badge_role(current_user, db)
+    badge = (
+        db.query(CustomBadge)
+        .filter(CustomBadge.id == badge_id, CustomBadge.tenant_id == user.tenant_id)
+        .first()
+    )
+    if not badge:
+        raise HTTPException(status_code=404, detail="Badge not found")
+    badge.is_active = False
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/custom-badges/evaluate")
+async def evaluate_custom_badges(
+    request: CustomBadgeEvaluationRequest,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Evaluate tenant custom badges for the current user after a learning event."""
+    user = _get_user_from_payload(current_user, db)
+    if not user.tenant_id:
+        return {"awarded": []}
+
+    badges = (
+        db.query(CustomBadge)
+        .filter(
+            CustomBadge.tenant_id == user.tenant_id,
+            CustomBadge.is_active.is_(True),
+            CustomBadge.auto_award.is_(True),
+        )
+        .all()
+    )
+
+    awarded: list[dict] = []
+    for badge in badges:
+        if not _custom_badge_scope_matches(badge, request):
+            continue
+        if not _custom_badge_condition_matches(badge, request):
+            continue
+        result = _award_custom_badge_if_needed(db, str(user.id), badge)
+        if result:
+            awarded.append(result)
+
+    return {"awarded": awarded}
+
+
 @router.get("/badges")
 async def get_badges(
     current_user=Depends(get_current_user),
@@ -234,11 +654,15 @@ async def get_badges(
 
 @router.get("/badges/definitions")
 async def get_badge_definitions(
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Get all badge definitions."""
+    """Get static and tenant custom badge definitions."""
+    user = _get_user_from_payload(current_user, db)
     badge_manager = BadgeManager(db, rabbitmq_client)
     definitions = badge_manager.get_all_badge_definitions()
+    if user.tenant_id:
+        definitions = definitions + _get_tenant_custom_badge_definitions(db, user.tenant_id)
     return {"badges": definitions}
 
 
@@ -271,6 +695,10 @@ async def get_gamification_profile(
         user_badges = badge_manager.get_user_badges(str(user_id))
 
     all_definitions = badge_manager.get_all_badge_definitions()
+    if user.tenant_id:
+        all_definitions = all_definitions + _get_tenant_custom_badge_definitions(
+            db, user.tenant_id
+        )
     unlocked_ids = {b["badge_id"] for b in user_badges}
 
     all_badges = [

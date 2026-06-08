@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Award,
   PanelLeftClose,
   PanelLeftOpen,
+  Target,
   Workflow,
 } from "lucide-react";
 
@@ -17,6 +19,18 @@ const teamManagerNavItems = [
     description: "Company teams and assignments",
     icon: Workflow,
     href: routes.teamManagerTeams,
+  },
+  {
+    label: "Goals",
+    description: "Team and user learning goals",
+    icon: Target,
+    href: routes.teamManagerGoals,
+  },
+  {
+    label: "Badges",
+    description: "Team challenge badges",
+    icon: Award,
+    href: routes.teamManagerBadges,
   },
 ];
 

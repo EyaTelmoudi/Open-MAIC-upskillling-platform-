@@ -26,6 +26,16 @@ const teamManagerHeaderContent = [
     title: "Team Operations",
     description: "Manage company teams, assignments, membership, and team learning progress.",
   },
+  {
+    match: (pathname: string) => pathname.startsWith(routes.teamManagerBadges),
+    title: "Team Badge Management",
+    description: "Create badges for team challenges, sprint learning, and manual team recognition.",
+  },
+  {
+    match: (pathname: string) => pathname.startsWith(routes.teamManagerGoals),
+    title: "Goal Management",
+    description: "Define measurable goals for teams or individual learners and track completion from one workspace.",
+  },
 ];
 
 function resolveTeamManagerHeader(pathname: string) {
@@ -57,7 +67,13 @@ function enterLearningWorkspace(router: ReturnType<typeof useRouter>) {
   router.push(routes.dashboard);
 }
 
-export function TeamManagerShell({ children }: { children: React.ReactNode }) {
+export function TeamManagerShell({
+  children,
+  showPageHeader = true,
+}: {
+  children: React.ReactNode;
+  showPageHeader?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoading, logout } = useAuth();
@@ -228,6 +244,7 @@ export function TeamManagerShell({ children }: { children: React.ReactNode }) {
           />
 
           <main className="min-w-0 flex-1 overflow-x-hidden">
+            {showPageHeader ? (
             <div className="bg-transparent px-4 pt-6 sm:px-6 lg:px-8">
               <div className="mx-auto w-full max-w-[1680px] overflow-hidden rounded-[2rem] border border-[#2A5B4A] bg-[radial-gradient(circle_at_8%_18%,_rgba(16,185,129,0.26),_transparent_28%),radial-gradient(circle_at_78%_8%,_rgba(59,130,246,0.22),_transparent_30%),radial-gradient(circle_at_92%_92%,_rgba(245,158,11,0.16),_transparent_26%),linear-gradient(135deg,_#102E2D_0%,_#132A3A_48%,_#0F172A_100%)] px-5 py-6 text-white shadow-[0_26px_70px_rgba(0,0,0,0.28)] sm:px-7 lg:px-8 lg:py-8">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -267,6 +284,7 @@ export function TeamManagerShell({ children }: { children: React.ReactNode }) {
                 </div>
               </div>
             </div>
+            ) : null}
 
             <div className="mx-auto w-full max-w-[1680px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
               {children}

@@ -230,6 +230,7 @@ async def get_content_url(
         "course-images",
         "course-files",
         "quiz-media",
+        "notification-assets",
     ]
 
     if bucket_name not in valid_buckets:
@@ -268,6 +269,7 @@ async def proxy_content_media(
         "course-images",
         "course-files",
         "quiz-media",
+        "notification-assets",
     ]
 
     if bucket_name not in valid_buckets:
@@ -353,6 +355,7 @@ async def delete_content(
         "course-images",
         "course-files",
         "quiz-media",
+        "notification-assets",
     ]
 
     if bucket_name not in valid_buckets:
