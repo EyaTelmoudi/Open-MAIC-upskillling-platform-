@@ -295,14 +295,15 @@ export function AiCourseBuilderContent({
     if (!response.ok || !data.success || !data.draft) {
       throw new Error(data.error || 'Failed to load draft');
     }
-    setDraft(data.draft);
+    const loadedDraft = data.draft;
+    setDraft(loadedDraft);
     setSelectedSceneId((current) =>
-      current && data.draft.editableScenes.some((scene) => scene.sceneId === current)
+      current && loadedDraft.editableScenes.some((scene) => scene.sceneId === current)
         ? current
-        : (data.draft.editableScenes[0]?.sceneId ?? null),
+        : (loadedDraft.editableScenes[0]?.sceneId ?? null),
     );
     setFinalPath(null);
-    return data.draft;
+    return loadedDraft;
   };
 
   useEffect(() => {

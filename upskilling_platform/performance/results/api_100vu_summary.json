@@ -1,0 +1,216 @@
+{
+    "root_group": {
+        "checks": {
+            "login status is 200": {
+                "name": "login status is 200",
+                "path": "::login status is 200",
+                "id": "baba87e761865dc93085ee0c1fe25f4c",
+                "passes": 65,
+                "fails": 35
+            },
+            "login returns access token": {
+                "name": "login returns access token",
+                "path": "::login returns access token",
+                "id": "6293b1160fa705bac3d194d14543619f",
+                "passes": 65,
+                "fails": 35
+            }
+        },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "API response time": {
+                "id": "48d67d6fc944eac4df0ca5f5a7d89adf",
+                "groups": {},
+                "checks": {
+                        "profile is 200": {
+                            "name": "profile is 200",
+                            "path": "::API response time::profile is 200",
+                            "id": "586315d20030a86626e5bfb6a649a567",
+                            "passes": 65,
+                            "fails": 35
+                        },
+                        "courses catalog is 200": {
+                            "name": "courses catalog is 200",
+                            "path": "::API response time::courses catalog is 200",
+                            "id": "5dd7cf4dd8423a1867fc5dd40d41b406",
+                            "passes": 65,
+                            "fails": 35
+                        },
+                        "course detail is 200": {
+                            "name": "course detail is 200",
+                            "path": "::API response time::course detail is 200",
+                            "id": "a9bf35abbbe69b056d355d3c30d531d0",
+                            "passes": 65,
+                            "fails": 35
+                        },
+                        "curriculum is 200": {
+                            "id": "bc8c058a1f0e31848792fe4cc7ffe8ac",
+                            "passes": 65,
+                            "fails": 35,
+                            "name": "curriculum is 200",
+                            "path": "::API response time::curriculum is 200"
+                        },
+                        "enrollments is 200": {
+                            "path": "::API response time::enrollments is 200",
+                            "id": "aab139ead5ec05d07327d7e3f0d5af26",
+                            "passes": 65,
+                            "fails": 35,
+                            "name": "enrollments is 200"
+                        },
+                        "progress is 200": {
+                            "fails": 35,
+                            "name": "progress is 200",
+                            "path": "::API response time::progress is 200",
+                            "id": "4d804b1b262a93c3e9e85acdaea89c75",
+                            "passes": 31
+                        },
+                        "gamification profile is 200": {
+                            "path": "::API response time::gamification profile is 200",
+                            "id": "ca0ed70796c945e01309dd6c6960129e",
+                            "passes": 1,
+                            "fails": 35,
+                            "name": "gamification profile is 200"
+                        }
+                    },
+                "name": "API response time",
+                "path": "::API response time"
+            }
+        }
+    },
+    "metrics": {
+        "http_req_duration{expected_response:true}": {
+            "avg": 5438.114914440767,
+            "min": 25.61575,
+            "med": 629.904316,
+            "p(90)": 31189.564917300002,
+            "p(95)": 31889.27169715,
+            "p(99)": 32121.131937820006,
+            "max": 32193.973492
+        },
+        "iterations": {
+            "count": 36,
+            "rate": 0.6000028435934767
+        },
+        "http_req_duration": {
+            "p(99)": 31949.03051962,
+            "max": 32193.973492,
+            "avg": 4953.708487615385,
+            "min": 25.61575,
+            "med": 546.3608205,
+            "p(90)": 31057.6316447,
+            "p(95)": 31245.7775103,
+            "thresholds": {
+                "p(95)<2000": true
+            }
+        },
+        "vus": {
+            "value": 64,
+            "min": 64,
+            "max": 100
+        },
+        "vus_max": {
+            "value": 100,
+            "min": 100,
+            "max": 100
+        },
+        "iteration_duration": {
+            "max": 36495.276205,
+            "avg": 34888.34305775,
+            "min": 34737.411481,
+            "med": 34844.685761999994,
+            "p(90)": 34943.7072355,
+            "p(95)": 34952.90967775,
+            "p(99)": 35955.604020549996
+        },
+        "http_req_receiving": {
+            "p(90)": 7.467715399999996,
+            "p(95)": 11.180597599999999,
+            "p(99)": 18.59045037000001,
+            "max": 57.770346,
+            "avg": 2.648980727920228,
+            "min": 0.028486,
+            "med": 0.554242
+        },
+        "data_sent": {
+            "count": 312924,
+            "rate": 5215.424717462363
+        },
+        "checks": {
+            "fails": 315,
+            "passes": 487,
+            "value": 0.6072319201995012
+        },
+        "http_req_sending": {
+            "min": 0.006482,
+            "med": 0.031326,
+            "p(90)": 0.15357259999999995,
+            "p(95)": 0.6434313999999959,
+            "p(99)": 4.723715690000001,
+            "max": 5.07836,
+            "avg": 0.19859034615384658
+        },
+        "http_req_waiting": {
+            "avg": 4950.86091654131,
+            "min": 24.746712,
+            "med": 544.497352,
+            "p(90)": 31056.5724864,
+            "p(95)": 31220.423822599998,
+            "p(99)": 31936.63443453,
+            "max": 32193.774104
+        },
+        "data_received": {
+            "count": 4021201,
+            "rate": 67020.33429613699
+        },
+        "http_req_failed": {
+            "passes": 280,
+            "fails": 422,
+            "thresholds": {
+                "rate<0.05": true
+            },
+            "value": 0.39886039886039887
+        },
+        "http_req_connecting": {
+            "min": 0,
+            "med": 0,
+            "p(90)": 31.804100799999997,
+            "p(95)": 34.8122583,
+            "p(99)": 44.761098900000015,
+            "max": 45.646902,
+            "avg": 4.659051207977208
+        },
+        "http_reqs": {
+            "count": 702,
+            "rate": 11.700055450072794
+        },
+        "http_req_blocked": {
+            "max": 49.793335,
+            "avg": 6.5244894914529885,
+            "min": 0.001774,
+            "med": 0.004843999999999999,
+            "p(90)": 37.9541688,
+            "p(95)": 41.85172414999992,
+            "p(99)": 47.51357711
+        },
+        "http_req_tls_handshaking": {
+            "min": 0,
+            "med": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0
+        },
+        "group_duration": {
+            "med": 3064.0905495,
+            "p(90)": 3623.809217,
+            "p(95)": 3637.0741175,
+            "p(99)": 4046.8724462499995,
+            "max": 4265.674017,
+            "avg": 3169.607092833333,
+            "min": 2698.982004
+        }
+    }
+}

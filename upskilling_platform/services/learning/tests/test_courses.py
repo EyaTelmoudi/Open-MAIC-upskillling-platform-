@@ -144,13 +144,13 @@ def test_create_course_requires_learning_expert_plus(
 
 def test_delete_course_requires_admin_role(
     mock_db,
-    registered_learning_expert_user,
+    registered_team_member_user,
 ):
-    """Only admins can delete a course."""
+    """Team members cannot delete courses."""
     with pytest.raises(HTTPException) as exc_info:
         courses.delete_course(
             course_id=uuid4(),
-            current_user={"sub": str(registered_learning_expert_user.id)},
+            current_user={"sub": str(registered_team_member_user.id)},
             db=mock_db,
         )
 
@@ -174,7 +174,13 @@ def test_delete_course_removes_learner_context_before_lessons(
     query = mock_db.query.return_value
     query.filter.return_value = query
     query.first.side_effect = [(course_id, tenant_id)]
-    query.all.side_effect = [[(module_id,)], [(lesson_a,), (lesson_b,)], [(assessment_id,)]]
+    certificate_id = uuid4()
+    query.all.side_effect = [
+        [(module_id,)],
+        [(lesson_a,), (lesson_b,)],
+        [(assessment_id,)],
+        [(certificate_id,)],
+    ]
 
     monkeypatch.setattr(courses, "get_minio_client", lambda: object())
     monkeypatch.setattr(courses, "delete_prefix", lambda *args, **kwargs: None)
@@ -187,7 +193,11 @@ def test_delete_course_removes_learner_context_before_lessons(
 
     executed_statements = [call.args[0] for call in mock_db.execute.call_args_list]
     assert any(
-        getattr(statement, "table", None) is courses.LearnerCourseContext.__table__
+        "learner_course_context" in str(statement)
+        for statement in executed_statements
+    )
+    assert any(
+        "certificate_verification_audits" in str(statement)
         for statement in executed_statements
     )
     mock_db.commit.assert_called_once()

@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
+const skipBuildChecks = process.env.SKIP_NEXT_BUILD_CHECKS === "1";
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  eslint: {
+    ignoreDuringBuilds: skipBuildChecks,
+  },
+  typescript: {
+    ignoreBuildErrors: skipBuildChecks,
+  },
   async rewrites() {
     const identityUrl =
       process.env.NEXT_PUBLIC_IDENTITY_URL || "http://localhost:8001";

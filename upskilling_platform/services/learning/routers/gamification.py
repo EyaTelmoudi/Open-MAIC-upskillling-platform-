@@ -130,6 +130,20 @@ CUSTOM_BADGE_SCOPES_BY_ROLE = {
     "Manager": {"tenant", "team", "challenge", "course", "category", "skill", "learning_path"},
 }
 
+CUSTOM_BADGE_CONDITION_HINTS = {
+    "manual_award": "This badge is awarded manually by an authorized manager or learning expert.",
+    "challenge_completed": "Complete the related challenge.",
+    "challenge_won": "Win the related challenge.",
+    "challenge_fast_finish": "Finish the related challenge before the deadline.",
+    "course_completed": "Complete the related course.",
+    "course_category_completed": "Complete the required course category.",
+    "learning_path_completed": "Complete the related learning path.",
+    "quiz_score": "Reach the required quiz score.",
+    "skill_validated": "Validate the related skill.",
+    "team_participation": "Participate in the related team activity.",
+    "streak_days": "Keep the required learning streak.",
+}
+
 
 class CustomBadgeCreateRequest(BaseModel):
     name: str
@@ -162,11 +176,16 @@ class CustomBadgeEvaluationRequest(BaseModel):
     event_type: str
     challenge_id: Optional[str] = None
     course_id: Optional[str] = None
+    assessment_id: Optional[str] = None
     team_id: Optional[str] = None
+    learning_path_id: Optional[str] = None
+    skill_id: Optional[str] = None
     completed: bool = False
     won: bool = False
     fast_finish: bool = False
     score: Optional[float] = None
+    streak_count: Optional[int] = None
+    participation_count: Optional[int] = None
 
 
 def _require_custom_badge_role(payload: dict, db: Session) -> User:
@@ -253,6 +272,25 @@ def _serialize_custom_badge(badge: CustomBadge) -> dict:
     }
 
 
+def _custom_badge_unlock_hint(badge: CustomBadge) -> str:
+    hint = CUSTOM_BADGE_CONDITION_HINTS.get(
+        badge.condition_type,
+        "Complete the configured badge requirement.",
+    )
+    if badge.condition_value is not None:
+        if badge.condition_type == "quiz_score":
+            hint = f"Reach at least {badge.condition_value}% in the related quiz."
+        elif badge.condition_type == "streak_days":
+            hint = f"Keep learning for {badge.condition_value} consecutive days."
+        elif badge.condition_type == "team_participation":
+            hint = f"Participate in {badge.condition_value} team activities."
+        elif badge.condition_type == "challenge_completed":
+            hint = f"Complete the related challenge with a score of at least {badge.condition_value}."
+    if badge.requires_approval:
+        hint = f"{hint} Approval is required before it appears as earned."
+    return hint
+
+
 def _custom_badge_definition(badge: CustomBadge) -> dict:
     return {
         "badge_id": f"custom:{badge.id}",
@@ -260,6 +298,13 @@ def _custom_badge_definition(badge: CustomBadge) -> dict:
         "tier": badge.tier,
         "icon": badge.icon or "award",
         "description": badge.description or "",
+        "unlock_hint": _custom_badge_unlock_hint(badge),
+        "condition_type": badge.condition_type,
+        "condition_value": badge.condition_value,
+        "scope_type": badge.scope_type,
+        "scope_id": str(badge.scope_id) if badge.scope_id else None,
+        "auto_award": badge.auto_award,
+        "requires_approval": badge.requires_approval,
         "earned_at": None,
     }
 
@@ -301,6 +346,10 @@ def _custom_badge_scope_matches(
         return scope_id == str(request.course_id or "")
     if badge.scope_type == "team":
         return scope_id == str(request.team_id or "")
+    if badge.scope_type == "learning_path":
+        return scope_id == str(request.learning_path_id or "")
+    if badge.scope_type == "skill":
+        return scope_id == str(request.skill_id or "")
     return badge.scope_type in {"tenant", "company-wide"}
 
 
@@ -323,6 +372,38 @@ def _custom_badge_condition_matches(
 
     if condition == "challenge_fast_finish":
         return event in {"challenge.completed", "solo_challenge.completed"} and request.fast_finish
+
+    if condition == "course_completed":
+        return event == "course.completed" and request.completed
+
+    if condition == "quiz_score":
+        return event in {"assessment.submitted", "quiz.submitted"} and (
+            score is not None
+            and required_score is not None
+            and score >= required_score
+        )
+
+    if condition == "streak_days":
+        return event == "streak.update" and (
+            request.streak_count is not None
+            and required_score is not None
+            and request.streak_count >= required_score
+        )
+
+    if condition == "team_participation":
+        return event in {"team.participation", "team.member.added"} and (
+            required_score is None
+            or (
+                request.participation_count is not None
+                and request.participation_count >= required_score
+            )
+        )
+
+    if condition == "learning_path_completed":
+        return event == "learning_path.completed" and request.completed
+
+    if condition == "skill_validated":
+        return event == "skill.validated" and request.completed
 
     return False
 
@@ -374,6 +455,69 @@ def _award_custom_badge_if_needed(db: Session, user_id: str, badge: CustomBadge)
         "tier": badge.tier,
         "icon": badge.icon or "award",
     }
+
+
+def evaluate_custom_badges_for_user(
+    db: Session,
+    *,
+    user_id: str,
+    event_type: str,
+    challenge_id: Optional[str] = None,
+    course_id: Optional[str] = None,
+    assessment_id: Optional[str] = None,
+    team_id: Optional[str] = None,
+    learning_path_id: Optional[str] = None,
+    skill_id: Optional[str] = None,
+    completed: bool = False,
+    won: bool = False,
+    fast_finish: bool = False,
+    score: Optional[float] = None,
+    streak_count: Optional[int] = None,
+    participation_count: Optional[int] = None,
+) -> list[dict]:
+    """Evaluate active tenant custom badges for a real platform event."""
+    user = db.query(User).filter(User.id == UUID(user_id)).first()
+    if not user or not user.tenant_id:
+        return []
+
+    request = CustomBadgeEvaluationRequest(
+        event_type=event_type,
+        challenge_id=challenge_id,
+        course_id=course_id,
+        assessment_id=assessment_id,
+        team_id=team_id,
+        learning_path_id=learning_path_id,
+        skill_id=skill_id,
+        completed=completed,
+        won=won,
+        fast_finish=fast_finish,
+        score=score,
+        streak_count=streak_count,
+        participation_count=participation_count,
+    )
+
+    badges = (
+        db.query(CustomBadge)
+        .filter(
+            CustomBadge.tenant_id == user.tenant_id,
+            CustomBadge.is_active.is_(True),
+            CustomBadge.auto_award.is_(True),
+            CustomBadge.requires_approval.is_(False),
+        )
+        .all()
+    )
+
+    awarded: list[dict] = []
+    for badge in badges:
+        if not _custom_badge_scope_matches(badge, request):
+            continue
+        if not _custom_badge_condition_matches(badge, request):
+            continue
+        result = _award_custom_badge_if_needed(db, str(user.id), badge)
+        if result:
+            awarded.append(result)
+
+    return awarded
 
 
 @router.get("/xp")
@@ -617,26 +761,23 @@ async def evaluate_custom_badges(
     if not user.tenant_id:
         return {"awarded": []}
 
-    badges = (
-        db.query(CustomBadge)
-        .filter(
-            CustomBadge.tenant_id == user.tenant_id,
-            CustomBadge.is_active.is_(True),
-            CustomBadge.auto_award.is_(True),
-        )
-        .all()
+    awarded = evaluate_custom_badges_for_user(
+        db,
+        user_id=str(user.id),
+        event_type=request.event_type,
+        challenge_id=request.challenge_id,
+        course_id=request.course_id,
+        assessment_id=request.assessment_id,
+        team_id=request.team_id,
+        learning_path_id=request.learning_path_id,
+        skill_id=request.skill_id,
+        completed=request.completed,
+        won=request.won,
+        fast_finish=request.fast_finish,
+        score=request.score,
+        streak_count=request.streak_count,
+        participation_count=request.participation_count,
     )
-
-    awarded: list[dict] = []
-    for badge in badges:
-        if not _custom_badge_scope_matches(badge, request):
-            continue
-        if not _custom_badge_condition_matches(badge, request):
-            continue
-        result = _award_custom_badge_if_needed(db, str(user.id), badge)
-        if result:
-            awarded.append(result)
-
     return {"awarded": awarded}
 
 

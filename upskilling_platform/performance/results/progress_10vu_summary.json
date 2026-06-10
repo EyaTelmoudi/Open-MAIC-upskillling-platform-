@@ -1,0 +1,188 @@
+{
+    "root_group": {
+        "checks": {
+            "login status is 200": {
+                "fails": 0,
+                "name": "login status is 200",
+                "path": "::login status is 200",
+                "id": "baba87e761865dc93085ee0c1fe25f4c",
+                "passes": 50
+            },
+            "login returns access token": {
+                "name": "login returns access token",
+                "path": "::login returns access token",
+                "id": "6293b1160fa705bac3d194d14543619f",
+                "passes": 50,
+                "fails": 0
+            }
+        },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "Progression and gamification": {
+                "path": "::Progression and gamification",
+                "id": "be8ea2571c898af221786921d48e1c05",
+                "groups": {},
+                "checks": {
+                        "lesson completion is 200": {
+                            "passes": 50,
+                            "fails": 0,
+                            "name": "lesson completion is 200",
+                            "path": "::Progression and gamification::lesson completion is 200",
+                            "id": "91388068481689d38c73a6b1d75ee0f7"
+                        },
+                        "gamification after completion is 200": {
+                            "name": "gamification after completion is 200",
+                            "path": "::Progression and gamification::gamification after completion is 200",
+                            "id": "2bcaf54ea79472f3158d73cea903344c",
+                            "passes": 50,
+                            "fails": 0
+                        },
+                        "rank is 200": {
+                            "path": "::Progression and gamification::rank is 200",
+                            "id": "2c98f22d00fd52435ec95eb3d485a534",
+                            "passes": 50,
+                            "fails": 0,
+                            "name": "rank is 200"
+                        }
+                    },
+                "name": "Progression and gamification"
+            }
+        }
+    },
+    "metrics": {
+        "group_duration": {
+            "med": 166.596463,
+            "p(90)": 633.0599879,
+            "p(95)": 684.2530754,
+            "p(99)": 714.6394994799999,
+            "max": 721.355953,
+            "avg": 246.4719954199999,
+            "min": 65.640125
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(95)": 361.5622161,
+            "p(99)": 572.71618763,
+            "max": 580.62789,
+            "avg": 125.79201000500014,
+            "min": 7.643396,
+            "med": 56.4006135,
+            "p(90)": 262.77695249999977
+        },
+        "http_req_connecting": {
+            "min": 0,
+            "med": 0,
+            "p(90)": 0.12749539999999274,
+            "p(95)": 1.8260605999999986,
+            "p(99)": 3.20846871,
+            "max": 3.298584,
+            "avg": 0.21052261000000005
+        },
+        "http_req_sending": {
+            "p(95)": 0.10778254999999998,
+            "p(99)": 0.17180370999999994,
+            "max": 0.186423,
+            "avg": 0.04037144499999999,
+            "min": 0.009288,
+            "med": 0.0364155,
+            "p(90)": 0.062441699999999996
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 200,
+            "thresholds": {
+                "rate<0.05": false
+            },
+            "value": 0
+        },
+        "checks": {
+            "passes": 250,
+            "fails": 0,
+            "value": 1
+        },
+        "data_sent": {
+            "count": 100350,
+            "rate": 12677.601528910103
+        },
+        "http_req_receiving": {
+            "p(90)": 0.2975062999999999,
+            "p(95)": 0.6727982499999999,
+            "p(99)": 1.923856689999998,
+            "max": 3.427485,
+            "avg": 0.20541972499999994,
+            "min": 0.039417,
+            "med": 0.123831
+        },
+        "http_req_duration": {
+            "min": 7.643396,
+            "med": 56.4006135,
+            "p(90)": 262.77695249999977,
+            "p(95)": 361.5622161,
+            "p(99)": 572.71618763,
+            "max": 580.62789,
+            "avg": 125.79201000500014,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "http_req_blocked": {
+            "avg": 0.33729759999999964,
+            "min": 0.002555,
+            "med": 0.00511,
+            "p(90)": 0.20666369999999257,
+            "p(95)": 2.913207399999985,
+            "p(99)": 5.482795289999998,
+            "max": 5.793102
+        },
+        "data_received": {
+            "count": 211300,
+            "rate": 26694.341834167462
+        },
+        "iteration_duration": {
+            "p(99)": 2041.21636505,
+            "max": 2043.903111,
+            "avg": 1506.0865160800001,
+            "min": 1295.026584,
+            "med": 1413.8135775,
+            "p(90)": 1947.9969898000002,
+            "p(95)": 2029.0630420500001
+        },
+        "http_req_waiting": {
+            "avg": 125.54621883500003,
+            "min": 7.507561,
+            "med": 56.2133945,
+            "p(90)": 262.46861439999975,
+            "p(95)": 361.362729,
+            "p(99)": 572.42893061,
+            "max": 580.411248
+        },
+        "http_req_tls_handshaking": {
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "p(90)": 0
+        },
+        "vus": {
+            "value": 10,
+            "min": 10,
+            "max": 10
+        },
+        "vus_max": {
+            "value": 10,
+            "min": 10,
+            "max": 10
+        },
+        "iterations": {
+            "rate": 6.316692341260639,
+            "count": 50
+        },
+        "http_reqs": {
+            "count": 200,
+            "rate": 25.266769365042556
+        }
+    }
+}

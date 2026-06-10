@@ -182,6 +182,12 @@ function stripHtml(value?: string | null) {
   return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function normalizeAiText(value?: string | null) {
+  return decodeHtmlEntities(String(value || ""))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function decodeHtmlEntities(value: string) {
   if (typeof window === "undefined") {
     return value
@@ -199,34 +205,36 @@ function decodeHtmlEntities(value: string) {
 
 function extractLooseMatches(source: string, pattern: RegExp) {
   return Array.from(source.matchAll(pattern))
-    .map((match) => decodeHtmlEntities(stripHtml(match[1] || "")))
+    .map((match) => normalizeAiText(match[1] || ""))
     .filter(Boolean);
 }
 
 function parseLooseAiScenePreview(content: string): ParsedAiScenePreview | null {
+  const normalizedSource = extractAiSceneContentSource(content);
+  const source = normalizedSource || content;
   const sceneType =
-    content.match(/"content"\s*:\s*\{\s*"type"\s*:\s*"([^"]+)"/)?.[1] ||
-    content.match(/"type"\s*:\s*"([^"]+)"/)?.[1] ||
+    source.match(/"content"\s*:\s*\{\s*"type"\s*:\s*"([^"]+)"/)?.[1] ||
+    source.match(/"type"\s*:\s*"([^"]+)"/)?.[1] ||
     "lesson";
 
   const teacherParoles = extractLooseMatches(
-    content,
+    source,
     /"text"\s*:\s*"([\s\S]*?)"\s*,\s*"type"\s*:\s*"speech"/g
   );
 
   const visibleTexts = extractLooseMatches(
-    content,
+    source,
     /"content"\s*:\s*"([\s\S]*?)"\s*,\s*"defaultColor"/g
   );
 
-  const interactiveDescriptionMatch = content.match(
+  const interactiveDescriptionMatch = source.match(
     /"html"\s*:\s*"([\s\S]*?)"\s*,\s*"type"\s*:\s*"interactive"/
   );
   const interactiveDescription = interactiveDescriptionMatch
     ? decodeHtmlEntities(stripHtml(interactiveDescriptionMatch[1])).slice(0, 900)
     : null;
 
-  if (teacherParoles.length === 0 && visibleTexts.length === 0 && !interactiveDescription && !content.includes('"questions"')) {
+  if (teacherParoles.length === 0 && visibleTexts.length === 0 && !interactiveDescription && !source.includes('"questions"')) {
     return null;
   }
 
@@ -239,12 +247,28 @@ function parseLooseAiScenePreview(content: string): ParsedAiScenePreview | null 
   };
 }
 
+function extractAiSceneContentSource(content?: string | null) {
+  const raw = String(content || "").trim();
+  if (!raw) {
+    return "";
+  }
+  if (raw.startsWith("{")) {
+    return raw;
+  }
+  const firstBrace = raw.indexOf("{");
+  const lastBrace = raw.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    return raw.slice(firstBrace, lastBrace + 1).trim();
+  }
+  return raw;
+}
+
 function parseAiScenePreview(content?: string | null): ParsedAiScenePreview | null {
   if (!content) {
     return null;
   }
 
-  const trimmed = content.trim();
+  const trimmed = extractAiSceneContentSource(content);
   if (!trimmed.startsWith("{")) {
     return null;
   }
@@ -257,6 +281,7 @@ function parseAiScenePreview(content?: string | null): ParsedAiScenePreview | nu
       content?: {
         type?: string;
         html?: string;
+        questions?: unknown[];
         canvas?: {
           elements?: Array<{ type?: string; content?: string }>;
         };
@@ -265,7 +290,7 @@ function parseAiScenePreview(content?: string | null): ParsedAiScenePreview | nu
 
     const teacherParoles = (parsed.actions || [])
       .filter((action) => action.type === "speech")
-      .map((action) => decodeHtmlEntities(stripHtml(action.text || action.content || "")))
+      .map((action) => normalizeAiText(action.text || action.content || ""))
       .filter(Boolean);
 
     const visibleTexts = ((parsed.content?.canvas?.elements || []) as Array<{
@@ -273,7 +298,7 @@ function parseAiScenePreview(content?: string | null): ParsedAiScenePreview | nu
       content?: string;
     }>)
       .filter((element) => element.type === "text")
-      .map((element) => decodeHtmlEntities(stripHtml(element.content || "")))
+      .map((element) => normalizeAiText(element.content || ""))
       .filter(Boolean);
 
     const interactiveDescription =
@@ -281,9 +306,20 @@ function parseAiScenePreview(content?: string | null): ParsedAiScenePreview | nu
         ? decodeHtmlEntities(stripHtml(parsed.content.html)).slice(0, 900)
         : null;
 
+    const hasRenderableScene =
+      teacherParoles.length > 0 ||
+      visibleTexts.length > 0 ||
+      Boolean(interactiveDescription) ||
+      parsed.content?.type === "quiz" ||
+      Array.isArray(parsed.content?.questions);
+
+    if (!hasRenderableScene) {
+      return parseLooseAiScenePreview(trimmed);
+    }
+
     return {
       type: String(parsed.type || parsed.content?.type || "lesson"),
-      title: decodeHtmlEntities(stripHtml(parsed.title || "")),
+      title: normalizeAiText(parsed.title || ""),
       teacherParoles,
       visibleTexts,
       interactiveDescription,
@@ -294,7 +330,19 @@ function parseAiScenePreview(content?: string | null): ParsedAiScenePreview | nu
 }
 
 function isAiSceneLesson(content?: string | null) {
-  return parseAiScenePreview(content) !== null;
+  if (parseAiScenePreview(content) !== null) {
+    return true;
+  }
+
+  const normalized = decodeHtmlEntities(extractAiSceneContentSource(content));
+  return (
+    normalized.includes('"actions"') &&
+    (
+      normalized.includes('"canvas"') ||
+      normalized.includes('"questions"') ||
+      normalized.includes('"html"')
+    )
+  );
 }
 
 function parseAiTeacherScriptBlocks(content?: string | null): ParsedAiTeacherScriptBlock[] {
@@ -321,7 +369,7 @@ function parseAiTeacherScriptBlocks(content?: string | null): ParsedAiTeacherScr
       .map((action, index) => ({
         id: action.id || `speech-${index + 1}`,
         order: index + 1,
-        text: decodeHtmlEntities(stripHtml(action.text || action.content || "")),
+        text: normalizeAiText(action.text || action.content || ""),
       }))
       .filter((block) => block.text.length > 0);
   } catch {
@@ -361,7 +409,7 @@ function parseAiSlideTextBlocks(content?: string | null): ParsedAiSlideTextBlock
       .map((element, index) => ({
         id: element.id || `slide-text-${index + 1}`,
         order: index + 1,
-        text: decodeHtmlEntities(stripHtml(element.content || "")),
+        text: normalizeAiText(element.content || ""),
       }))
       .filter((block) => block.text.length > 0);
   } catch {
@@ -547,6 +595,10 @@ function getLessonPreviewData(content: string | null | undefined): {
   resources: ResourceLink[];
 } {
   if (!content) {
+    return { summary: "", resources: [] };
+  }
+
+  if (isAiSceneLesson(content)) {
     return { summary: "", resources: [] };
   }
 
@@ -1059,6 +1111,18 @@ export default function AdminCourseDetailPage() {
     () => getLessonPreviewData(selectedPreviewLesson?.content),
     [selectedPreviewLesson]
   );
+  const selectedPreviewAiScene = useMemo(() => {
+    const content = selectedPreviewLesson?.content;
+    if (!content) {
+      return null;
+    }
+    return (
+      parseAiScenePreview(content) ||
+      parseLooseAiScenePreview(
+        decodeHtmlEntities(extractAiSceneContentSource(content))
+      )
+    );
+  }, [selectedPreviewLesson]);
   const selectedPreviewVideoUrl = useMemo(
     () => normalizeResourceUrl(selectedPreviewLesson?.video_url || ""),
     [selectedPreviewLesson]
@@ -2567,16 +2631,79 @@ export default function AdminCourseDetailPage() {
                             )}
                           </div>
                         ) : isAiSceneLesson(selectedPreviewLesson.content) ? (
-                          <AiGeneratedLessonPlayer
-                            lesson={{
-                              id: selectedPreviewLesson.id,
-                              title: selectedPreviewLesson.title,
-                              duration: selectedPreviewLesson.duration,
-                              content: selectedPreviewLesson.content,
-                            }}
-                            completed
-                            hideLessonHeader
-                          />
+                          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <div className="flex flex-wrap items-center gap-3">
+                              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                                AI generated lesson
+                              </span>
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                                {selectedPreviewAiScene?.type || selectedPreviewLesson.content_type}
+                              </span>
+                              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                                {formatCourseDuration(selectedPreviewLesson.duration)}
+                              </span>
+                            </div>
+
+                            <h5 className="mt-4 text-2xl font-semibold text-slate-950">
+                              {selectedPreviewAiScene?.title || selectedPreviewLesson.title}
+                            </h5>
+
+                            {selectedPreviewAiScene?.visibleTexts.length ? (
+                              <div className="mt-6 rounded-2xl border border-sky-100 bg-sky-50/70 p-5">
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+                                  Slide content
+                                </p>
+                                <div className="mt-4 space-y-3">
+                                  {selectedPreviewAiScene.visibleTexts.map((text, index) => (
+                                    <div
+                                      key={`slide-preview-${selectedPreviewLesson.id}-${index}`}
+                                      className="rounded-xl border border-white/80 bg-white px-4 py-3 text-sm leading-7 text-slate-800 shadow-sm"
+                                    >
+                                      {text}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
+
+                            {selectedPreviewAiScene?.teacherParoles.length ? (
+                              <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5">
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                                  Teacher script
+                                </p>
+                                <ol className="mt-4 space-y-3">
+                                  {selectedPreviewAiScene.teacherParoles.map((text, index) => (
+                                    <li
+                                      key={`speech-preview-${selectedPreviewLesson.id}-${index}`}
+                                      className="rounded-xl border border-white/80 bg-white px-4 py-3 text-sm leading-7 text-slate-800 shadow-sm"
+                                    >
+                                      <span className="mr-2 font-semibold text-emerald-700">
+                                        {index + 1}.
+                                      </span>
+                                      {text}
+                                    </li>
+                                  ))}
+                                </ol>
+                              </div>
+                            ) : null}
+
+                            {selectedPreviewAiScene?.interactiveDescription ? (
+                              <div className="mt-5 rounded-2xl border border-violet-100 bg-violet-50/70 p-5">
+                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-700">
+                                  Interactive activity
+                                </p>
+                                <p className="mt-3 text-sm leading-7 text-slate-800">
+                                  {selectedPreviewAiScene.interactiveDescription}
+                                </p>
+                              </div>
+                            ) : null}
+
+                            {!selectedPreviewAiScene ? (
+                              <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+                                This AI-generated lesson was detected, but its structured content could not be parsed for preview.
+                              </p>
+                            ) : null}
+                          </div>
                         ) : selectedPreviewLesson.content_type === "video" && selectedPreviewVideoUrl ? (
                           <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                             <div className="aspect-video bg-slate-950">
@@ -2727,7 +2854,7 @@ export default function AdminCourseDetailPage() {
                             id: lesson.id,
                             title: lesson.title,
                             duration: lesson.duration,
-                            content: lesson.content,
+                            content: lesson.content ?? null,
                           }))}
                         />
                       </div>
@@ -3064,7 +3191,7 @@ export default function AdminCourseDetailPage() {
                                         ...resource,
                                         url: normalizeResourceUrl(resource.url),
                                       }))
-                                      .filter((resource) => !isDuplicateOfMainVideo(resource, lesson.video_url))
+                                      .filter((resource) => !isDuplicateOfMainVideo(resource, lesson.video_url ?? null))
                                   );
 
                                   if (aiPreview) {

@@ -41,6 +41,15 @@
 \usepackage{setspace}
 \onehalfspacing
 
+% Réduire les coupures de mots en fin de ligne tout en gardant une justification propre.
+\pretolerance=1000
+\tolerance=2000
+\emergencystretch=3em
+\hyphenpenalty=8000
+\exhyphenpenalty=8000
+\lefthyphenmin=3
+\righthyphenmin=4
+
 \usepackage{titlesec}
 \usepackage{fancyhdr}
 \usepackage{minitoc}
@@ -170,6 +179,8 @@
 \pagenumbering{roman}
 \pagestyle{fancy}
 
+\input{dedicace}
+
 \input{remerciement}
 
 \clearpage
@@ -189,6 +200,7 @@
 \input{introduction_generale}
 \input{chapitres/chapitre1}
 \input{chapitres/chapitre3}
+\input{chapitres/chapitre4}
 
 % =========================
 % BIBLIOGRAPHIE

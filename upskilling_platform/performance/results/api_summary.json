@@ -1,0 +1,206 @@
+{
+    "metrics": {
+        "iteration_duration": {
+            "avg": 1369.452007783784,
+            "min": 1292.045669,
+            "med": 1335.377259,
+            "max": 1736.486525,
+            "p(90)": 1467.823891,
+            "p(95)": 1602.0254140000002
+        },
+        "http_req_tls_handshaking": {
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0
+        },
+        "checks": {
+            "passes": 999,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_blocked": {
+            "min": 0.002685,
+            "med": 0.0057915,
+            "max": 11.905155,
+            "p(90)": 0.0091803,
+            "p(95)": 0.010679149999999998,
+            "avg": 0.08252782995495513
+        },
+        "http_req_connecting": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.04492044932432433,
+            "min": 0,
+            "med": 0,
+            "max": 6.604036
+        },
+        "http_req_sending": {
+            "p(90)": 0.055761,
+            "p(95)": 0.063841,
+            "avg": 0.03738783558558555,
+            "min": 0.011252,
+            "med": 0.035032999999999995,
+            "max": 0.964569
+        },
+        "http_req_duration": {
+            "p(95)": 246.38609805,
+            "avg": 45.79354254391889,
+            "min": 5.423478,
+            "med": 13.6977185,
+            "max": 306.174526,
+            "p(90)": 230.8089947,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 888,
+            "thresholds": {
+                "rate<0.05": false
+            },
+            "value": 0
+        },
+        "http_req_receiving": {
+            "max": 28.147366,
+            "p(90)": 2.7942356000000093,
+            "p(95)": 4.020494899999999,
+            "avg": 0.6961105968468475,
+            "min": 0.050648,
+            "med": 0.143132
+        },
+        "group_duration": {
+            "avg": 121.88758932432432,
+            "min": 64.299782,
+            "med": 92.406117,
+            "max": 451.631427,
+            "p(90)": 206.85495,
+            "p(95)": 340.9979905
+        },
+        "data_received": {
+            "count": 7049499,
+            "rate": 227287.28084038748
+        },
+        "vus_max": {
+            "value": 5,
+            "min": 5,
+            "max": 5
+        },
+        "http_req_duration{expected_response:true}": {
+            "max": 306.174526,
+            "p(90)": 230.8089947,
+            "p(95)": 246.38609805,
+            "avg": 45.79354254391889,
+            "min": 5.423478,
+            "med": 13.6977185
+        },
+        "iterations": {
+            "count": 111,
+            "rate": 3.578820022994969
+        },
+        "http_reqs": {
+            "count": 888,
+            "rate": 28.63056018395975
+        },
+        "http_req_waiting": {
+            "avg": 45.06004411148643,
+            "min": 5.332101,
+            "med": 12.672042999999999,
+            "max": 305.994407,
+            "p(90)": 230.6863204,
+            "p(95)": 246.17351264999996
+        },
+        "vus": {
+            "value": 1,
+            "min": 1,
+            "max": 5
+        },
+        "data_sent": {
+            "count": 473415,
+            "rate": 15263.667398073543
+        }
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "API response time": {
+                "name": "API response time",
+                "path": "::API response time",
+                "id": "48d67d6fc944eac4df0ca5f5a7d89adf",
+                "groups": {},
+                "checks": {
+                        "profile is 200": {
+                            "id": "586315d20030a86626e5bfb6a649a567",
+                            "passes": 111,
+                            "fails": 0,
+                            "name": "profile is 200",
+                            "path": "::API response time::profile is 200"
+                        },
+                        "courses catalog is 200": {
+                            "fails": 0,
+                            "name": "courses catalog is 200",
+                            "path": "::API response time::courses catalog is 200",
+                            "id": "5dd7cf4dd8423a1867fc5dd40d41b406",
+                            "passes": 111
+                        },
+                        "course detail is 200": {
+                            "name": "course detail is 200",
+                            "path": "::API response time::course detail is 200",
+                            "id": "a9bf35abbbe69b056d355d3c30d531d0",
+                            "passes": 111,
+                            "fails": 0
+                        },
+                        "curriculum is 200": {
+                            "path": "::API response time::curriculum is 200",
+                            "id": "bc8c058a1f0e31848792fe4cc7ffe8ac",
+                            "passes": 111,
+                            "fails": 0,
+                            "name": "curriculum is 200"
+                        },
+                        "enrollments is 200": {
+                            "passes": 111,
+                            "fails": 0,
+                            "name": "enrollments is 200",
+                            "path": "::API response time::enrollments is 200",
+                            "id": "aab139ead5ec05d07327d7e3f0d5af26"
+                        },
+                        "progress is 200": {
+                            "fails": 0,
+                            "name": "progress is 200",
+                            "path": "::API response time::progress is 200",
+                            "id": "4d804b1b262a93c3e9e85acdaea89c75",
+                            "passes": 111
+                        },
+                        "gamification profile is 200": {
+                            "fails": 0,
+                            "name": "gamification profile is 200",
+                            "path": "::API response time::gamification profile is 200",
+                            "id": "ca0ed70796c945e01309dd6c6960129e",
+                            "passes": 111
+                        }
+                    }
+            }
+        },
+        "checks": {
+            "login status is 200": {
+                "name": "login status is 200",
+                "path": "::login status is 200",
+                "id": "baba87e761865dc93085ee0c1fe25f4c",
+                "passes": 111,
+                "fails": 0
+            },
+            "login returns access token": {
+                "fails": 0,
+                "name": "login returns access token",
+                "path": "::login returns access token",
+                "id": "6293b1160fa705bac3d194d14543619f",
+                "passes": 111
+            }
+        }
+    }
+}

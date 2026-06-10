@@ -235,11 +235,12 @@ export function AiCourseDraftEditorContent({
     if (!response.ok || !data.success || !data.draft) {
       throw new Error(data.error || 'Failed to load draft');
     }
-    setDraft(data.draft);
+    const loadedDraft = data.draft;
+    setDraft(loadedDraft);
     setSelectedSceneId((current) =>
-      current && data.draft.editableScenes.some((scene) => scene.sceneId === current)
+      current && loadedDraft.editableScenes.some((scene) => scene.sceneId === current)
         ? current
-        : (data.draft.editableScenes[0]?.sceneId ?? null),
+        : (loadedDraft.editableScenes[0]?.sceneId ?? null),
     );
   };
 
@@ -727,7 +728,7 @@ export function AiCourseDraftEditorContent({
                                     <div className="mt-3 space-y-3">
                                       {(selectedSceneSlideScriptMap.get(block.id) || []).length >
                                       0 ? (
-                                        (selectedSceneSlideScriptMap.get(block.id) || []).map(
+                                        ((selectedSceneSlideScriptMap.get(block.id) || []) as EditableScriptBlock[]).map(
                                           (scriptBlock, scriptIndex) => (
                                             <div key={scriptBlock.id} className="space-y-2">
                                               <div className="text-xs font-medium text-slate-600">

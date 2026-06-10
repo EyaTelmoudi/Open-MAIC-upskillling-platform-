@@ -41,6 +41,32 @@ function decodeJwtPayload(token: string | null): Record<string, unknown> | null 
   }
 }
 
+function tokenExpiresSoon(token: string | null, skewSeconds = 30): boolean {
+  const payload = decodeJwtPayload(token);
+  const expiresAt = Number(payload?.exp || 0);
+  if (!expiresAt) {
+    return false;
+  }
+  return expiresAt <= Math.floor(Date.now() / 1000) + skewSeconds;
+}
+
+function mergeAuthHeader(init: RequestInit): RequestInit {
+  const headers =
+    init.headers instanceof Headers
+      ? Object.fromEntries(init.headers.entries())
+      : Array.isArray(init.headers)
+        ? Object.fromEntries(init.headers)
+        : { ...(init.headers || {}) };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return {
+    ...init,
+    headers,
+  };
+}
+
 function resolveBaseUrl(path: string): string {
   if (isBrowser() && path.startsWith("/api/") && !path.startsWith("/api/v1/")) {
     return "";
@@ -315,7 +341,20 @@ class ApiClient {
     init: RequestInit,
     allowRefresh: boolean = true,
   ): Promise<Response> {
-    const response = await fetch(this.buildUrl(path), init);
+    let requestInit = init;
+    if (
+      allowRefresh &&
+      isBrowser() &&
+      path !== "/api/v1/auth/refresh" &&
+      tokenExpiresSoon(getAuthToken())
+    ) {
+      const refreshed = await tryRefreshAccessToken();
+      if (refreshed) {
+        requestInit = mergeAuthHeader(init);
+      }
+    }
+
+    const response = await fetch(this.buildUrl(path), requestInit);
     if (
       response.status === 401 &&
       allowRefresh &&
@@ -324,20 +363,7 @@ class ApiClient {
     ) {
       const refreshed = await tryRefreshAccessToken();
       if (refreshed) {
-        const retryHeaders =
-          init.headers instanceof Headers
-            ? Object.fromEntries(init.headers.entries())
-            : Array.isArray(init.headers)
-              ? Object.fromEntries(init.headers)
-              : { ...(init.headers || {}) };
-        const token = getAuthToken();
-        if (token) {
-          retryHeaders["Authorization"] = `Bearer ${token}`;
-        }
-        return fetch(this.buildUrl(path), {
-          ...init,
-          headers: retryHeaders,
-        });
+        return fetch(this.buildUrl(path), mergeAuthHeader(init));
       }
     }
     return response;
@@ -484,6 +510,38 @@ class ApiClient {
 export const api = new ApiClient(GATEWAY_URL);
 export const identityApi = new ApiClient(IDENTITY_URL);
 export const learningApi = new ApiClient(LEARNING_URL);
+
+export interface AcceptInvitationRequest {
+  token: string;
+  password: string;
+  password_confirm?: string;
+}
+
+export interface AcceptInvitationResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type?: string;
+  expires_in?: number;
+  role?: string;
+  email?: string;
+  user?: Record<string, unknown>;
+}
+
+export async function acceptInvitation(
+  data: AcceptInvitationRequest,
+): Promise<AcceptInvitationResponse> {
+  const response = await api.post<AcceptInvitationResponse>("/api/v1/auth/set-password", {
+    token: data.token,
+    password: data.password,
+  });
+  return {
+    ...response,
+    user: response.user || {
+      email: response.email,
+      role: response.role,
+    },
+  };
+}
 
 // Admin Management
 export interface CreateAdminRequest {
@@ -929,6 +987,13 @@ export interface BadgeResponse {
   tier: string;
   icon: string;
   description: string;
+  unlock_hint?: string | null;
+  condition_type?: string | null;
+  condition_value?: number | null;
+  scope_type?: string | null;
+  scope_id?: string | null;
+  auto_award?: boolean;
+  requires_approval?: boolean;
   earned_at?: string | null;
 }
 
@@ -1483,6 +1548,7 @@ export interface LessonResponse {
   duration: number;
   order: number;
   assessment_id?: string | null;
+  quiz_questions?: AssessmentQuestionWithAnswerResponse[];
   created_at: string;
 }
 
@@ -1518,6 +1584,7 @@ export interface AssessmentAttemptQuestionReview {
   points: number;
   order: number;
   user_answer?: string | null;
+  correct_answer?: string | null;
   is_correct?: boolean | null;
 }
 

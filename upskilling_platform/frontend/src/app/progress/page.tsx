@@ -434,6 +434,8 @@ export default function ProgressPage() {
                     icon={badge.icon}
                     tier={badge.tier as "bronze" | "silver" | "gold" | "platinum"}
                     unlocked={badge.unlocked}
+                    description={badge.description}
+                    unlockHint={badge.unlock_hint}
                   />
                 ))}
               </div>

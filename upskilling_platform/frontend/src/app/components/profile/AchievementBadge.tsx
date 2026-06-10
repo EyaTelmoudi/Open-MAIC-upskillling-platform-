@@ -18,6 +18,8 @@ interface AchievementBadgeProps {
   icon: string;
   tier: "bronze" | "silver" | "gold" | "platinum";
   unlocked: boolean;
+  description?: string | null;
+  unlockHint?: string | null;
 }
 
 const tierColors = {
@@ -27,8 +29,18 @@ const tierColors = {
   platinum: { bg: "bg-purple-500/20", border: "border-purple-400", text: "text-purple-400" },
 };
 
-export function AchievementBadge({ name, icon, tier, unlocked }: AchievementBadgeProps) {
+export function AchievementBadge({
+  name,
+  icon,
+  tier,
+  unlocked,
+  description,
+  unlockHint,
+}: AchievementBadgeProps) {
   const colors = tierColors[tier];
+  const helperText = unlocked
+    ? description
+    : unlockHint || description || "Complete the required activity to unlock this badge.";
   const renderIcon = () => {
     switch (name) {
       case "First Steps":
@@ -64,25 +76,29 @@ export function AchievementBadge({ name, icon, tier, unlocked }: AchievementBadg
 
   return (
     <div
-      className={`relative flex flex-col items-center gap-1 rounded-xl border p-3 transition-all ${
+      title={helperText || undefined}
+      className={`relative flex min-h-[132px] flex-col items-center gap-1 rounded-xl border p-3 transition-all ${
         unlocked
           ? `${colors.bg} ${colors.border}`
-          : "border-border bg-card opacity-40"
+          : "border-slate-200 bg-slate-50/80"
       }`}
     >
-      <div className={unlocked ? colors.text : "text-text-secondary"}>
+      <div className={unlocked ? colors.text : "text-slate-400"}>
         {renderIcon()}
       </div>
       <span className={`text-center text-[10px] font-medium ${
-        unlocked ? colors.text : "text-text-secondary"
+        unlocked ? colors.text : "text-slate-500"
       }`}>
         {name}
       </span>
-      {!unlocked && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-background/60">
-          <Lock className="h-5 w-5 text-text-secondary" />
-        </div>
-      )}
+      <span className="mt-1 line-clamp-2 text-center text-[10px] leading-4 text-slate-500">
+        {helperText}
+      </span>
+      {!unlocked ? (
+        <span className="absolute right-2 top-2 rounded-full bg-white/90 p-1 text-slate-400 shadow-sm">
+          <Lock className="h-3.5 w-3.5" />
+        </span>
+      ) : null}
     </div>
   );
 }

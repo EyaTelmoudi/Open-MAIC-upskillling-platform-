@@ -79,8 +79,22 @@ export default function BookmarksPage() {
         getCourseBookmarks().catch(() => []),
         getLessonBookmarks().catch(() => []),
       ]);
-      setCourseBookmarks(coursesData);
-      setLessonBookmarks(lessonsData);
+      setCourseBookmarks(
+        coursesData.map((bookmark) => ({
+          id: bookmark.id,
+          course_id: bookmark.course_id ?? null,
+          lesson_id: bookmark.lesson_id ?? null,
+          created_at: bookmark.created_at,
+        })),
+      );
+      setLessonBookmarks(
+        lessonsData.map((bookmark) => ({
+          id: bookmark.id,
+          course_id: bookmark.course_id ?? null,
+          lesson_id: bookmark.lesson_id ?? null,
+          created_at: bookmark.created_at,
+        })),
+      );
 
       // Load course details
       const courseIds = coursesData.map((b: any) => b.course_id).filter(Boolean);

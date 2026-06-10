@@ -1,0 +1,16 @@
+.git
+.github
+.pytest_cache
+.ruff_cache
+node_modules
+frontend/node_modules
+frontend/.next
+frontend/playwright-report
+frontend/test-results
+test-results
+comfyui
+piper
+*.pyc
+__pycache__
+.env
+.env.local

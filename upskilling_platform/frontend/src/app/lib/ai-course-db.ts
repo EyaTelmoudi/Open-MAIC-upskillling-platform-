@@ -2,6 +2,7 @@ import "server-only";
 
 import { randomUUID } from "crypto";
 import { Pool } from "pg";
+import type { Pool as PgPool } from "pg";
 
 type DraftStatus = "draft" | "approved" | "finalized";
 type ReviewStatus = "pending_review" | "draft_saved";
@@ -127,7 +128,7 @@ function resolveAiCourseXpReward(record: DraftDbRow, totalDuration: number) {
   return Math.max(100, Math.round(totalDuration * 10));
 }
 
-let pool: Pool | null = null;
+let pool: PgPool | null = null;
 let tableReady = false;
 
 function normalizePgUrl(raw: string) {

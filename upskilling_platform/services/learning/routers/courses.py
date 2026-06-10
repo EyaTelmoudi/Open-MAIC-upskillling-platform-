@@ -21,6 +21,7 @@ from common.models import (
     AssessmentAttempt,
     Bookmark,
     Certificate,
+    CertificateVerificationAudit,
     Course,
     CourseAssignment,
     CoursePreviewToken,
@@ -683,8 +684,8 @@ def delete_course(
 
     try:
         tenant_prefix = None
-        if course_row.tenant_id:
-            tenant_prefix = build_tenant_path(str(course_row.tenant_id), "courses", str(course_id))
+        if course_tenant_id:
+            tenant_prefix = build_tenant_path(str(course_tenant_id), "courses", str(course_id))
 
         if tenant_prefix:
             minio_client = get_minio_client()
@@ -728,6 +729,18 @@ def delete_course(
         db.execute(delete(Bookmark).where(Bookmark.course_id == course_id))
         db.execute(delete(CourseReview).where(CourseReview.course_id == course_id))
         db.execute(delete(CourseAssignment).where(CourseAssignment.course_id == course_id))
+        certificate_ids = [
+            certificate_id
+            for (certificate_id,) in db.query(Certificate.id)
+            .filter(Certificate.course_id == course_id)
+            .all()
+        ]
+        if certificate_ids:
+            db.execute(
+                update(CertificateVerificationAudit)
+                .where(CertificateVerificationAudit.certificate_id.in_(certificate_ids))
+                .values(certificate_id=None)
+            )
         db.execute(delete(Certificate).where(Certificate.course_id == course_id))
         db.execute(delete(Enrollment).where(Enrollment.course_id == course_id))
 

@@ -2,8 +2,9 @@ import "server-only";
 
 import { randomUUID } from "crypto";
 import { Pool } from "pg";
+import type { Pool as PgPool } from "pg";
 
-let pool: Pool | null = null;
+let pool: PgPool | null = null;
 let tablesReady = false;
 
 export type LearnerProfileType = "skill_gap_radar" | "recommendation_feed";

@@ -20,6 +20,8 @@ type ChatCoachPayload = {
   pagePath?: string;
   authToken?: string;
   conversationTurns?: number;
+  sessionId?: string;
+  sessionTurns?: Array<Record<string, unknown>>;
   learnerDiscussionGeneralFacts?: string[];
   learnerDiscussionCourseFacts?: string[];
   learnerDiscussionReasoning?: string;

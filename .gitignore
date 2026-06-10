@@ -47,6 +47,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local test credentials
+TEST_ACCOUNTS_REFERENCE.md
+
 # server provider config (contains API keys)
 server-providers.yml
 server-providers-*.yml

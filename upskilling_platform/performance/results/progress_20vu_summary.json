@@ -1,0 +1,188 @@
+{
+    "metrics": {
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 80,
+            "thresholds": {
+                "rate<0.05": false
+            },
+            "value": 0
+        },
+        "http_req_receiving": {
+            "p(90)": 0.8108178000000004,
+            "p(95)": 1.4695138999999997,
+            "p(99)": 3.549028519999995,
+            "max": 4.204422,
+            "avg": 0.3788816,
+            "min": 0.04082,
+            "med": 0.1640295
+        },
+        "iteration_duration": {
+            "max": 3589.039366,
+            "avg": 3326.83627415,
+            "min": 2508.042874,
+            "med": 3457.2606809999997,
+            "p(90)": 3571.0356278,
+            "p(95)": 3581.2762605,
+            "p(99)": 3587.4867449
+        },
+        "http_req_connecting": {
+            "p(99)": 12.975621349999987,
+            "max": 14.629119,
+            "avg": 3.3860624499999994,
+            "min": 0,
+            "med": 0.674591,
+            "p(90)": 9.989801500000004,
+            "p(95)": 10.785768549999997
+        },
+        "http_req_sending": {
+            "max": 1.464281,
+            "avg": 0.09214481250000002,
+            "min": 0.01068,
+            "med": 0.047362,
+            "p(90)": 0.1787382,
+            "p(95)": 0.20250624999999994,
+            "p(99)": 0.6254123899999934
+        },
+        "iterations": {
+            "count": 20,
+            "rate": 5.569030693158268
+        },
+        "http_req_waiting": {
+            "p(99)": 1507.6146800600002,
+            "max": 1510.153176,
+            "avg": 576.129858475,
+            "min": 26.769702,
+            "med": 328.751708,
+            "p(90)": 1419.2936338000002,
+            "p(95)": 1450.7413571499999
+        },
+        "http_req_duration{expected_response:true}": {
+            "max": 1510.904266,
+            "avg": 576.6008848875001,
+            "min": 26.984519,
+            "med": 329.268417,
+            "p(90)": 1419.703631,
+            "p(95)": 1451.0872341,
+            "p(99)": 1508.27546358
+        },
+        "checks": {
+            "passes": 100,
+            "fails": 0,
+            "value": 1
+        },
+        "vus_max": {
+            "max": 20,
+            "value": 20,
+            "min": 20
+        },
+        "http_req_tls_handshaking": {
+            "med": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0,
+            "min": 0
+        },
+        "group_duration": {
+            "p(99)": 1850.9274846199999,
+            "max": 1861.170879,
+            "avg": 1670.8991649,
+            "min": 1162.858925,
+            "med": 1738.8617695,
+            "p(90)": 1805.670875,
+            "p(95)": 1809.9539071
+        },
+        "data_sent": {
+            "count": 40140,
+            "rate": 11177.044601168645
+        },
+        "http_reqs": {
+            "count": 80,
+            "rate": 22.276122772633073
+        },
+        "http_req_blocked": {
+            "med": 0.7340115,
+            "p(90)": 14.103965800000001,
+            "p(95)": 14.773136049999998,
+            "p(99)": 15.566889569999999,
+            "max": 15.624178,
+            "avg": 4.6501793875000015,
+            "min": 0.002726
+        },
+        "vus": {
+            "value": 17,
+            "min": 17,
+            "max": 20
+        },
+        "http_req_duration": {
+            "avg": 576.6008848875001,
+            "min": 26.984519,
+            "med": 329.268417,
+            "p(90)": 1419.703631,
+            "p(95)": 1451.0872341,
+            "p(99)": 1508.27546358,
+            "max": 1510.904266,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "data_received": {
+            "count": 84520,
+            "rate": 23534.72370928684
+        }
+    },
+    "root_group": {
+        "groups": {
+            "Progression and gamification": {
+                "checks": {
+                    "lesson completion is 200": {
+                        "name": "lesson completion is 200",
+                        "path": "::Progression and gamification::lesson completion is 200",
+                        "id": "91388068481689d38c73a6b1d75ee0f7",
+                        "passes": 20,
+                        "fails": 0
+                    },
+                    "gamification after completion is 200": {
+                        "name": "gamification after completion is 200",
+                        "path": "::Progression and gamification::gamification after completion is 200",
+                        "id": "2bcaf54ea79472f3158d73cea903344c",
+                        "passes": 20,
+                        "fails": 0
+                    },
+                    "rank is 200": {
+                        "name": "rank is 200",
+                        "path": "::Progression and gamification::rank is 200",
+                        "id": "2c98f22d00fd52435ec95eb3d485a534",
+                        "passes": 20,
+                        "fails": 0
+                    }
+                },
+                "name": "Progression and gamification",
+                "path": "::Progression and gamification",
+                "id": "be8ea2571c898af221786921d48e1c05",
+                "groups": {}
+            }
+        },
+        "checks": {
+            "login status is 200": {
+                "name": "login status is 200",
+                "path": "::login status is 200",
+                "id": "baba87e761865dc93085ee0c1fe25f4c",
+                "passes": 20,
+                "fails": 0
+            },
+            "login returns access token": {
+                "fails": 0,
+                "name": "login returns access token",
+                "path": "::login returns access token",
+                "id": "6293b1160fa705bac3d194d14543619f",
+                "passes": 20
+            }
+        },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+}

@@ -1,0 +1,786 @@
+\chapter{Réalisation et évaluation}
+
+\minitoc
+
+\newpage
+
+\section{Introduction}
+
+La conception et l'architecture de la plateforme, établies dans le chapitre précédent, constituent le cadre dans lequel s'inscrivent les décisions d'implémentation présentées dans ce chapitre. Il s'agit désormais de démontrer que les choix effectués se traduisent concrètement par une solution fonctionnelle, cohérente et évaluable.
+
+Ce chapitre débute par la réalisation des modules principaux de la plateforme, en associant à chaque fonctionnalité implémentée les éléments techniques significatifs et les interfaces correspondantes. Une attention particulière est portée aux modules d'intelligence artificielle, dont l'implémentation constitue l'un des apports centraux de ce projet. Pour chaque agent, le comportement réel sera illustré par des exemples concrets d'interactions avec le système de mémoire persistante.
+
+La démarche de validation est ensuite exposée à travers les tests unitaires, fonctionnels et de performance, complétés par une évaluation qualitative des fonctionnalités intelligentes. Le chapitre se conclut par une mise en regard des résultats obtenus avec les exigences définies en amont, permettant d'identifier les objectifs atteints, les limites de la solution et les perspectives d'évolution envisageables.
+
+\section{Réalisation et présentation des modules}
+
+Cette section présente les principaux modules réalisés dans la plateforme, en montrant comment les choix de conception ont été traduits en fonctionnalités opérationnelles et accessibles depuis les interfaces développées.
+
+\subsection{Module Identity : gestion des identités, des accès et du multi-tenant}
+
+Le module \textit{Identity} constitue le socle de gestion des identités et des accès de la plateforme. Il centralise les comptes utilisateurs, les sessions, les rôles et le contexte multi-tenant afin de sécuriser les interactions entre le frontend et les autres modules. Cette sous-section détaille les mécanismes mis en place pour initialiser la plateforme, gérer les tenants, authentifier les utilisateurs et contrôler les accès.
+
+\subsubsection{Initialisation de la plateforme et création du SuperAdmin}
+
+Lors du premier lancement, la plateforme propose un processus d'initialisation permettant de créer l'environnement global. Cette étape permet de définir les informations principales de l'organisation, comme le nom de la plateforme et les premiers paramètres nécessaires au démarrage. Elle permet aussi de créer le compte \textit{SuperAdmin}, qui possède une portée globale sur la plateforme.
+
+Le \textit{SuperAdmin} n'est pas rattaché à une entreprise particulière. Il dispose d'un accès transversal pour gérer les tenants, configurer les paramètres de la plateforme et créer les premiers administrateurs d'entreprise. L'interface de création de ce compte est présentée dans la figure~\ref{fig:ch3_setup_superadmin}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_setup_superadmin.png}
+    \caption{Interface d'initialisation de la plateforme et création du compte SuperAdmin}
+    \label{fig:ch3_setup_superadmin}
+\end{figure}
+
+\subsubsection{Gestion des tenants et isolation multi-tenant}
+
+La gestion multi-tenant permet d'héberger plusieurs entreprises dans une même plateforme tout en conservant une séparation logique de leurs données. Chaque entreprise est représentée par un tenant, identifié par un nom, un slug, un domaine e-mail, un statut, une limite de sièges et, si nécessaire, des paramètres d'intégration avec Azure Entra ID.
+
+L'isolation repose principalement sur l'attribut \texttt{tenant\_id}. Lorsqu'un utilisateur appartient à une entreprise, cet identifiant est associé à son compte et transmis dans le jeton d'accès. Les services backend peuvent ensuite filtrer les données manipulées selon ce contexte : utilisateurs, équipes, cours, inscriptions, progression, objectifs, certificats et badges personnalisés. Ainsi, un administrateur ou un manager ne peut gérer que les ressources de son propre tenant.
+
+Le \textit{SuperAdmin} conserve une visibilité globale pour créer, consulter, activer ou suspendre les tenants. Cette vue globale est utilisée pour administrer les entreprises du groupe, suivre leur statut et préparer leur configuration d'identité, comme l'illustre la figure~\ref{fig:ch3_multitenant_tenants}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_multitenant_tenants.png}
+    \caption{Gestion multi-tenant des entreprises depuis l'espace SuperAdmin}
+    \label{fig:ch3_multitenant_tenants}
+\end{figure}
+
+La création d'un nouveau tenant se fait à partir d'un formulaire dédié permettant de renseigner les informations principales de l'entreprise, notamment son domaine e-mail, sa limite de sièges et ses paramètres d'identité, comme le montre la figure~\ref{fig:ch3_multitenant_create_tenant}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_multitenant_create_tenant.png}
+    \caption{Création d'un tenant avec domaine d'entreprise, limite de sièges et paramètres d'identité}
+    \label{fig:ch3_multitenant_create_tenant}
+\end{figure}
+
+\subsubsection{Gestion des utilisateurs et des comptes}
+
+Le module \textit{Identity} permet de gérer les comptes utilisateurs rattachés aux tenants. Cette gestion est assurée par le \textit{SuperAdmin} au niveau global de la plateforme et par l'\textit{Admin} au niveau de son entreprise. Ces rôles peuvent créer des comptes, définir le département, attribuer un rôle et suivre le statut des utilisateurs dans leur périmètre d'accès.
+
+La figure~\ref{fig:ch3_identity_users_management} illustre l'interface de gestion des utilisateurs dans l'espace d'administration d'un tenant.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_identity_users_management.png}
+    \caption{Gestion des utilisateurs et des comptes dans l'espace d'administration d'un tenant}
+    \label{fig:ch3_identity_users_management}
+\end{figure}
+
+\subsubsection{Mécanisme d'authentification}
+
+Le mécanisme d'authentification permet aux utilisateurs rattachés à une entreprise de se connecter à l'aide d'identifiants propres à la plateforme ou, lorsque le tenant est configuré, avec Azure Entra ID via un accès SSO (Single Sign-On, c'est-à-dire une connexion unique avec le compte de l'entreprise). Cette interface de connexion est illustrée par la figure~\ref{fig:ch3_auth_login_tenant}.
+
+Après la connexion, la plateforme détermine le contexte d'accès de l'utilisateur : identité, rôle, statut et tenant associé. Ce contexte permet de rediriger chaque profil vers son espace et d'appliquer les autorisations côté backend à travers des gardes comme \texttt{require\_role} et \texttt{require\_min\_role}. Les rôles principaux gérés sont \textit{SuperAdmin}, \textit{Admin}, \textit{Manager}, \textit{LearningExpert}, \textit{TeamManager} et \textit{TeamMember}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.82\textwidth]{figures/ch3_auth_login_tenant.png}
+    \caption{Interface de connexion avec authentification applicative et option Azure Entra ID}
+    \label{fig:ch3_auth_login_tenant}
+\end{figure}
+
+\subsubsection{Gestion des sessions et des jetons d'accès}
+
+Lors d'une connexion réussie, le module \textit{Identity} génère un \textit{access token} et un \textit{refresh token}. L'\textit{access token} autorise les appels aux API protégées et transporte le contexte minimal de sécurité, notamment l'utilisateur, son rôle et son tenant.
+
+Le \textit{refresh token} permet de renouveler la session sans demander une nouvelle connexion à chaque expiration de l'\textit{access token}. Cette séparation maintient l'expérience utilisateur tout en limitant la durée de validité du jeton utilisé pour accéder aux ressources sensibles.
+
+\textit{Figure à ajouter : Cycle de vie de l'access token et du refresh token dans la plateforme.}
+
+\subsubsection{Intégration avec Azure Entra ID}
+
+L'intégration avec Azure Entra ID est prévue au niveau de chaque tenant. Une entreprise peut renseigner ses paramètres d'identité, comme l'identifiant client, l'identifiant du tenant Azure et les URI de redirection, afin d'activer une connexion SSO pour ses utilisateurs. Après validation par Azure Entra ID, la plateforme rattache l'utilisateur au bon tenant et applique les mêmes règles de rôle et d'isolation que pour une authentification applicative.
+
+\textit{Figure à ajouter : Configuration Azure Entra ID au niveau d'un tenant.}
+
+\subsubsection{Traçabilité et audit des actions d'administration}
+
+Afin de renforcer la gouvernance de la plateforme, le module \textit{Identity} conserve des traces des actions sensibles réalisées dans les espaces d'administration. Ces traces permettent de suivre les opérations liées aux tenants, aux comptes utilisateurs, aux changements de statut et aux actions effectuées par les administrateurs.
+
+Cette traçabilité est importante dans un contexte multi-tenant, car elle permet de distinguer les actions globales du \textit{SuperAdmin} des actions propres à une entreprise. Elle facilite également le diagnostic en cas d'erreur de configuration, de modification de rôle ou de problème d'accès signalé par un utilisateur. La figure~\ref{fig:ch3_identity_audit_trail} illustre l'interface utilisée pour consulter ces traces.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_identity_audit_trail.png}
+    \caption{Consultation des traces d'audit des actions d'administration}
+    \label{fig:ch3_identity_audit_trail}
+\end{figure}
+
+\subsection{Gestion des formations, cours et progression}
+
+Le module \textit{Learning} regroupe les fonctionnalités liées au parcours pédagogique des utilisateurs. Il couvre la création et l'organisation des cours, l'inscription des apprenants, le suivi de la progression et la mise à jour des objectifs d'apprentissage. Les données produites par ce module alimentent aussi d'autres parties de la plateforme, notamment la gamification, les notifications et les agents IA.
+
+\subsubsection{Gestion administrative et création des cours}
+
+Les utilisateurs autorisés, notamment le \textit{SuperAdmin}, l'\textit{Admin} et le \textit{LearningExpert}, disposent d'interfaces pour créer et gérer les cours. Le \textit{SuperAdmin} peut intervenir à l'échelle globale de la plateforme, tandis que l'\textit{Admin} et le \textit{LearningExpert} agissent dans le périmètre de leur tenant. Cette gestion permet de renseigner les informations principales du cours, de modifier son contenu, de suivre son état et de le publier lorsqu'il est prêt à être consulté par les apprenants.
+
+Deux modes de création sont pris en charge :
+\begin{itemize}
+    \item \textbf{Mode traditionnel :} le responsable crée manuellement le cours et renseigne ses informations principales, comme le titre, la description, le niveau, la catégorie, les compétences ciblées et l'état de publication, comme l'illustre la figure~\ref{fig:ch3_learning_traditional_course_form}. Il définit ensuite la structure pédagogique du cours en organisant les leçons, les ressources et les évaluations. Chaque leçon peut contenir du texte explicatif, des supports vidéo ou des ressources complémentaires. Le responsable peut aussi ajouter des quiz afin d'évaluer la compréhension de l'apprenant et de lier le cours à un suivi de progression mesurable. Cette organisation est présentée dans la figure~\ref{fig:ch3_learning_traditional_course_structure}.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.92\textwidth]{figures/ch3_learning_traditional_course_form.png}
+        \caption{Formulaire de création d'un cours traditionnel dans l'espace d'administration}
+        \label{fig:ch3_learning_traditional_course_form}
+    \end{figure}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.92\textwidth]{figures/ch3_learning_traditional_course_structure.png}
+        \caption{Organisation d'un cours avec ses leçons, vidéos, ressources et quiz}
+        \label{fig:ch3_learning_traditional_course_structure}
+    \end{figure}
+
+    \item \textbf{Mode \textit{AI generated} :} le responsable démarre la création assistée en décrivant le besoin pédagogique à couvrir. Il fournit les informations nécessaires à la génération, notamment le sujet du cours, le public cible, le niveau attendu, les objectifs d'apprentissage, les compétences à développer, la durée souhaitée, le nombre de leçons et éventuellement la langue ou les consignes particulières. La figure~\ref{fig:ch3_learning_ai_course_input} montre l'interface utilisée pour saisir ce besoin. À partir de ces entrées, la plateforme produit un brouillon structuré du cours : plan général, objectifs, leçons proposées, contenu initial et éventuellement des questions de quiz. Ce résultat n'est pas publié automatiquement ; il reste éditable afin que le responsable puisse vérifier la pertinence du contenu, modifier les leçons, compléter les ressources et valider la cohérence pédagogique avant publication, comme le montre la figure~\ref{fig:ch3_learning_ai_course_draft_editor}.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.92\textwidth]{figures/ch3_learning_ai_course_input.png}
+        \caption{Interface de création d'un cours généré par IA avec les champs de saisie du besoin pédagogique}
+        \label{fig:ch3_learning_ai_course_input}
+    \end{figure}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.92\textwidth]{figures/ch3_learning_ai_course_draft_editor.png}
+        \caption{Résultat de génération affichant le brouillon du cours, ses leçons et ses éléments éditables}
+        \label{fig:ch3_learning_ai_course_draft_editor}
+    \end{figure}
+\end{itemize}
+
+\subsubsection{Inscription des apprenants aux cours}
+
+Les apprenants peuvent accéder aux cours publiés dans le périmètre de leur tenant depuis le catalogue de cours, présenté dans la figure~\ref{fig:ch3_learning_course_catalog}. Cette interface permet de consulter les formations disponibles, de filtrer les résultats et d'ouvrir la page détaillée d'un cours.
+
+L'inscription se fait depuis la page de détail du cours, où l'apprenant retrouve les informations principales de la formation, sa durée, son niveau, le nombre de modules et le bouton d'inscription, comme l'illustre la figure~\ref{fig:ch3_learning_course_enrollment_action}. Une fois inscrit, le cours apparaît dans l'espace \textit{My Learning}, qui regroupe les formations en cours et les formations terminées, comme le montre la figure~\ref{fig:ch3_learning_my_learning_enrollments}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_learning_course_catalog.png}
+    \caption{Catalogue des cours disponibles pour l'apprenant}
+    \label{fig:ch3_learning_course_catalog}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_learning_course_enrollment_action.png}
+    \caption{Page de détail d'un cours avec l'action d'inscription}
+    \label{fig:ch3_learning_course_enrollment_action}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_learning_my_learning_enrollments.png}
+    \caption{Espace My Learning affichant les cours inscrits de l'apprenant}
+    \label{fig:ch3_learning_my_learning_enrollments}
+\end{figure}
+
+\subsubsection{Suivi de la progression individuelle}
+
+Le suivi de progression repose sur les activités réalisées par l'apprenant, comme la consultation des leçons, leur complétion et l'avancement global dans un cours. Ces informations sont affichées dans la page de progression individuelle, qui regroupe les indicateurs principaux : XP, niveau, série d'apprentissage, leçons terminées, cours complétés et activités récentes, comme le montre la figure~\ref{fig:ch3_learning_progress_dashboard}.
+
+La progression est aussi visible depuis l'espace \textit{My Learning}, présenté dans la figure~\ref{fig:ch3_learning_progress_my_learning}. Cette page distingue les cours en cours des cours terminés, ce qui permet à l'apprenant de reprendre rapidement son parcours ou de consulter les formations déjà finalisées.
+
+Au niveau d'une leçon, la plateforme affiche l'état d'avancement du cours, le nombre de leçons complétées et le statut de chaque leçon. La figure~\ref{fig:ch3_learning_lesson_progress_tracking} illustre ce suivi détaillé dans l'interface de lecture.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_learning_progress_dashboard.png}
+    \caption{Tableau de progression individuelle affichant les indicateurs d'apprentissage de l'utilisateur}
+    \label{fig:ch3_learning_progress_dashboard}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_learning_progress_my_learning.png}
+    \caption{Suivi des cours actifs et terminés dans l'espace My Learning}
+    \label{fig:ch3_learning_progress_my_learning}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_learning_lesson_progress_tracking.png}
+    \caption{Suivi détaillé de la progression dans une leçon}
+    \label{fig:ch3_learning_lesson_progress_tracking}
+\end{figure}
+
+\subsubsection{Objectifs d'apprentissage personnels et collectifs}
+
+La plateforme permet aussi de gérer des objectifs d'apprentissage personnels et collectifs. Les objectifs personnels ciblent un utilisateur précis, tandis que les objectifs d'équipe concernent plusieurs membres d'une même équipe. Leur progression peut être mise à jour automatiquement à partir des activités réelles, par exemple le nombre de leçons terminées ou le temps d'étude réalisé, comme le montre la figure~\ref{fig:ch3_learning_goals_tracking}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_learning_goals_tracking.png}
+    \caption{Interface de suivi des objectifs personnels et des objectifs d'équipe}
+    \label{fig:ch3_learning_goals_tracking}
+\end{figure}
+
+\subsubsection{Certificats de fin de cours et vérification}
+
+À la fin d'un cours, la plateforme peut délivrer un certificat à l'apprenant lorsque les conditions de complétion sont satisfaites. Ce certificat représente une preuve de validation du parcours suivi et peut être consulté depuis l'espace personnel de l'utilisateur. Il contient les informations essentielles liées au cours, à l'apprenant et à la date d'obtention.
+
+La plateforme intègre également un mécanisme de vérification des certificats. Chaque certificat généré peut être contrôlé à partir de ses informations d'identification, ce qui permet de confirmer son authenticité et de limiter les risques de falsification. Ce processus complète le suivi de progression en transformant la fin d'un cours en preuve vérifiable de réussite.
+
+\textit{Figure à ajouter : Liste des certificats obtenus par l'apprenant après la complétion des cours.}
+
+\textit{Figure à ajouter : Détail d'un certificat délivré à la fin d'un cours.}
+
+\textit{Figure à ajouter : Interface de vérification d'un certificat à partir de son identifiant ou de son lien de vérification.}
+
+\subsection{Mentorat et gamification}
+
+Le module de mentorat et de gamification complète le module \textit{Learning} en transformant les activités d'apprentissage en indicateurs de suivi et en éléments de motivation. Il permet de suivre la progression des apprenants, de valoriser leurs réussites et d'encourager leur engagement à travers les points XP, les niveaux, les badges, les objectifs et les classements.
+
+\begin{itemize}
+    \item \textbf{Suivi de la progression et du niveau de l'apprenant}
+
+    La plateforme affiche un tableau de progression permettant à l'utilisateur de suivre son niveau actuel, ses points XP, sa série d'apprentissage et l'état d'avancement vers le niveau suivant. Cette vue, déjà présentée dans la figure~\ref{fig:ch3_learning_progress_dashboard}, constitue également la base de la gamification, car les indicateurs affichés sont utilisés pour calculer les niveaux, les récompenses et la progression globale de l'apprenant.
+
+    \item \textbf{Badges et reconnaissance des réussites}
+
+    Les badges matérialisent les réussites obtenues par les utilisateurs. Ils peuvent être liés à la complétion d'un cours, à l'atteinte d'un objectif, à une performance particulière ou à la participation à un challenge. L'apprenant peut consulter les badges obtenus et ceux qui restent à débloquer depuis son espace de progression, comme l'illustre la figure~\ref{fig:ch3_gamification_badges}.
+
+    \begin{figure}[H]
+        \centering
+        \IfFileExists{figures/ch3_gamification_badges.png}{%
+            \includegraphics[width=0.92\textwidth]{figures/ch3_gamification_badges.png}%
+        }{%
+            \fbox{\parbox{0.85\textwidth}{\centering Capture à ajouter : badges obtenus et non encore débloqués.}}%
+        }
+        \caption{Affichage des badges obtenus et non encore débloqués}
+        \label{fig:ch3_gamification_badges}
+    \end{figure}
+
+    \item \textbf{Création et gestion des badges personnalisés}
+
+    Les badges personnalisés peuvent être créés par les rôles autorisés, notamment l'administrateur, le \textit{Learning Expert} et le \textit{Team Manager}. Chaque badge est rattaché au tenant de l'entreprise, ce qui garantit que les badges créés dans une société ne sont pas visibles par les autres sociétés. L'interface de gestion des badges permet de définir le nom, le niveau, la condition d'obtention et le contexte d'utilisation du badge, comme le montre la figure~\ref{fig:ch3_gamification_badge_management}.
+
+    \begin{figure}[H]
+        \centering
+        \IfFileExists{figures/ch3_gamification_badge_management.png}{%
+            \includegraphics[width=0.92\textwidth]{figures/ch3_gamification_badge_management.png}%
+        }{%
+            \fbox{\parbox{0.85\textwidth}{\centering Capture à ajouter : interface de gestion des badges personnalisés.}}%
+        }
+        \caption{Interface de gestion des badges personnalisés}
+        \label{fig:ch3_gamification_badge_management}
+    \end{figure}
+
+    \item \textbf{Classement des apprenants}
+
+    Le classement permet de comparer la progression des utilisateurs selon leurs points XP, leur niveau et leur activité d'apprentissage. Il offre une vue synthétique de la dynamique d'engagement au sein de la plateforme et peut être utilisé pour suivre la progression globale des apprenants ou des équipes, comme le présente la figure~\ref{fig:ch3_gamification_leaderboard}.
+
+    \begin{figure}[H]
+        \centering
+        \IfFileExists{figures/ch3_gamification_leaderboard.png}{%
+            \includegraphics[width=0.92\textwidth]{figures/ch3_gamification_leaderboard.png}%
+        }{%
+            \fbox{\parbox{0.85\textwidth}{\centering Capture à ajouter : classement des apprenants selon leur progression.}}%
+        }
+        \caption{Classement des apprenants selon leur progression}
+        \label{fig:ch3_gamification_leaderboard}
+    \end{figure}
+\end{itemize}
+
+\subsection{Modules IA -- les 5 agents}
+
+Les modules IA constituent la partie intelligente de la plateforme. Ils interviennent à différents moments du parcours : création de cours, mémorisation des signaux d'apprentissage, accompagnement personnalisé, recommandation de contenus et génération de challenges. Ces agents sont intégrés à l'application à travers des routes API dédiées et des services AgentOS séparés. Ils s'appuient sur les données du module \textit{Learning}, sur le contexte du tenant et sur le système de mémoire persistante afin de produire des réponses adaptées au profil de l'utilisateur.
+
+\begin{itemize}
+    \item \textbf{Agent de génération de cours}
+
+    L'agent de génération de cours assiste les responsables pédagogiques dans la création d'un brouillon de cours à partir d'un besoin exprimé. Il reçoit les informations saisies dans l'interface, comme le sujet, le public cible, le niveau, les objectifs et les contraintes pédagogiques, puis transmet ces éléments au workflow de génération. Le résultat produit est un brouillon structuré composé d'un plan, de leçons et d'éléments éditables. Ce contenu n'est pas publié automatiquement : il doit être relu, corrigé et validé par un utilisateur autorisé avant son intégration dans le catalogue.
+
+    Le résultat éditable produit par cet agent a déjà été présenté dans la figure~\ref{fig:ch3_learning_ai_course_draft_editor}, qui montre le brouillon généré, ses leçons et ses éléments modifiables.
+
+    \item \textbf{Agent de mémoire apprenant}
+
+    L'agent de mémoire apprenant conserve les informations utiles issues des activités réelles de l'utilisateur. Il peut exploiter des événements tels que la complétion d'une leçon, le résultat d'un quiz, une difficulté exprimée dans une discussion ou une réponse donnée lors d'un challenge. Ces informations sont transformées en traces durables et rattachées au bon contexte : utilisateur, tenant, cours et leçon. Cette mémoire permet ensuite aux autres agents de personnaliser leurs réponses au lieu de se limiter à une interaction isolée.
+
+    \item \textbf{Agent de coaching IA}
+
+    L'agent de coaching IA accompagne l'apprenant pendant son parcours. Il peut être utilisé depuis la page de leçon ou depuis l'espace dédié au coaching. Lorsqu'un utilisateur pose une question, l'agent reçoit le contexte du tenant, du cours, de la leçon et de la session de discussion. Il interroge ensuite la mémoire disponible afin de produire une réponse contextualisée, liée au contenu du cours et aux difficultés déjà observées chez l'apprenant.
+
+    La figure~\ref{fig:ch3_ai_coaching_agent} devra illustrer une discussion entre l'apprenant et le coach IA dans l'interface de cours ou dans la page \textit{coach hindsight}.
+
+    \begin{figure}[H]
+        \centering
+        \IfFileExists{figures/ch3_ai_coaching_agent.png}{%
+            \includegraphics[width=0.92\textwidth]{figures/ch3_ai_coaching_agent.png}%
+        }{%
+            \fbox{\parbox{0.85\textwidth}{\centering Figure à ajouter : discussion avec l'agent de coaching IA pendant le déroulement d'un cours.}}%
+        }
+        \caption{Interaction entre l'apprenant et l'agent de coaching IA}
+        \label{fig:ch3_ai_coaching_agent}
+    \end{figure}
+
+    \item \textbf{Agent de recommandation}
+
+    L'agent de recommandation analyse le profil d'apprentissage de l'utilisateur, ses inscriptions, sa progression, les cours disponibles et les signaux de mémoire pour proposer les prochaines actions pertinentes. Il peut produire des recommandations de cours ou de leçons, mais aussi contribuer à l'identification des écarts de compétences. Son objectif est d'orienter l'apprenant vers les contenus les plus utiles selon son historique et ses objectifs.
+
+    La figure~\ref{fig:ch3_ai_recommendation_agent} devra présenter l'interface des recommandations personnalisées générées pour un apprenant.
+
+    \begin{figure}[H]
+        \centering
+        \IfFileExists{figures/ch3_ai_recommendation_agent.png}{%
+            \includegraphics[width=0.92\textwidth]{figures/ch3_ai_recommendation_agent.png}%
+        }{%
+            \fbox{\parbox{0.85\textwidth}{\centering Figure à ajouter : recommandations personnalisées générées pour un apprenant.}}%
+        }
+        \caption{Recommandations personnalisées proposées par l'agent IA}
+        \label{fig:ch3_ai_recommendation_agent}
+    \end{figure}
+
+    \item \textbf{Agent de challenge personnalisé}
+
+    L'agent de challenge personnalisé génère une question ou une activité courte adaptée au contexte d'apprentissage de l'utilisateur. Il peut s'appuyer sur les erreurs de quiz, les difficultés mémorisées ou le cours suivi récemment afin de proposer un exercice ciblé. Après la réponse de l'apprenant, le résultat peut être utilisé pour mettre à jour la progression, attribuer des récompenses et enrichir la mémoire apprenant.
+
+    La figure~\ref{fig:ch3_ai_solo_challenge_agent} devra illustrer l'affichage d'un challenge personnalisé et son retour après réponse.
+
+    \begin{figure}[H]
+        \centering
+        \IfFileExists{figures/ch3_ai_solo_challenge_agent.png}{%
+            \includegraphics[width=0.92\textwidth]{figures/ch3_ai_solo_challenge_agent.png}%
+        }{%
+            \fbox{\parbox{0.85\textwidth}{\centering Figure à ajouter : challenge personnalisé généré pour l'apprenant et résultat après réponse.}}%
+        }
+        \caption{Challenge personnalisé généré par l'agent IA}
+        \label{fig:ch3_ai_solo_challenge_agent}
+    \end{figure}
+\end{itemize}
+
+En complément de ces cinq agents, un workflow de mémoire de cours est utilisé pour préparer les connaissances liées aux cours publiés. Il transforme les contenus pédagogiques, les leçons et les quiz en documents exploitables par la mémoire persistante. Ce mécanisme sert de support aux agents, notamment au coach IA, à l'agent de recommandation et à l'agent de challenge, car il leur fournit une base de connaissances structurée sur le contenu réel des cours.
+
+\section{Déploiement et hébergement de la plateforme}
+
+Le déploiement de la plateforme a été préparé autour d'une approche conteneurisée afin de conserver la même organisation entre l'environnement local, les tests et un futur hébergement cloud. L'application est exécutée à l'aide de Docker Compose, qui regroupe les services nécessaires au fonctionnement de la plateforme : frontend Next.js, services backend FastAPI, base PostgreSQL avec pgvector, RabbitMQ, MinIO, service de notifications et services liés aux agents IA.
+
+Dans le cadre de ce projet, l'environnement réellement utilisé pour le développement, la démonstration et les tests est l'environnement local Docker Compose. Ce choix permet de lancer l'ensemble des composants de manière reproductible, sans dépendre d'une infrastructure cloud externe pendant la phase de réalisation. Les variables d'environnement centralisent les informations de connexion aux services, les URL internes, les secrets applicatifs et les paramètres des modules IA.
+
+Une étude d'hébergement cloud a également été réalisée. La solution retenue pour un futur déploiement est une machine virtuelle Linux légère exécutant Docker Compose. Cette solution reste cohérente avec l'architecture du projet, car elle permet de déployer les mêmes conteneurs que ceux utilisés localement. La plateforme ne nécessitant pas de génération d'images locale, le service ComfyUI n'est pas inclus dans le scénario d'hébergement. La configuration cible recommandée est une VM de type 2 vCPU et 8 Go de RAM, suffisante pour une démonstration PFE et des tests fonctionnels avec une charge modérée.
+
+L'hébergement cloud complet n'a pas été finalisé dans cette phase en raison des contraintes de création de compte et de paiement rencontrées sur les offres cloud étudiées. Cependant, la plateforme reste prête pour un déploiement sur VM grâce à la présence des fichiers Docker Compose, à la séparation des services et à la possibilité d'exposer l'application à travers un reverse proxy ou un tunnel sécurisé pour les démonstrations.
+
+\section{Tests et validation}
+
+\subsection{Tests unitaires}
+
+Les tests unitaires ont pour objectif de vérifier le comportement des fonctions et des composants critiques de manière isolée. Dans la plateforme, ils concernent principalement les services backend Python, les modèles partagés, les mécanismes d'authentification, la gestion des rôles, la progression, les objectifs, les badges et les notifications.
+
+Les tests backend sont réalisés avec \textit{pytest}. Ils sont organisés au niveau des services et du paquet commun afin de valider les règles métier indépendamment de l'interface utilisateur. Les fichiers de tests couvrent notamment le module \textit{Identity}, le module \textit{Learning}, le module \textit{Notifications} et les utilitaires communs utilisés par les microservices. Le périmètre des parties testées est synthétisé dans le tableau~\ref{tab:ch3_unit_tests_scope}.
+
+\begin{table}[H]
+    \centering
+    \caption{Périmètre des tests unitaires réalisés}
+    \label{tab:ch3_unit_tests_scope}
+    \begin{tabularx}{\textwidth}{|p{4cm}|X|p{3cm}|}
+        \hline
+        \textbf{Partie testée} & \textbf{Éléments vérifiés} & \textbf{Outil} \\
+        \hline
+        Authentification et jetons & Génération, validation et renouvellement des jetons d'accès et de rafraîchissement. & pytest \\
+        \hline
+        Contrôle d'accès & Hiérarchie des rôles, accès autorisés et refusés selon le profil utilisateur. & pytest \\
+        \hline
+        Gestion des utilisateurs & Création de comptes, validation du domaine e-mail, import CSV et rattachement au tenant. & pytest \\
+        \hline
+        Cours et inscriptions & Consultation des cours, inscription, protection contre les doublons et isolation par tenant. & pytest \\
+        \hline
+        Progression et gamification & Complétion de leçons, attribution XP, badges, objectifs et classement. & pytest \\
+        \hline
+        Notifications & Réception d'événements, WebSocket et association des sons aux types de notifications. & pytest \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+Ces tests permettent de sécuriser les règles sensibles avant de passer aux scénarios fonctionnels complets. Par exemple, les tests du module \textit{Identity} valident qu'un utilisateur ne peut pas accéder à des ressources qui ne correspondent pas à son rôle ou à son tenant. Les tests du module \textit{Learning} vérifient que les actions d'apprentissage réelles, comme la complétion d'une leçon, déclenchent correctement la progression, les événements et les récompenses associées. La figure~\ref{fig:ch3_unit_tests_pytest_terminal} illustre l'exécution d'un ensemble représentatif de tests unitaires avec \textit{pytest}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figures/ch3_unit_tests_pytest_terminal.png}
+    \caption{Exécution des tests unitaires avec pytest et affichage du résultat dans le terminal}
+    \label{fig:ch3_unit_tests_pytest_terminal}
+\end{figure}
+
+\subsection{Tests fonctionnels}
+
+Les tests fonctionnels vérifient le comportement de la plateforme du point de vue de l'utilisateur. Contrairement aux tests unitaires, ils valident des scénarios complets impliquant plusieurs modules : interface frontend, appels API, authentification, données du tenant et mise à jour de l'état applicatif.
+
+Dans ce projet, les tests fonctionnels sont réalisés à deux niveaux. Le premier niveau repose sur des scénarios manuels exécutés pendant la validation de la plateforme, notamment pour vérifier les parcours d'administration, d'apprentissage, de progression et de gamification. Le second niveau repose sur des tests automatisés avec \textit{Playwright}, utilisés pour contrôler le chargement des pages principales et certains parcours de navigation. Les scénarios retenus sont présentés dans le tableau~\ref{tab:ch3_functional_tests}.
+
+\begin{table}[H]
+    \centering
+    \caption{Scénarios fonctionnels de validation}
+    \label{tab:ch3_functional_tests}
+    \begin{tabularx}{\textwidth}{|p{3.4cm}|X|X|p{2cm}|}
+        \hline
+        \textbf{Scénario} & \textbf{Entrée / action} & \textbf{Résultat attendu} & \textbf{Statut} \\
+        \hline
+        Connexion utilisateur & Saisie d'un e-mail, d'un mot de passe et sélection du tenant. & L'utilisateur est authentifié et redirigé vers son espace selon son rôle. & Validé \\
+        \hline
+        Création d'un tenant & Création d'une entreprise depuis l'espace SuperAdmin. & Le tenant est créé avec son domaine, sa limite de sièges et son contexte isolé. & Validé \\
+        \hline
+        Création d'un utilisateur & Ajout d'un utilisateur depuis l'espace d'administration. & Le compte est créé dans le bon tenant avec le rôle et le département définis. & Validé \\
+        \hline
+        Création d'un cours & Création manuelle ou assistée par IA d'un cours. & Le cours est enregistré, éditable et publiable par un rôle autorisé. & Validé \\
+        \hline
+        Inscription à un cours & Ouverture d'un cours publié puis clic sur l'action d'inscription. & Une inscription est créée et le cours apparaît dans l'espace d'apprentissage. & Validé \\
+        \hline
+        Complétion d'une leçon & Marquer une leçon comme terminée. & La progression est mise à jour, les XP sont attribués et les événements nécessaires sont publiés. & Validé \\
+        \hline
+        Objectifs d'apprentissage & Création d'un objectif personnel ou d'équipe. & L'objectif apparaît pour l'utilisateur ou l'équipe cible et sa progression suit l'activité réelle. & Validé \\
+        \hline
+        Notifications & Déclenchement d'un événement XP, badge, niveau ou cours assigné. & La notification correspondante est affichée avec le type et le son associés. & Validé \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+Ces scénarios couvrent les fonctionnalités critiques de la plateforme : identité, multi-tenant, apprentissage, progression, objectifs, gamification et notifications. Ils permettent de vérifier que les modules ne fonctionnent pas seulement séparément, mais qu'ils produisent ensemble le comportement attendu dans un parcours réel.
+
+\subsection{Tests de performance}
+
+Les tests de performance visent à mesurer la capacité de la plateforme à répondre correctement sous charge. Ils ont été réalisés avec \textit{k6}. Les scénarios ont été joués sur l'environnement local Docker Compose de la plateforme, en utilisant un compte apprenant du tenant \textit{3S}. Les résultats présentés ci-dessous correspondent donc à l'environnement de développement et permettent surtout d'évaluer la stabilité relative des modules avant un déploiement cloud.
+
+Les métriques retenues sont le temps moyen, la médiane, le p95, le p99, le temps maximal et le taux d'erreur. Le p95 signifie que 95\% des requêtes ont répondu en dessous de cette valeur ; le p99 applique la même logique à 99\% des requêtes. Le temps maximal représente la requête la plus lente observée pendant le test. Les scénarios ciblés par les tests sont présentés dans le tableau~\ref{tab:ch3_performance_endpoints}.
+
+\begin{table}[H]
+    \centering
+    \caption{Endpoints ciblés par les tests de performance}
+    \label{tab:ch3_performance_endpoints}
+    \begin{tabularx}{\textwidth}{|p{4.2cm}|X|p{3cm}|}
+        \hline
+        \textbf{Endpoint / page} & \textbf{Objectif du test} & \textbf{Métriques à relever} \\
+        \hline
+        Connexion utilisateur & Vérifier le temps nécessaire pour authentifier un utilisateur et charger son contexte. & moyenne, p95, erreurs \\
+        \hline
+        Tableau de bord & Mesurer le chargement des indicateurs d'apprentissage et de gamification. & moyenne, p95, p99 \\
+        \hline
+        Catalogue des cours & Tester la consultation des cours publiés et le filtrage par tenant. & moyenne, p95, erreurs \\
+        \hline
+        Détail d'un cours & Vérifier la récupération de la structure du cours, des leçons et de l'état d'inscription. & moyenne, p95, p99 \\
+        \hline
+        Complétion d'une leçon & Mesurer l'impact de la mise à jour de progression, XP, badges et événements. & moyenne, p95, taux d'erreur \\
+        \hline
+        Recommandations IA & Évaluer le temps de réponse de l'agent de recommandation ou du cache associé. & moyenne, p95, temps maximal \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\subsubsection{Temps de réponse des API et capacité sous charge}
+
+Le premier scénario mesure les API les plus utilisées pendant un parcours apprenant classique : connexion, récupération du profil courant, consultation du catalogue, ouverture du détail d'un cours, chargement du curriculum, consultation des inscriptions, progression et profil de gamification. La charge a été augmentée par paliers de 1 à 100 utilisateurs virtuels simultanés. Les résultats sont présentés dans le tableau~\ref{tab:ch3_api_performance_results}.
+
+\begin{table}[H]
+    \centering
+    \caption{Résultats des tests de performance des API classiques}
+    \label{tab:ch3_api_performance_results}
+    \begin{tabularx}{\textwidth}{|p{1.3cm}|p{1.8cm}|p{1.7cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}|X|}
+        \hline
+        \textbf{VU} & \textbf{Req.} & \textbf{Erreurs} & \textbf{Moy. (s)} & \textbf{p95 (s)} & \textbf{p99 (s)} & \textbf{Max (s)} \\
+        \hline
+        1 & 176 & 0\% & 0,045 & 0,235 & 0,311 & 0,661 \\
+        \hline
+        5 & 920 & 0\% & 0,041 & 0,235 & 0,247 & 0,278 \\
+        \hline
+        10 & 1792 & 0\% & 0,046 & 0,239 & 0,271 & 0,404 \\
+        \hline
+        20 & 3336 & 0\% & 0,058 & 0,255 & 0,282 & 0,751 \\
+        \hline
+        25 & 3336 & 0\% & 0,105 & 0,285 & 0,867 & 1,164 \\
+        \hline
+        50 & 416 & 0,48\% & 4,201 & 30,451 & 30,718 & 30,732 \\
+        \hline
+        75 & 492 & 26,02\% & 5,027 & 31,652 & 31,844 & 31,911 \\
+        \hline
+        100 & 702 & 39,89\% & 4,954 & 31,246 & 31,949 & 32,194 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+Ces résultats montrent que les API classiques restent stables jusqu'à 25 utilisateurs virtuels dans l'environnement testé. Le taux d'erreur reste nul et le p95 demeure inférieur à 0,300 seconde sur ces premiers paliers. À partir de 50 utilisateurs virtuels, une dégradation nette apparaît : le p95 dépasse 30 secondes et des erreurs commencent à apparaître. La dégradation devient importante à 75 et 100 utilisateurs virtuels, avec respectivement 26,02\% et 39,89\% d'erreurs. Dans cet environnement local, le seuil de charge acceptable pour ce scénario se situe donc avant 50 utilisateurs virtuels simultanés.
+
+\subsubsection{Progression et gamification}
+
+Le deuxième scénario cible la complétion d'une leçon et les traitements associés : mise à jour de la progression, consultation du profil de gamification et récupération du classement personnel. Comme ce scénario déclenche des écritures en base de données et des mises à jour d'XP, il est plus coûteux qu'une simple lecture API. La charge a été augmentée jusqu'à 100 utilisateurs virtuels afin d'identifier le point de dégradation. Les résultats sont présentés dans le tableau~\ref{tab:ch3_progress_performance_results}.
+
+\begin{table}[H]
+    \centering
+    \caption{Résultats des tests de progression et de gamification}
+    \label{tab:ch3_progress_performance_results}
+    \begin{tabularx}{\textwidth}{|p{1.3cm}|p{1.8cm}|p{1.7cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}|X|}
+        \hline
+        \textbf{VU} & \textbf{Req.} & \textbf{Erreurs} & \textbf{Moy. (s)} & \textbf{p95 (s)} & \textbf{p99 (s)} & \textbf{Max (s)} \\
+        \hline
+        1 & 20 & 0\% & 0,078 & 0,228 & 0,231 & 0,232 \\
+        \hline
+        5 & 100 & 0\% & 0,101 & 0,250 & 0,263 & 0,266 \\
+        \hline
+        10 & 200 & 0\% & 0,126 & 0,362 & 0,573 & 0,581 \\
+        \hline
+        20 & 80 & 0\% & 0,577 & 1,451 & 1,508 & 1,511 \\
+        \hline
+        25 & 100 & 0\% & 0,642 & 1,359 & 1,406 & 1,407 \\
+        \hline
+        50 & 200 & 44,50\% & 33,991 & 59,999 & 59,999 & 59,999 \\
+        \hline
+        75 & 300 & 80,33\% & 34,344 & 59,998 & 59,999 & 60,000 \\
+        \hline
+        100 & 400 & 83,75\% & 51,863 & 59,998 & 59,999 & 59,999 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+La progression et la gamification restent correctes jusqu'à 25 utilisateurs virtuels : le taux d'erreur reste nul et le p95 demeure inférieur à 1,5 seconde. À partir de 50 utilisateurs virtuels, une rupture nette apparaît avec des timeouts et un taux d'erreur de 44,50\%. La dégradation devient très importante à 75 et 100 utilisateurs virtuels. Ce résultat montre que le workflow de progression, qui combine écriture en base, calcul de gamification et consultation du classement, est plus sensible à la charge que les API classiques.
+
+\subsubsection{Agents IA}
+
+Le dernier scénario mesure les endpoints des agents IA disponibles pendant le test : vérification de disponibilité de l'agent de recommandation, appel au workflow de recommandation et vérification de disponibilité de l'agent de challenge personnalisé. Ces traitements sont volontairement mesurés séparément, car ils sont plus coûteux et dépendent des workflows IA. Les résultats sont présentés dans le tableau~\ref{tab:ch3_ai_agents_performance_results}.
+
+\begin{table}[H]
+    \centering
+    \caption{Résultats des tests de performance des agents IA}
+    \label{tab:ch3_ai_agents_performance_results}
+    \begin{tabularx}{\textwidth}{|p{1.2cm}|p{1.6cm}|p{1.7cm}|p{1.8cm}|p{1.8cm}|p{1.8cm}|X|}
+        \hline
+        \textbf{VU} & \textbf{Req.} & \textbf{Erreurs} & \textbf{Succès} & \textbf{Moy. (s)} & \textbf{p95 (s)} & \textbf{Max (s)} \\
+        \hline
+        1 & 3 & 0\% & 100\% & 2,989 & 7,885 & 8,749 \\
+        \hline
+        3 & 9 & 0\% & 100\% & 6,519 & 19,501 & 19,501 \\
+        \hline
+        5 & 15 & 26,67\% & 73,33\% & 9,447 & 29,999 & 30,000 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+Les agents IA présentent une latence nettement plus élevée que les API classiques. Le palier à 5 utilisateurs virtuels provoque une dégradation visible avec 26,67\% d'erreurs, causées par des timeouts sur le workflow de recommandation. Pour l'environnement testé, les agents IA restent donc exploitables à faible concurrence, mais nécessitent une optimisation ou une stratégie de file d'attente/cache avant une utilisation simultanée plus élevée.
+
+\subsection{Évaluation qualitative des modules IA}
+
+L'évaluation des modules IA ne peut pas se limiter aux temps de réponse. Ces modules produisent du contenu textuel, des recommandations, des explications et des challenges personnalisés ; leur qualité doit donc être appréciée selon des critères de pertinence, de cohérence, d'utilité et d'alignement avec le contexte de l'apprenant. L'objectif de cette section est de définir la démarche d'évaluation retenue pour vérifier que les réponses générées sont exploitables dans un contexte d'apprentissage.
+
+\subsubsection{Objectif de l'évaluation}
+
+L'évaluation qualitative vise à contrôler quatre aspects principaux. Le premier est la pertinence de la réponse par rapport à la demande de l'utilisateur. Le deuxième concerne la cohérence avec le contexte fourni par la plateforme, notamment le profil de l'apprenant, ses objectifs, sa progression et les cours disponibles. Le troisième porte sur la personnalisation, c'est-à-dire la capacité de l'agent à adapter sa réponse au niveau et aux besoins de l'utilisateur. Enfin, le quatrième aspect concerne la limitation des hallucinations, afin d'éviter que l'agent produise des informations non justifiées par le contexte disponible.
+
+\subsubsection{Modules évalués}
+
+L'évaluation porte sur les principaux agents intégrés à la plateforme :
+
+\begin{itemize}
+    \item l'agent de génération de cours, évalué sur la cohérence du plan généré, la structure des leçons et l'alignement avec le besoin pédagogique exprimé ;
+    \item l'agent de recommandation, évalué sur la pertinence des cours ou activités proposés selon le profil, les objectifs et la progression de l'apprenant ;
+    \item l'agent de coaching IA, évalué sur la clarté de l'explication, l'utilité de l'accompagnement et la prise en compte du contexte de la leçon ;
+    \item l'agent de challenge personnalisé, évalué sur l'adaptation du défi au niveau de l'utilisateur et aux compétences ciblées ;
+    \item le mécanisme de mémoire apprenant, évalué indirectement à travers la comparaison entre des réponses produites avec mémoire et sans mémoire.
+\end{itemize}
+
+\subsubsection{Méthodologie avec RAGAS}
+
+Pour compléter l'évaluation manuelle, la plateforme a été évaluée avec RAGAS, un framework destiné à mesurer la qualité des systèmes basés sur des modèles de langage. La démarche consiste à constituer un jeu de données d'évaluation contenant, pour chaque agent, une entrée utilisateur, le contexte fourni à l'agent, la réponse générée et, lorsque c'est possible, une réponse attendue ou des critères de référence.
+
+L'évaluation a été réalisée avec RAGAS à partir d'un ensemble de scénarios représentatifs des usages des agents IA. Ces scénarios permettent de comparer les réponses générées aux réponses attendues et d'analyser leur fidélité, leur correction et leur utilité pédagogique.
+
+Les métriques effectivement utilisées sont les suivantes :
+
+\begin{table}[H]
+    \centering
+    \caption{Métriques utilisées pour l'évaluation qualitative des modules IA}
+    \label{tab:ch3_ragas_metrics}
+    \begin{tabularx}{\textwidth}{|p{3.4cm}|X|p{4cm}|}
+        \hline
+        \textbf{Métrique} & \textbf{Rôle dans l'évaluation} & \textbf{Modules concernés} \\
+        \hline
+        Faithfulness & Vérifier que la réponse reste fidèle au contexte fourni et limite les informations non justifiées. & génération de cours, mémoire, coaching, recommandation, challenge \\
+        \hline
+        Factual correctness & Comparer la réponse produite avec une réponse ou un comportement de référence attendu. & génération de cours, coaching, recommandation, challenge \\
+        \hline
+        Pedagogical usefulness & Évaluer si la réponse est claire, exploitable et utile dans un contexte d'apprentissage. & coaching, recommandation, challenge \\
+        \hline
+        Platform alignment & Vérifier que la réponse respecte les workflows de la plateforme : cours, progression, mémoire, recommandations et challenges. & tous les agents \\
+        \hline
+        Overall quality & Attribuer un score global de 1 à 5 selon une grille qualitative adaptée au projet. & tous les agents \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+Les résultats attendus avant exécution de l'évaluation sont définis dans le tableau~\ref{tab:ch3_ragas_expected}. Ils servent de seuils de lecture afin de distinguer une réponse acceptable d'une réponse nécessitant une amélioration.
+
+\begin{table}[H]
+    \centering
+    \caption{Résultats attendus pour l'évaluation RAGAS}
+    \label{tab:ch3_ragas_expected}
+    \begin{tabularx}{\textwidth}{|p{4cm}|p{3cm}|X|}
+        \hline
+        \textbf{Métrique} & \textbf{Résultat attendu} & \textbf{Interprétation attendue} \\
+        \hline
+        Faithfulness & $\geq 0,70$ & La réponse doit rester majoritairement appuyée sur le contexte fourni à l'agent. \\
+        \hline
+        Factual correctness & $\geq 0,70$ & La réponse doit correspondre au comportement ou à la réponse de référence définie pour le scénario. \\
+        \hline
+        Pedagogical usefulness & $1,00$ & La réponse doit être exploitable pour l'apprentissage : claire, utile et actionnable. \\
+        \hline
+        Platform alignment & $1,00$ & La réponse doit respecter les workflows de la plateforme : cours, progression, mémoire, recommandation ou challenge. \\
+        \hline
+        Overall quality & $\geq 4/5$ & La qualité globale doit être jugée satisfaisante selon la grille qualitative utilisée. \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\subsubsection{Jeu de données d'évaluation}
+
+Le jeu de données d'évaluation est construit à partir de scénarios représentatifs de l'utilisation réelle de la plateforme. Chaque scénario décrit une situation d'apprentissage précise : un apprenant qui cherche une recommandation, un utilisateur bloqué dans une leçon, un besoin de création de cours ou une demande de challenge personnalisé. Pour chaque cas, le contexte transmis à l'agent est conservé afin de vérifier si la réponse générée s'appuie correctement sur les données disponibles.
+
+\begin{table}[H]
+    \centering
+    \caption{Structure prévue du jeu de données d'évaluation IA}
+    \label{tab:ch3_ai_eval_dataset}
+    \begin{tabularx}{\textwidth}{|p{2.8cm}|X|X|X|}
+        \hline
+        \textbf{Agent} & \textbf{Entrée utilisateur} & \textbf{Contexte fourni} & \textbf{Critère attendu} \\
+        \hline
+        Recommandation & Demande de cours adaptés à un objectif donné. & Profil, objectifs, progression, cours disponibles. & Recommandations cohérentes avec le besoin. \\
+        \hline
+        Coaching IA & Question posée pendant une leçon. & Contenu de la leçon, progression, difficultés connues. & Réponse claire, utile et contextualisée. \\
+        \hline
+        Challenge personnalisé & Demande de défi sur une compétence ciblée. & Niveau de l'utilisateur, compétence, historique d'activité. & Challenge adapté au niveau et mesurable. \\
+        \hline
+        Génération de cours & Besoin pédagogique exprimé par un responsable. & Objectif, niveau, public cible, durée souhaitée. & Plan structuré et éditable. \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\subsubsection{Résultats obtenus avec RAGAS}
+
+L'évaluation a été exécutée sur un jeu de cinq scénarios représentatifs, chacun associé à un agent principal de la plateforme. Pour chaque scénario, le jeu de données contient l'entrée utilisateur, le contexte transmis à l'agent, la réponse produite et une référence attendue. Les résultats obtenus sont présentés dans le tableau~\ref{tab:ch3_ragas_results}. Les scores de fidélité, de correction factuelle, d'utilité pédagogique et d'alignement plateforme sont normalisés entre 0 et 1. Le score global de qualité est noté sur 5.
+
+\begin{table}[H]
+    \centering
+    \caption{Résultats RAGAS de l'évaluation qualitative des modules IA}
+    \label{tab:ch3_ragas_results}
+    \scriptsize
+    \renewcommand{\arraystretch}{1.2}
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabularx}{0.98\textwidth}{|p{3cm}|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|>{\centering\arraybackslash}X|}
+        \hline
+        \textbf{Métrique} & \textbf{Cours IA} & \textbf{Mémoire} & \textbf{Coaching} & \textbf{Recomm.} & \textbf{Challenge} & \textbf{Moy.} \\
+        \hline
+        Fidélité & 0,833 & 0,571 & 0,833 & 0,600 & 0,375 & \textbf{0,643} \\
+        \hline
+        Correction factuelle & 0,910 & 1,000 & 0,910 & 0,500 & 0,400 & \textbf{0,744} \\
+        \hline
+        Utilité pédagogique & 1,000 & 1,000 & 1,000 & 1,000 & 1,000 & \textbf{1,000} \\
+        \hline
+        Alignement plateforme & 1,000 & 1,000 & 1,000 & 1,000 & 1,000 & \textbf{1,000} \\
+        \hline
+        Qualité globale /5 & 5,000 & 5,000 & 5,000 & 5,000 & 5,000 & \textbf{5,000} \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+Ces résultats montrent que les réponses évaluées sont globalement utiles et alignées avec les workflows de la plateforme. Les objectifs attendus sont atteints pour l'utilité pédagogique, l'alignement avec la plateforme et la qualité globale. La correction factuelle moyenne dépasse également le seuil attendu de 0,70. En revanche, la fidélité moyenne reste légèrement inférieure au seuil visé, principalement à cause des scores plus faibles obtenus par l'agent de challenge personnalisé et l'agent de recommandation. Ces deux modules doivent donc être évalués sur un jeu de données plus large et avec des références plus détaillées, afin de mieux mesurer la qualité de personnalisation et de justification des propositions.
+
+\section{Évaluation et discussion des résultats}
+
+La réalisation présentée dans ce chapitre montre que les choix architecturaux définis précédemment ont été traduits en modules fonctionnels et intégrés dans une plateforme cohérente. Les principaux services attendus sont opérationnels : gestion des identités, isolation multi-tenant, gestion des cours, inscription des apprenants, suivi de progression, objectifs, gamification, certificats et modules IA.
+
+Les tests fonctionnels ont permis de valider les scénarios principaux de la plateforme, depuis l'authentification jusqu'à la progression apprenant. Les tests de performance montrent que les API classiques restent stables dans l'environnement local testé, y compris lors d'une montée en charge progressive. En revanche, les agents IA présentent naturellement des temps de réponse plus élevés, car ils dépendent de traitements plus coûteux et d'appels à des modèles de langage. Cette différence confirme la nécessité de distinguer les performances des API transactionnelles de celles des fonctionnalités intelligentes.
+
+L'évaluation qualitative des agents avec RAGAS complète cette analyse. Les résultats obtenus montrent une bonne utilité pédagogique et un bon alignement avec les workflows de la plateforme. Les scores plus faibles observés sur certains agents, notamment la recommandation et le challenge personnalisé, indiquent que ces modules doivent être évalués sur davantage de scénarios afin d'améliorer la justification des réponses et la fidélité au contexte transmis.
+
+\subsection{Tableau de traçabilité exigences -- réalisation}
+
+\begin{longtable}{|p{2cm}|p{5.6cm}|p{2.2cm}|p{4.4cm}|}
+    \caption{Traçabilité entre les exigences et la réalisation}
+    \label{tab:ch3_traceability_requirements} \\
+    \hline
+    \textbf{Exigence} & \textbf{Résumé} & \textbf{Statut} & \textbf{Preuve dans le chapitre 3} \\
+    \hline
+    \endfirsthead
+    \hline
+    \textbf{Exigence} & \textbf{Résumé} & \textbf{Statut} & \textbf{Preuve dans le chapitre 3} \\
+    \hline
+    \endhead
+    EF-01 & Authentification sécurisée des utilisateurs. & Réalisée & Module Identity, authentification et jetons d'accès. \\
+    \hline
+    EF-02 & Gestion des rôles et des permissions. & Réalisée & Rôles, contrôle d'accès et espaces dédiés. \\
+    \hline
+    EF-03 & Création et modification des profils utilisateurs. & Réalisée & Gestion des utilisateurs, comptes et espace profil. \\
+    \hline
+    EF-04 & Gestion multi-tenant cloisonnée. & Réalisée & Gestion des tenants et isolation des données par entreprise. \\
+    \hline
+    EF-05 & Création, modification, suppression et consultation des formations. & Réalisée & Gestion administrative des cours et catalogue apprenant. \\
+    \hline
+    EF-06 & Gestion des compétences associées aux formations et utilisateurs. & Réalisée partiellement & Compétences utilisées dans les cours, profils et recommandations. \\
+    \hline
+    EF-07 & Parcours d'apprentissage personnalisés. & Réalisée partiellement & Objectifs personnels, objectifs d'équipe et recommandations. \\
+    \hline
+    EF-08 & Suivi de l'avancement des apprenants. & Réalisée & Progression individuelle, XP, niveau et complétion des leçons. \\
+    \hline
+    EF-09 & Recommandation IA adaptée au profil. & Réalisée & Agent de recommandation et évaluation RAGAS. \\
+    \hline
+    EF-10 & Coaching IA pendant l'apprentissage. & Réalisée & Agent de coaching IA et intégration avec la mémoire apprenant. \\
+    \hline
+    EF-11 & Génération automatique de cours. & Réalisée & Création de cours AI generated et brouillon éditable. \\
+    \hline
+    EF-12 & Quiz, tests et évaluations. & Réalisée & Leçons, quiz, évaluations et challenge personnalisé. \\
+    \hline
+    EF-13 & Points, badges et récompenses. & Réalisée & Gamification, XP, badges, progression et leaderboard. \\
+    \hline
+    EF-14 & Mentorat et accompagnement. & Réalisée partiellement & Suivi, gamification et coaching IA ; interactions mentorales à enrichir. \\
+    \hline
+    EF-15 & Tableaux de bord de suivi. & Réalisée & Pages de progression, objectifs, classement et espace équipe. \\
+    \hline
+    EF-16 & Recherche et consultation des formations. & Réalisée & Catalogue des cours et pages de détail des cours. \\
+    \hline
+    EF-17 & Gestion des ressources pédagogiques. & Réalisée & Leçons, vidéos, ressources, quiz et contenus générés par IA. \\
+    \hline
+    EF-18 & Traçabilité des activités. & Réalisée & Audit d'administration, événements de progression et notifications. \\
+    \hline
+    ENF-01 & Sécurité et contrôle d'accès strict. & Réalisée & Authentification, jetons et gardes de rôles. \\
+    \hline
+    ENF-02 & Confidentialité des données par entité. & Réalisée & Isolation multi-tenant et tenant\_id dans les modules métier. \\
+    \hline
+    ENF-03 & Performance des requêtes courantes. & Validée localement & Tests k6 sur API classiques, progression et gamification. \\
+    \hline
+    ENF-04 & Disponibilité du service. & Partiellement validée & Exécution locale Docker Compose ; haute disponibilité non testée. \\
+    \hline
+    ENF-05 & Évolutivité fonctionnelle. & Réalisée & Architecture modulaire et ajout de modules badges, objectifs et IA. \\
+    \hline
+    ENF-06 & Modularité. & Réalisée & Séparation frontend, services backend, stockage, messages et agents IA. \\
+    \hline
+    ENF-07 & Maintenabilité. & Réalisée partiellement & Organisation en modules et tests ; documentation technique à compléter. \\
+    \hline
+    ENF-08 & Extensibilité multi-tenant. & Réalisée & Gestion des tenants, badges et objectifs dans le périmètre entreprise. \\
+    \hline
+    ENF-09 & Ergonomie. & Réalisée & Interfaces cohérentes pour apprentissage, administration et suivi. \\
+    \hline
+    ENF-10 & Compatibilité écrans et navigateurs modernes. & Réalisée partiellement & Interface web responsive ; tests multi-navigateurs à élargir. \\
+    \hline
+    ENF-11 & Intégrité des données. & Réalisée & Contraintes de base, corrections de suppression et cohérence métier. \\
+    \hline
+    ENF-12 & Journalisation et suivi des événements. & Réalisée partiellement & Logs services, audit d'administration et événements applicatifs. \\
+    \hline
+    ENF-13 & Compatibilité avec des modèles de langage configurables. & Réalisée & Agents IA configurés via variables d'environnement et OpenRouter. \\
+    \hline
+    ENF-14 & Déployabilité des composants. & Réalisée partiellement & Docker Compose local et scénario VM préparé ; cloud non finalisé. \\
+    \hline
+\end{longtable}
+
+\subsection{Limites identifiées et perspectives}
+
+Malgré les résultats obtenus, certaines limites doivent être prises en compte. La première concerne l'hébergement cloud. La plateforme est prête pour un déploiement sur VM avec Docker Compose, mais le déploiement cloud complet n'a pas été finalisé à cause des contraintes de compte et de paiement rencontrées. Les tests ont donc été réalisés dans un environnement local, ce qui limite la portée des conclusions sur la disponibilité et la scalabilité en production.
+
+La deuxième limite concerne les agents IA. Les tests de performance montrent que ces modules ont une latence plus élevée que les API classiques, ce qui est attendu en raison des appels aux modèles de langage et aux mécanismes de mémoire. Pour une mise en production, il serait nécessaire d'ajouter une stratégie de file d'attente, de cache, de limitation de charge et éventuellement de traitement asynchrone pour éviter les timeouts lorsque plusieurs utilisateurs sollicitent les agents en même temps.
+
+La troisième limite concerne l'évaluation qualitative. L'étude RAGAS a été réalisée sur un premier jeu de scénarios représentatifs, mais encore limité. Pour renforcer la validité académique des résultats, il serait pertinent d'élargir le dataset d'évaluation, d'ajouter des cas métiers issus de 3S, de comparer les réponses avec et sans mémoire Hindsight, et d'évaluer séparément chaque agent sur un nombre plus important de situations.
+
+Les perspectives d'amélioration portent d'abord sur l'industrialisation du déploiement : hébergement cloud sur VM, configuration HTTPS, sauvegarde de la base de données, supervision des conteneurs et automatisation des mises à jour. Ensuite, les modules IA peuvent être améliorés par un meilleur reranking des contextes, une mémoire apprenant plus fine, des prompts plus spécialisés et une évaluation continue des réponses générées. Enfin, la plateforme peut évoluer vers une interface mobile, des analytics avancés sur l'engagement des apprenants et une personnalisation plus poussée des parcours de formation.
+
+\section{Conclusion}
+
+Ce chapitre a présenté la réalisation concrète de la plateforme, depuis les modules principaux jusqu'aux tests et à l'évaluation des agents IA. Les résultats obtenus confirment que les fonctionnalités essentielles ont été implémentées et validées : authentification, multi-tenant, gestion des cours, progression, gamification, objectifs, certificats et modules intelligents. Les tests fonctionnels, les mesures de performance et l'évaluation RAGAS montrent que la solution est exploitable dans un contexte de démonstration et constitue une base solide pour une future mise en production, sous réserve d'améliorer l'hébergement cloud, la scalabilité des agents IA et l'élargissement des évaluations qualitatives.

@@ -398,6 +398,17 @@ def add_team_member(
             action="team_join",
             count=1,
         )
+        from services.learning.routers.gamification import (
+            evaluate_custom_badges_for_user,
+        )
+
+        evaluate_custom_badges_for_user(
+            db,
+            user_id=str(user_id),
+            event_type="team.member.added",
+            team_id=str(team_id),
+            participation_count=1,
+        )
     except Exception:
         # Team assignment should still succeed even if badge publishing fails.
         pass

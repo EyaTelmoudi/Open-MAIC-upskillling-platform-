@@ -1,0 +1,168 @@
+{
+    "metrics": {
+        "http_req_connecting": {
+            "avg": 0.23552620000000002,
+            "min": 0,
+            "med": 0,
+            "max": 2.498648,
+            "p(90)": 1.1784648000000029,
+            "p(95)": 2.034535
+        },
+        "ws_msgs_received": {
+            "count": 45,
+            "rate": 2.2028208669931773
+        },
+        "http_req_duration": {
+            "avg": 244.35131406666673,
+            "min": 231.949134,
+            "med": 240.439651,
+            "max": 261.670932,
+            "p(90)": 260.1934868,
+            "p(95)": 260.7729746
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 244.35131406666673,
+            "min": 231.949134,
+            "med": 240.439651,
+            "max": 261.670932,
+            "p(90)": 260.1934868,
+            "p(95)": 260.7729746
+        },
+        "ws_connecting": {
+            "avg": 20.733204844444437,
+            "min": 3.734726,
+            "med": 5.454646,
+            "max": 137.603835,
+            "p(90)": 83.99426100000015,
+            "p(95)": 134.95155739999998
+        },
+        "checks": {
+            "passes": 135,
+            "fails": 0,
+            "thresholds": {
+                "rate>0.95": false
+            },
+            "value": 1
+        },
+        "iterations": {
+            "count": 45,
+            "rate": 2.2028208669931773
+        },
+        "data_sent": {
+            "count": 38745,
+            "rate": 1896.6287664811255
+        },
+        "iteration_duration": {
+            "avg": 2267.711476755555,
+            "min": 2240.071661,
+            "med": 2248.257825,
+            "max": 2405.164547,
+            "p(90)": 2344.829448,
+            "p(95)": 2402.5019162
+        },
+        "http_req_tls_handshaking": {
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0
+        },
+        "http_reqs": {
+            "count": 45,
+            "rate": 2.2028208669931773
+        },
+        "http_req_waiting": {
+            "avg": 244.08287420000002,
+            "min": 231.778263,
+            "med": 240.309103,
+            "max": 260.680954,
+            "p(90)": 259.6256206,
+            "p(95)": 260.5047384
+        },
+        "http_req_blocked": {
+            "avg": 0.5523914,
+            "min": 0.002365,
+            "med": 0.006352,
+            "max": 5.966409,
+            "p(90)": 2.4720756000000055,
+            "p(95)": 4.4835224
+        },
+        "ws_sessions": {
+            "count": 45,
+            "rate": 2.2028208669931773
+        },
+        "ws_session_duration": {
+            "p(95)": 1135.7896764,
+            "avg": 1021.6191382000003,
+            "min": 1004.40031,
+            "med": 1006.20559,
+            "max": 1139.039994,
+            "p(90)": 1085.5301616000002
+        },
+        "data_received": {
+            "count": 62640,
+            "rate": 3066.3266468545025
+        },
+        "http_req_receiving": {
+            "med": 0.158593,
+            "max": 0.951844,
+            "p(90)": 0.41886860000000015,
+            "p(95)": 0.5248807999999999,
+            "avg": 0.22328457777777785,
+            "min": 0.066539
+        },
+        "vus": {
+            "value": 5,
+            "min": 5,
+            "max": 5
+        },
+        "http_req_sending": {
+            "min": 0.009669,
+            "med": 0.027874,
+            "max": 0.280739,
+            "p(90)": 0.07437959999999999,
+            "p(95)": 0.12469179999999999,
+            "avg": 0.045155288888888874
+        },
+        "vus_max": {
+            "value": 5,
+            "min": 5,
+            "max": 5
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 45,
+            "value": 0
+        }
+    },
+    "root_group": {
+        "groups": {},
+        "checks": {
+                "login status is 200": {
+                    "name": "login status is 200",
+                    "path": "::login status is 200",
+                    "id": "baba87e761865dc93085ee0c1fe25f4c",
+                    "passes": 45,
+                    "fails": 0
+                },
+                "login returns access token": {
+                    "fails": 0,
+                    "name": "login returns access token",
+                    "path": "::login returns access token",
+                    "id": "6293b1160fa705bac3d194d14543619f",
+                    "passes": 45
+                },
+                "notification websocket connected": {
+                    "name": "notification websocket connected",
+                    "path": "::notification websocket connected",
+                    "id": "8c60ede7b236c0793a81c442b4d5a9c6",
+                    "passes": 45,
+                    "fails": 0
+                }
+            },
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+}

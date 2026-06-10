@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { acceptInvitation } from "@/app/lib/api";
 import { Input } from "@/app/components/ui/Input";
 
-export default function AcceptInvitePage() {
+function AcceptInviteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -123,5 +123,19 @@ export default function AcceptInvitePage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function AcceptInvitePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#0F1117] p-4 text-sm font-medium text-gray-300">
+          Loading invitation...
+        </div>
+      }
+    >
+      <AcceptInviteContent />
+    </Suspense>
   );
 }

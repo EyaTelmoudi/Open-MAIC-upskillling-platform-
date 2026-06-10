@@ -1,0 +1,173 @@
+{
+    "metrics": {
+        "http_req_tls_handshaking": {
+            "p(95)": 0,
+            "p(99)": 0,
+            "max": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "p(90)": 0
+        },
+        "iterations": {
+            "count": 3,
+            "rate": 0.14588136390420206
+        },
+        "http_req_duration{expected_response:true}": {
+            "min": 4.341778,
+            "med": 51.200359,
+            "p(90)": 19501.21354,
+            "p(95)": 19501.218033999998,
+            "p(99)": 19501.221629199998,
+            "max": 19501.222528,
+            "avg": 6519.017699777778
+        },
+        "data_sent": {
+            "count": 3534,
+            "rate": 171.84824667915
+        },
+        "http_req_sending": {
+            "avg": 0.08715244444444445,
+            "min": 0.030327,
+            "med": 0.082155,
+            "p(90)": 0.137199,
+            "p(95)": 0.15017899999999998,
+            "p(99)": 0.16056299999999998,
+            "max": 0.163159
+        },
+        "http_req_duration": {
+            "min": 4.341778,
+            "med": 51.200359,
+            "p(90)": 19501.21354,
+            "p(95)": 19501.218033999998,
+            "p(99)": 19501.221629199998,
+            "max": 19501.222528,
+            "avg": 6519.017699777778,
+            "thresholds": {
+                "p(95)<15000": true
+            }
+        },
+        "http_reqs": {
+            "count": 9,
+            "rate": 0.43764409171260615
+        },
+        "checks": {
+            "fails": 0,
+            "passes": 9,
+            "value": 1
+        },
+        "http_req_waiting": {
+            "min": 4.123755,
+            "med": 50.878418,
+            "p(90)": 19500.8570522,
+            "p(95)": 19500.9325046,
+            "p(99)": 19500.992866520002,
+            "max": 19501.007957,
+            "avg": 6514.089758111111
+        },
+        "vus": {
+            "max": 3,
+            "value": 3,
+            "min": 3
+        },
+        "vus_max": {
+            "value": 3,
+            "min": 3,
+            "max": 3
+        },
+        "data_received": {
+            "count": 3740,
+            "rate": 181.86543366723856
+        },
+        "http_req_receiving": {
+            "p(99)": 38.22546732,
+            "max": 41.508463,
+            "avg": 4.840789222222222,
+            "min": 0.108811,
+            "med": 0.288491,
+            "p(90)": 8.678506200000006,
+            "p(95)": 25.093484599999982
+        },
+        "http_req_blocked": {
+            "p(90)": 4.1407314,
+            "p(95)": 4.1479782,
+            "p(99)": 4.15377564,
+            "max": 4.155225,
+            "avg": 1.8546352222222222,
+            "min": 0.003567,
+            "med": 1.441948
+        },
+        "http_req_connecting": {
+            "p(90)": 2.1947774,
+            "p(95)": 2.2354382,
+            "p(99)": 2.2679668399999997,
+            "max": 2.276099,
+            "avg": 1.176745111111111,
+            "min": 0,
+            "med": 1.336021
+        },
+        "iteration_duration": {
+            "p(95)": 20564.3869071,
+            "p(99)": 20564.47908142,
+            "max": 20564.502125,
+            "avg": 20563.726060999998,
+            "min": 20563.326112,
+            "med": 20563.349946,
+            "p(90)": 20564.2716892
+        },
+        "group_duration": {
+            "avg": 19563.251665,
+            "min": 19562.685595,
+            "med": 19563.244178,
+            "p(90)": 19563.7090132,
+            "p(95)": 19563.7671176,
+            "p(99)": 19563.81360112,
+            "max": 19563.825222
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 9,
+            "thresholds": {
+                "rate<0.20": false
+            },
+            "value": 0
+        }
+    },
+    "root_group": {
+        "groups": {
+            "AI agents": {
+                "name": "AI agents",
+                "path": "::AI agents",
+                "id": "a2b86f95167c1a768604ce564fad477e",
+                "groups": {},
+                "checks": {
+                        "recommendation agent health is 200": {
+                            "name": "recommendation agent health is 200",
+                            "path": "::AI agents::recommendation agent health is 200",
+                            "id": "28e19fb9954177a45b36e6ad4ede2231",
+                            "passes": 3,
+                            "fails": 0
+                        },
+                        "recommendation feed responded": {
+                            "id": "b678fad93588b7cbc74831c576893cbf",
+                            "passes": 3,
+                            "fails": 0,
+                            "name": "recommendation feed responded",
+                            "path": "::AI agents::recommendation feed responded"
+                        },
+                        "solo challenge agent health is 200": {
+                            "name": "solo challenge agent health is 200",
+                            "path": "::AI agents::solo challenge agent health is 200",
+                            "id": "1d03acd8bfeaca785a5027cf835f6968",
+                            "passes": 3,
+                            "fails": 0
+                        }
+                    }
+            }
+        },
+        "checks": {},
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+}

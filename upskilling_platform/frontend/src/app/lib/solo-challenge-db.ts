@@ -2,6 +2,7 @@ import "server-only";
 
 import { randomUUID } from "crypto";
 import { Pool } from "pg";
+import type { Pool as PgPool } from "pg";
 
 type SoloChallengeOption = {
   id: string;
@@ -50,7 +51,7 @@ export type StoredSoloChallengeRecord = {
   isCorrect: boolean | null;
 };
 
-let pool: Pool | null = null;
+let pool: PgPool | null = null;
 let tablesReady = false;
 
 function normalizePgUrl(raw: string) {

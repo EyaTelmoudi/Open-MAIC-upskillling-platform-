@@ -1,7 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "crypto";
-import { Pool, type PoolClient, types } from "pg";
+import { Pool, type Pool as PgPool, type PoolClient, types } from "pg";
 
 export type CoachSessionSource =
   | "coach-page"
@@ -83,7 +83,7 @@ type SessionTurnRow = {
   supporting_memories: Array<Record<string, unknown>> | null;
 };
 
-let pool: Pool | null = null;
+let pool: PgPool | null = null;
 let tablesReady = false;
 
 const POSTGRES_TIMESTAMP_WITHOUT_TIMEZONE_OID = 1114;

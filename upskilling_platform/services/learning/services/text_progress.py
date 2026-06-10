@@ -177,6 +177,20 @@ def check_enrollment_completion(db: Session, user_id: UUID, course_id: UUID) -> 
                             str(user_id)
                         ),
                     )
+                try:
+                    from services.learning.routers.gamification import (
+                        evaluate_custom_badges_for_user,
+                    )
+
+                    evaluate_custom_badges_for_user(
+                        db,
+                        user_id=str(user_id),
+                        event_type="course.completed",
+                        course_id=str(course_id),
+                        completed=True,
+                    )
+                except Exception as exc:
+                    logger.error(f"Custom course badge evaluation failed: {exc}")
                 if transaction is not None:
                     logger.info(
                         f"Awarded {course.xp_reward} XP for user {user_id}, course {course_id}"

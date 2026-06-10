@@ -642,6 +642,23 @@ def submit_assessment(
 
     rabbitmq = RabbitMQClient()
 
+    try:
+        from services.learning.routers.gamification import (
+            evaluate_custom_badges_for_user,
+        )
+
+        evaluate_custom_badges_for_user(
+            db,
+            user_id=str(user_id),
+            event_type="assessment.submitted",
+            course_id=str(course_id),
+            assessment_id=str(assessment_id),
+            completed=passed,
+            score=score,
+        )
+    except Exception as e:
+        print(f"Custom quiz badge evaluation failed: {e}")
+
     # Check enrollment completion after passing assessment
     if passed:
         try:

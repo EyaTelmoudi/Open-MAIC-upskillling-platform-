@@ -48,6 +48,7 @@ class StreakManager:
             self.db.refresh(streak)
 
             self._publish_streak_event(user_id, 1, "new")
+            self._evaluate_custom_streak_badges(user_id, 1)
             return {"current_streak": 1, "longest_streak": 1, "milestone": None}
 
         last_activity = streak.last_activity_date
@@ -85,6 +86,8 @@ class StreakManager:
             )
         except Exception as exc:
             logger.error(f"Failed to award streak badges for user {user_id}: {exc}")
+
+        self._evaluate_custom_streak_badges(user_id, new_streak)
 
         milestone = self._check_milestone(new_streak)
 
@@ -243,3 +246,18 @@ class StreakManager:
             )
         except Exception as e:
             logger.error(f"Failed to publish streak event: {e}")
+
+    def _evaluate_custom_streak_badges(self, user_id: str, streak: int) -> None:
+        try:
+            from services.learning.routers.gamification import (
+                evaluate_custom_badges_for_user,
+            )
+
+            evaluate_custom_badges_for_user(
+                self.db,
+                user_id=user_id,
+                event_type="streak.update",
+                streak_count=streak,
+            )
+        except Exception as exc:
+            logger.error(f"Failed to evaluate custom streak badges for user {user_id}: {exc}")

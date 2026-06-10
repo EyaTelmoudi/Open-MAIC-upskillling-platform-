@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { Input } from "../components/ui/Input";
 import { IDENTITY_URL } from "../lib/api";
 
-export default function SetPasswordPage() {
+function SetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -145,5 +145,19 @@ export default function SetPasswordPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#0F1117] p-4 text-sm font-medium text-gray-300">
+          Loading account setup...
+        </div>
+      }
+    >
+      <SetPasswordContent />
+    </Suspense>
   );
 }

@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Zap } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/app/components/ui/Card";
 import { LoginForm } from "@/app/components/auth/LoginForm";
 import { AzureLoginButton } from "@/app/components/auth/AzureLoginButton";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [selectedTenant, setSelectedTenant] = useState<string>("");
@@ -74,5 +74,19 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="relative flex min-h-screen items-center justify-center bg-background px-4 py-10 text-sm font-medium text-slate-600">
+          Loading sign in...
+        </div>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 }

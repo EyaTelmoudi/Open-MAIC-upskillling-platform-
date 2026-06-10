@@ -15,9 +15,6 @@ COPY services/__init__.py /app/services/__init__.py
 
 ENV PYTHONPATH=/app
 
-# Copy environment variables
-COPY .env /app/.env
-
 EXPOSE 8001
 
 CMD ["uvicorn", "services.identity.main:app", "--host", "0.0.0.0", "--port", "8001"]

@@ -1,0 +1,48 @@
+[
+  {
+    "agent": "course_generation",
+    "user_input": "Generate a beginner course about HTML fundamentals for new web learners.",
+    "retrieved_contexts": [
+      "The requested draft title is HTML Fundamentals. The course must be beginner friendly, organized into modules and lessons, include short lesson descriptions, practical activities, and a final quiz. The expected lesson topics include document structure, headings and paragraphs, links and images, lists and tables, forms basics, semantic HTML, a playground activity, and a final knowledge check. The generated draft must remain editable before publication."
+    ],
+    "response": "The generated draft is titled HTML Fundamentals. It contains an introduction module, lessons on document structure, headings and paragraphs, links and images, lists and tables, forms basics, semantic HTML, a live playground activity, and a final knowledge check. Each lesson includes a short objective and the draft can be edited before publication.",
+    "reference": "The response should describe an editable beginner course draft titled HTML Fundamentals, with lessons about document structure, headings and paragraphs, links and images, lists and tables, forms basics, semantic HTML, a playground activity, and a final knowledge check."
+  },
+  {
+    "agent": "learner_memory",
+    "user_input": "Store useful learner memory after a discussion where the learner says they do not understand semantic HTML and confuse h1/h2 hierarchy.",
+    "retrieved_contexts": [
+      "Learner is in the HTML Fundamentals course, inside the lesson about headings and semantic HTML. The active lesson explains heading hierarchy, semantic meaning, paragraphs, accessibility, and SEO. The learner message is: I still confuse h1 and h2 and I do not understand why semantic HTML matters. The platform stores memories with learner, tenant, course, and lesson context."
+    ],
+    "response": "The learner memory records that the learner struggles with heading hierarchy, especially the difference between h1 and h2, and needs reinforcement on why semantic HTML helps accessibility and SEO. The memory is attached to the same learner, tenant, course, and lesson context.",
+    "reference": "The response should record that the learner struggles with h1/h2 heading hierarchy and needs reinforcement on semantic HTML, accessibility, and SEO. It should attach the memory to the learner, tenant, course, and lesson context."
+  },
+  {
+    "agent": "ai_coaching",
+    "user_input": "I do not understand why semantic HTML matters. Can you explain it simply?",
+    "retrieved_contexts": [
+      "Course memory: semantic HTML uses meaningful elements and heading hierarchy to describe page structure. It helps screen readers, improves readability, and gives search engines clearer information.",
+      "Learner memory: the learner confuses h1/h2 hierarchy and needs a simple explanation of semantic meaning."
+    ],
+    "response": "Semantic HTML matters because it tells both people and machines what each part of the page means. For example, h1 should be the main page title, while h2 introduces a section under it. This structure helps screen readers navigate the page and helps search engines understand the content. A good next step is to write one page with one h1, two h2 sections, and paragraphs under each section.",
+    "reference": "The response should explain that semantic HTML gives meaning to page structure, helps screen readers, helps search engines, distinguishes h1 as the main title from h2 as a section heading, and proposes a concrete practice activity."
+  },
+  {
+    "agent": "recommendation",
+    "user_input": "Recommend the next learning action for a learner who is weak in semantic HTML and forms.",
+    "retrieved_contexts": [
+      "Skill radar: semantic HTML is weak unresolved; forms basics is weak unresolved. Catalog: HTML Fundamentals includes lessons Semantic HTML & Good Practices and Forms Basics. The learner is enrolled in HTML Fundamentals and has not completed these two lessons."
+    ],
+    "response": "The next recommended actions are to resume the Semantic HTML & Good Practices lesson first, then complete Forms Basics. These lessons directly match the unresolved skill gaps and are already part of the learner's active course.",
+    "reference": "The response should recommend Semantic HTML & Good Practices and Forms Basics because they match the unresolved skill gaps and belong to the learner's active HTML Fundamentals enrollment."
+  },
+  {
+    "agent": "solo_challenge",
+    "user_input": "Create a short remediation challenge after a failed quiz about HTML form input types.",
+    "retrieved_contexts": [
+      "The learner failed a quiz question about choosing the correct HTML input type for an email field. The course lesson is Forms Basics. The challenge should reformulate the failed concept without repeating the exact same question."
+    ],
+    "response": "Challenge: Choose the best input type. You are building a sign-up form and need a field for the user's email address. Which HTML input type should you use? Options: text, email, password, number. Correct answer: email. Explanation: type=\"email\" gives the browser semantic information and can trigger basic email validation.",
+    "reference": "The response should create a fresh multiple-choice remediation challenge about using input type email for an email address field, include options, identify email as the correct answer, and explain that type=\"email\" provides semantic meaning and browser validation."
+  }
+]
