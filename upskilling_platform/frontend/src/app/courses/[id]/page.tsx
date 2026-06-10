@@ -11,6 +11,7 @@ import { BookmarkButton } from "@/app/components/ui/BookmarkButton";
 import { api } from "@/app/lib/api";
 import { useAuth } from "@/app/context/AuthContext";
 import { resolveStoredMediaUrl } from "@/app/lib/media";
+import { formatDateOnlyForUser } from "@/app/lib/user-date-format";
 import {
   ArrowLeft,
   Clock,
@@ -776,7 +777,7 @@ function CourseDetailContent() {
                                       ))}
                                     </div>
                                     <span className="text-xs text-text-secondary">
-                                      {new Date(review.created_at).toLocaleDateString()}
+                                      {formatDateOnlyForUser(review.created_at, user?.timezone)}
                                     </span>
                                   </div>
                                 </div>

@@ -9,6 +9,25 @@ import {
 } from "@/app/lib/safe-ai-course-db";
 import { toUtcIsoString } from "@/app/lib/ai-course-db";
 
+async function getPendingDraftResponse(draftId: string) {
+  const activeRun = await getActiveGenerationRun().catch(() => null);
+  const pendingDraftId = activeRun?.progress?.draftId || activeRun?.result?.draftId;
+
+  if (activeRun?.active && pendingDraftId === draftId) {
+    return Response.json(
+      {
+        success: false,
+        pending: true,
+        draftId,
+        error: "Draft is still being prepared by OpenMAIC.",
+      },
+      { status: 202 },
+    );
+  }
+
+  return null;
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ draftId: string }> }
@@ -45,6 +64,11 @@ export async function GET(
       );
     }
 
+    const pendingResponse = await getPendingDraftResponse(draftId);
+    if (pendingResponse) {
+      return pendingResponse;
+    }
+
     if (!scope?.isSuperAdmin) {
       return Response.json(
         { success: false, error: "Draft not found for this company." },
@@ -73,18 +97,9 @@ export async function GET(
     }
 
     if (upstream.status === 404) {
-      const activeRun = await getActiveGenerationRun().catch(() => null);
-      const pendingDraftId = activeRun?.progress?.draftId || activeRun?.result?.draftId;
-      if (activeRun?.active && pendingDraftId === draftId) {
-        return Response.json(
-          {
-            success: false,
-            pending: true,
-            draftId,
-            error: "Draft is still being prepared by OpenMAIC.",
-          },
-          { status: 202 }
-        );
+      const upstreamPendingResponse = await getPendingDraftResponse(draftId);
+      if (upstreamPendingResponse) {
+        return upstreamPendingResponse;
       }
     }
 

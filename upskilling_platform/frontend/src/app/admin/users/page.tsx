@@ -15,6 +15,7 @@ import {
   addDepartmentForTenant,
   getDepartmentsForTenant,
 } from '@/app/lib/departments';
+import { formatDateForUser, formatDateOnlyForUser } from '@/app/lib/user-date-format';
 import {
   Users,
   UserPlus,
@@ -288,11 +289,11 @@ export default function AdminUsersPage() {
     const data = 'users' in response ? response.users : response.items || [];
     return data.map((u) => ({
       ...u,
-      lastLogin: u.last_login ? new Date(u.last_login).toLocaleString() : 'Never',
+      lastLogin: u.last_login ? formatDateForUser(u.last_login, user?.timezone) : 'Never',
       progress: { completed: 0, total: 0 },
       courses: [],
     }));
-  }, []);
+  }, [user?.timezone]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -1119,11 +1120,7 @@ export default function AdminUsersPage() {
                   <div className="flex justify-between">
                     <span className="text-sm text-text-secondary">Joined</span>
                     <span className="text-sm font-medium text-text-primary">
-                      {new Date(selectedUser.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                      {formatDateOnlyForUser(selectedUser.created_at, user?.timezone)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -1716,7 +1713,7 @@ export default function AdminUsersPage() {
                           {entry.type.replace('_', ' ')}
                         </p>
                         <p className="text-xs text-text-secondary">
-                          {new Date(entry.timestamp).toLocaleString()}
+                          {formatDateForUser(entry.timestamp, user?.timezone)}
                         </p>
                       </div>
                       <Badge variant="secondary">{idx === 0 ? 'Most Recent' : 'Older'}</Badge>

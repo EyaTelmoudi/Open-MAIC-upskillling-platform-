@@ -36,6 +36,8 @@ import {
   type UpdateTenantRequest,
 } from "@/app/lib/api";
 import { routes } from "@/app/lib/routes";
+import { useAuth } from "@/app/context/AuthContext";
+import { formatDateOnlyForUser } from "@/app/lib/user-date-format";
 
 interface CompanyUser {
   id: string;
@@ -48,6 +50,7 @@ interface CompanyUser {
 }
 
 export default function TenantDetail() {
+  const { user } = useAuth();
   const router = useRouter();
   const params = useParams();
   const tenantId = params.id as string;
@@ -317,8 +320,8 @@ export default function TenantDetail() {
           <DetailItem label="Logo URL" value={tenant.logo_url || "Not configured"} />
           <DetailItem label="Azure Client ID" value={tenant.entra_client_id || "Not configured"} />
           <DetailItem label="Azure Tenant ID" value={tenant.entra_tenant_id || "Not configured"} />
-          <DetailItem label="Created" value={new Date(tenant.created_at).toLocaleDateString()} />
-          <DetailItem label="Last Updated" value={new Date(tenant.updated_at).toLocaleDateString()} />
+          <DetailItem label="Created" value={formatDateOnlyForUser(tenant.created_at, user?.timezone)} />
+          <DetailItem label="Last Updated" value={formatDateOnlyForUser(tenant.updated_at, user?.timezone)} />
         </div>
       </section>
 

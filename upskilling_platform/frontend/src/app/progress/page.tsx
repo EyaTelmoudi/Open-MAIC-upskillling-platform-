@@ -34,6 +34,7 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
+import { formatDateForUser } from "@/app/lib/user-date-format";
 
 interface BadgeWithUnlocked extends BadgeResponse {
   unlocked: boolean;
@@ -398,7 +399,7 @@ export default function ProgressPage() {
                               {item.reason}
                             </p>
                             <p className="mt-1 text-xs text-slate-500">
-                              {new Date(item.created_at).toLocaleString()}
+                              {formatDateForUser(item.created_at, user?.timezone)}
                             </p>
                           </div>
                           <div className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">

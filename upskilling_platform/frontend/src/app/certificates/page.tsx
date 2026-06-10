@@ -8,8 +8,11 @@ import { Button } from "@/app/components/ui/Button";
 import { Card } from "@/app/components/ui/Card";
 import { Badge } from "@/app/components/ui/Badge";
 import Link from "next/link";
+import { useAuth } from "@/app/context/AuthContext";
+import { formatDateOnlyForUser } from "@/app/lib/user-date-format";
 
 export default function CertificatesPage() {
+  const { user } = useAuth();
   const [certificates, setCertificates] = useState<CertificateResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,11 +51,7 @@ export default function CertificatesPage() {
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    return formatDateOnlyForUser(dateStr, user?.timezone);
   };
 
   if (loading) {

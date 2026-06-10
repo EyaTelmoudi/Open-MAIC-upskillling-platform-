@@ -1,6 +1,7 @@
 "use client";
 
 const USER_PREFERENCES_KEY = "sf_preferences";
+const DEFAULT_USER_TIMEZONE = "Africa/Tunis";
 
 type SavedPreferences = {
   timezone?: string;
@@ -65,7 +66,16 @@ function resolveTimezone(value: string | null | undefined) {
 }
 
 function resolvePreferredTimezone(explicitTimezone?: string | null) {
-  return resolveTimezone(explicitTimezone) ?? resolveTimezone(readSavedTimezone());
+  return (
+    resolveTimezone(explicitTimezone) ??
+    resolveTimezone(readSavedTimezone()) ??
+    resolveTimezone(
+      typeof Intl !== "undefined"
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone
+        : null,
+    ) ??
+    resolveTimezone(DEFAULT_USER_TIMEZONE)
+  );
 }
 
 function formatWithUtcOffset(date: Date, offsetMinutes: number) {
@@ -73,10 +83,25 @@ function formatWithUtcOffset(date: Date, offsetMinutes: number) {
   return shiftedDate.toLocaleString(undefined, { timeZone: "UTC" });
 }
 
+function formatDateOnlyWithUtcOffset(date: Date, offsetMinutes: number) {
+  const shiftedDate = new Date(date.getTime() + offsetMinutes * 60_000);
+  return shiftedDate.toLocaleDateString(undefined, { timeZone: "UTC" });
+}
+
+function parseDateForUserDisplay(value: string) {
+  const trimmed = value.trim();
+  const hasTime = /^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}/.test(trimmed);
+  const hasExplicitTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(trimmed);
+  const normalizedValue =
+    hasTime && !hasExplicitTimezone ? `${trimmed.replace(" ", "T")}Z` : trimmed;
+
+  return new Date(normalizedValue);
+}
+
 export function formatDateForUser(value?: string | null, explicitTimezone?: string | null) {
   if (!value) return "-";
 
-  const date = new Date(value);
+  const date = parseDateForUserDisplay(value);
   if (Number.isNaN(date.getTime())) {
     return value;
   }
@@ -91,4 +116,24 @@ export function formatDateForUser(value?: string | null, explicitTimezone?: stri
   }
 
   return formatWithUtcOffset(date, preferredTimezone.value);
+}
+
+export function formatDateOnlyForUser(value?: string | null, explicitTimezone?: string | null) {
+  if (!value) return "-";
+
+  const date = parseDateForUserDisplay(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  const preferredTimezone = resolvePreferredTimezone(explicitTimezone);
+  if (!preferredTimezone) {
+    return date.toLocaleDateString();
+  }
+
+  if (preferredTimezone.kind === "iana") {
+    return date.toLocaleDateString(undefined, { timeZone: preferredTimezone.value });
+  }
+
+  return formatDateOnlyWithUtcOffset(date, preferredTimezone.value);
 }

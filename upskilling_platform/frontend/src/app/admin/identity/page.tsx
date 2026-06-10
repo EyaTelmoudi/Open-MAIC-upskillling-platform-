@@ -11,8 +11,11 @@ import {
   type SyncStatusResponse,
 } from "@/app/lib/api";
 import { routes } from "@/app/lib/routes";
+import { useAuth } from "@/app/context/AuthContext";
+import { formatDateForUser } from "@/app/lib/user-date-format";
 
 export default function IdentityPage() {
+  const { user } = useAuth();
   const [syncStatus, setSyncStatus] = useState<SyncStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -46,7 +49,7 @@ export default function IdentityPage() {
 
   function formatDate(dateStr?: string | null) {
     if (!dateStr) return "Never";
-    return new Date(dateStr).toLocaleString();
+    return formatDateForUser(dateStr, user?.timezone);
   }
 
   return (

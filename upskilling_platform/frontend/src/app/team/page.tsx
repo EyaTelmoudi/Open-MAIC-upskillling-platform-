@@ -20,6 +20,7 @@ import {
   TeamActivityItem,
   TeamProgress,
 } from "@/app/lib/api";
+import { formatDateForUser, formatDateOnlyForUser } from "@/app/lib/user-date-format";
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -231,7 +232,7 @@ export default function MyTeamPage() {
                             </div>
                           </div>
                           <p className="mt-3 text-xs text-text-secondary">
-                            Joined {new Date(membership.joined_at).toLocaleDateString()}
+                            Joined {formatDateOnlyForUser(membership.joined_at, user?.timezone)}
                           </p>
                         </div>
                       ))}
@@ -310,7 +311,7 @@ export default function MyTeamPage() {
                           <p className="font-medium text-text-primary">{item.user_name}</p>
                           <p className="mt-1 text-sm text-text-secondary">{item.message}</p>
                           <p className="mt-3 text-xs text-text-secondary">
-                            {new Date(item.timestamp).toLocaleString()}
+                            {formatDateForUser(item.timestamp, user?.timezone)}
                           </p>
                         </div>
                       ))}

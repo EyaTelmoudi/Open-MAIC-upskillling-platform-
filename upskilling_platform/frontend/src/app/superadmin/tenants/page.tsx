@@ -9,9 +9,12 @@ import {
   getTenants,
   type TenantResponse,
 } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
+import { formatDateOnlyForUser } from "../../lib/user-date-format";
 import { CompaniesManagementNav } from "./CompaniesManagementNav";
 
 export default function SuperAdminTenants() {
+  const { user } = useAuth();
   const router = useRouter();
   const [tenants, setTenants] = useState<TenantResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,7 +106,7 @@ export default function SuperAdminTenants() {
                   </td>
                   <td className="px-6 py-4 text-slate-700">{tenant.user_count}</td>
                   <td className="px-6 py-4 text-slate-700">
-                    {new Date(tenant.created_at).toLocaleDateString()}
+                    {formatDateOnlyForUser(tenant.created_at, user?.timezone)}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-end gap-2">

@@ -6,6 +6,7 @@ import { Filter, ShieldCheck } from "lucide-react";
 import { AdminShell } from "@/app/components/layout/AdminShell";
 import { useAuth } from "@/app/context/AuthContext";
 import { getIdentityAuditLogs, type IdentityAuditLog } from "@/app/lib/api";
+import { formatDateForUser } from "@/app/lib/user-date-format";
 
 const PAGE_SIZE = 20;
 
@@ -59,8 +60,8 @@ const ACTION_INFO: Record<string, { label: string; description: string; tone: st
 
 const KNOWN_ACTIONS = Object.keys(ACTION_INFO).sort();
 
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleString();
+function formatDate(dateString: string, timezone?: string | null) {
+  return formatDateForUser(dateString, timezone);
 }
 
 function formatActionLabel(action: string) {
@@ -266,7 +267,7 @@ export default function AdminAuditPage() {
                     const actionInfo = getActionInfo(log.action);
                     return (
                       <tr key={log.id} className="transition-colors hover:bg-slate-50/80">
-                        <td className="px-6 py-4 text-sm text-slate-700">{formatDate(log.created_at)}</td>
+                        <td className="px-6 py-4 text-sm text-slate-700">{formatDate(log.created_at, user?.timezone)}</td>
                         <td className="px-6 py-4">
                           <div className="flex max-w-[320px] flex-col gap-2">
                             <span className={`inline-flex w-fit rounded-md border px-2 py-1 text-xs font-semibold ${actionInfo.tone}`}>

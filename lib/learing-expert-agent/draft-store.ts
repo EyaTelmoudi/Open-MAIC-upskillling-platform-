@@ -259,6 +259,69 @@ function speechBlocks(actions: Action[] | undefined): EditableScriptBlock[] {
   return blocks;
 }
 
+function tokenizeForScriptMatching(value: string): string[] {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\u00c0-\u017f\s]/g, ' ')
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2);
+}
+
+function splitTeacherScript(text: string): string[] {
+  return text
+    .replace(/。/g, '. ')
+    .replace(/\s+/g, ' ')
+    .split(/(?<=[.!?])\s+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function bestScriptSegmentForText(text: string, segments: string[], fallbackIndex: number): string {
+  if (segments.length === 0) return '';
+
+  const textTokens = tokenizeForScriptMatching(text);
+  let bestSegment = segments[Math.min(fallbackIndex, segments.length - 1)];
+  let bestScore = -1;
+
+  segments.forEach((segment) => {
+    const segmentTokens = new Set(tokenizeForScriptMatching(segment));
+    const score = textTokens.filter((token) => segmentTokens.has(token)).length;
+    if (score > bestScore) {
+      bestScore = score;
+      bestSegment = segment;
+    }
+  });
+
+  return bestSegment;
+}
+
+function ensureSlideScriptsPerContentBlock(
+  textBlocks: EditableSlideTextBlock[],
+  scripts: EditableScriptBlock[],
+): EditableScriptBlock[] {
+  const contentBlocks = textBlocks.length > 1 ? textBlocks.slice(1) : textBlocks;
+  if (contentBlocks.length === 0 || scripts.length !== 1) {
+    return scripts;
+  }
+
+  const [globalScript] = scripts;
+  const segments = splitTeacherScript(globalScript.text);
+  if (segments.length === 0) {
+    return scripts;
+  }
+
+  const generatedScripts = contentBlocks.map((block, index) => ({
+    id: `script_${index + 1}`,
+    type: 'script' as const,
+    actionId: `${globalScript.actionId}_${block.elementId}`,
+    text: bestScriptSegmentForText(block.plainText, segments, index),
+    linkedElementId: block.elementId,
+  }));
+
+  return generatedScripts;
+}
+
 function normalizeSlideScene(scene: Scene): EditableSceneDraft {
   const textElements = (scene.content.type === 'slide' ? scene.content.canvas.elements : [])
     .filter((element) => element.type === 'text' && 'content' in element)
@@ -273,6 +336,7 @@ function normalizeSlideScene(scene: Scene): EditableSceneDraft {
         plainText: stripHtml(html),
       } satisfies EditableSlideTextBlock;
     });
+  const scriptElements = ensureSlideScriptsPerContentBlock(textElements, speechBlocks(scene.actions));
 
   return {
     sceneId: scene.id,
@@ -281,7 +345,7 @@ function normalizeSlideScene(scene: Scene): EditableSceneDraft {
     type: scene.type,
     title: scene.title,
     status: 'draft',
-    blocks: [...textElements, ...speechBlocks(scene.actions)],
+    blocks: [...textElements, ...scriptElements],
   };
 }
 

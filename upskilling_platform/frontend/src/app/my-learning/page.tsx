@@ -12,6 +12,7 @@ import {
   type EnrollmentResponse,
 } from "@/app/lib/api";
 import { routes } from "@/app/lib/routes";
+import { formatDateOnlyForUser } from "@/app/lib/user-date-format";
 import {
   ArrowRight,
   BookOpen,
@@ -194,7 +195,7 @@ export default function MyLearningPage() {
                           {item.course?.category ?? "Learning course"} • {item.course?.difficulty ?? "Level not set"}
                         </p>
                         <p className="mt-2 text-xs text-slate-500">
-                          Enrolled on {new Date(item.enrollment.enrolled_at).toLocaleDateString()}
+                          Enrolled on {formatDateOnlyForUser(item.enrollment.enrolled_at, user?.timezone)}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-3">
@@ -250,7 +251,7 @@ export default function MyLearningPage() {
                         <p className="mt-2 text-xs text-slate-500">
                           Completed on{" "}
                           {item.enrollment.completed_at
-                            ? new Date(item.enrollment.completed_at).toLocaleDateString()
+                            ? formatDateOnlyForUser(item.enrollment.completed_at, user?.timezone)
                             : "date unavailable"}
                         </p>
                       </div>

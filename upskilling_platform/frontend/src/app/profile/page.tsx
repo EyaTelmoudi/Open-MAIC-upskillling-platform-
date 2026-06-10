@@ -21,6 +21,7 @@ import { LevelBadge } from "@/app/components/profile/LevelBadge";
 import { XPProgressBar } from "@/app/components/profile/XPProgressBar";
 import { ActivityHeatmap } from "@/app/components/profile/ActivityHeatmap";
 import { useGamificationRealtime } from "@/app/hooks/useGamificationRealtime";
+import { formatDateOnlyForUser } from "@/app/lib/user-date-format";
 import {
   BadgeCheck,
   BookOpen,
@@ -203,7 +204,7 @@ export default function ProfilePage() {
   const normalizedStatus =
     user.status.charAt(0).toUpperCase() + user.status.slice(1).toLowerCase();
   const memberSince = user.created_at
-    ? new Date(user.created_at).toLocaleDateString()
+    ? formatDateOnlyForUser(user.created_at, user.timezone)
     : "Unavailable";
   const activeDays = activityData.filter((day) => day.count > 0).length;
 

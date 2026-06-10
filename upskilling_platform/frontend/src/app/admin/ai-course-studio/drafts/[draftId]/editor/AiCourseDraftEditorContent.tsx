@@ -117,6 +117,12 @@ type AssistantMessage = {
   content: string;
 };
 
+type TeacherScriptDisplaySegment = {
+  id: string;
+  text: string;
+  derivedFromFullSlideScript?: boolean;
+};
+
 function isSlideTextBlock(block: EditableBlock): block is EditableSlideTextBlock {
   return block.type === 'slide_text';
 }
@@ -181,6 +187,90 @@ function buildSlideScriptMap(blocks: EditableBlock[]) {
   }
 
   return scriptMap;
+}
+
+function splitTeacherScript(text: string) {
+  return text
+    .replace(/。/g, '. ')
+    .replace(/\s+/g, ' ')
+    .split(/(?<=[.!?])\s+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function selectBestScriptSegment(blockText: string, segments: string[], fallbackIndex: number) {
+  const blockTokens = tokenizeForMatching(blockText);
+  let bestSegment = segments[Math.min(fallbackIndex, Math.max(segments.length - 1, 0))] || '';
+  let bestScore = -1;
+
+  segments.forEach((segment) => {
+    const segmentTokens = new Set(tokenizeForMatching(segment));
+    const overlap = blockTokens.filter((token) => segmentTokens.has(token)).length;
+
+    if (overlap > bestScore) {
+      bestScore = overlap;
+      bestSegment = segment;
+    }
+  });
+
+  return bestScore > 0 ? bestSegment : bestSegment.replace(/^\[[^\]]+\]\s*/, '');
+}
+
+function buildSlideScriptDisplayMap(blocks: EditableBlock[]) {
+  const slideBlocks = blocks.filter(isSlideTextBlock);
+  const scriptBlocks = blocks.filter(isScriptBlock);
+  const displayMap = new Map<string, TeacherScriptDisplaySegment[]>();
+
+  slideBlocks.forEach((block) => {
+    displayMap.set(block.id, []);
+  });
+
+  if (scriptBlocks.length !== 1 || slideBlocks.length === 0) {
+    const linkedMap = buildSlideScriptMap(blocks);
+    linkedMap.forEach((segments, blockId) => {
+      displayMap.set(
+        blockId,
+        segments.map((segment) => ({
+          id: segment.id,
+          text: segment.text,
+          derivedFromFullSlideScript: false,
+        })),
+      );
+    });
+    return displayMap;
+  }
+
+  const [fullSlideScript] = scriptBlocks;
+  const segments = splitTeacherScript(fullSlideScript.text).filter(
+    (segment) => !/^\[[^\]]+\]\s*$/.test(segment),
+  );
+  if (segments.length === 0) {
+    return displayMap;
+  }
+
+  const contentBlocks = slideBlocks.length > 1 ? slideBlocks.slice(1) : slideBlocks;
+  contentBlocks.forEach((block, index) => {
+    const segmentText = selectBestScriptSegment(block.plainText, segments, index);
+    displayMap.set(block.id, [
+      {
+        id: `${fullSlideScript.id}_derived_${block.id}`,
+        text: segmentText,
+        derivedFromFullSlideScript: true,
+      },
+    ]);
+  });
+
+  if (slideBlocks.length === 1) {
+    displayMap.set(slideBlocks[0].id, [
+      {
+        id: `${fullSlideScript.id}_derived_${slideBlocks[0].id}`,
+        text: fullSlideScript.text,
+        derivedFromFullSlideScript: true,
+      },
+    ]);
+  }
+
+  return displayMap;
 }
 
 function statusVariant(status: DraftStatus | SceneDraftStatus) {
@@ -267,10 +357,18 @@ export function AiCourseDraftEditorContent({
     () => draft?.editableScenes.find((scene) => scene.sceneId === selectedSceneId) ?? null,
     [draft, selectedSceneId],
   );
-  const selectedSceneSlideScriptMap = useMemo(
-    () => (selectedScene?.type === 'slide' ? buildSlideScriptMap(selectedScene.blocks) : new Map()),
+  const selectedSceneSlideScriptDisplayMap = useMemo(
+    () =>
+      selectedScene?.type === 'slide'
+        ? buildSlideScriptDisplayMap(selectedScene.blocks)
+        : new Map<string, TeacherScriptDisplaySegment[]>(),
     [selectedScene],
   );
+  const selectedSceneScriptBlocks = useMemo(
+    () => (selectedScene?.blocks || []).filter(isScriptBlock),
+    [selectedScene],
+  );
+  const showBlockLevelTeacherScripts = selectedScene?.type === 'slide';
 
   const approvedScenesCount =
     draft?.editableScenes.filter((scene) => scene.status === 'approved').length ?? 0;
@@ -690,6 +788,53 @@ export function AiCourseDraftEditorContent({
                   </Card>
 
                   <div className="space-y-4">
+                    {selectedScene.type === 'slide' && selectedSceneScriptBlocks.length > 0 ? (
+                      <Card className="border border-sky-200 bg-sky-50/80 text-slate-900 shadow-sm">
+                        <CardContent className="space-y-4 p-5">
+                          <div>
+                            <div className="text-sm font-semibold text-slate-950">
+                              Teacher script
+                            </div>
+                            <div className="mt-1 text-sm text-slate-600">
+                              {selectedSceneScriptBlocks.length === 1
+                                ? 'OpenMAIC generated one narration segment for the whole slide. Edit it here as the main teacher script for this scene.'
+                                : 'OpenMAIC generated multiple narration segments for this slide. Edit the full script here, then review the linked segments near their slide blocks.'}
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            {selectedSceneScriptBlocks.map((scriptBlock, scriptIndex) => (
+                              <div key={scriptBlock.id} className="space-y-2">
+                                <div className="text-xs font-medium text-slate-600">
+                                  {selectedSceneScriptBlocks.length === 1
+                                    ? 'Full-slide teacher script'
+                                    : `Script segment ${scriptIndex + 1}${
+                                        scriptBlock.linkedElementId
+                                          ? ' - linked to a slide element'
+                                          : ''
+                                      }`}
+                                </div>
+                                <Textarea
+                                  value={scriptBlock.text}
+                                  disabled={selectedSceneGenerating}
+                                  className={`min-h-[120px] ${editorFieldClassName}`}
+                                  onChange={(event) =>
+                                    updateScene((scene) => ({
+                                      ...scene,
+                                      blocks: scene.blocks.map((candidate) =>
+                                        candidate.id === scriptBlock.id
+                                          ? { ...candidate, text: event.target.value }
+                                          : candidate,
+                                      ),
+                                    }))
+                                  }
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : null}
+
                     <div className="space-y-4">
                       {selectedScene.blocks
                         .filter(
@@ -721,45 +866,59 @@ export function AiCourseDraftEditorContent({
                                       }))
                                     }
                                   />
-                                  <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
-                                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700">
-                                      Related teacher script
-                                    </div>
-                                    <div className="mt-3 space-y-3">
-                                      {(selectedSceneSlideScriptMap.get(block.id) || []).length >
-                                      0 ? (
-                                        ((selectedSceneSlideScriptMap.get(block.id) || []) as EditableScriptBlock[]).map(
-                                          (scriptBlock, scriptIndex) => (
-                                            <div key={scriptBlock.id} className="space-y-2">
-                                              <div className="text-xs font-medium text-slate-600">
-                                                Script segment {scriptIndex + 1}
+                                  {showBlockLevelTeacherScripts &&
+                                  !(selectedSceneScriptBlocks.length === 1 && blockIndex === 0) ? (
+                                    <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">
+                                      <div className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700">
+                                        Related teacher script
+                                      </div>
+                                      <div className="mt-3 space-y-3">
+                                        {(selectedSceneSlideScriptDisplayMap.get(block.id) || []).length >
+                                        0 ? (
+                                          (selectedSceneSlideScriptDisplayMap.get(block.id) || []).map(
+                                            (scriptBlock, scriptIndex) => (
+                                              <div key={scriptBlock.id} className="space-y-2">
+                                                <div className="text-xs font-medium text-slate-600">
+                                                  {scriptBlock.derivedFromFullSlideScript
+                                                    ? `Suggested script excerpt ${scriptIndex + 1}`
+                                                    : `Script segment ${scriptIndex + 1}`}
+                                                </div>
+                                                {scriptBlock.derivedFromFullSlideScript ? (
+                                                  <div className="rounded-xl border border-sky-100 bg-white px-3 py-3 text-sm leading-relaxed text-slate-700">
+                                                    {scriptBlock.text}
+                                                  </div>
+                                                ) : (
+                                                  <Textarea
+                                                    value={scriptBlock.text}
+                                                    disabled={selectedSceneGenerating}
+                                                    className={`min-h-[120px] ${editorFieldClassName}`}
+                                                    onChange={(event) =>
+                                                      updateScene((scene) => ({
+                                                        ...scene,
+                                                        blocks: scene.blocks.map((candidate) =>
+                                                          candidate.id === scriptBlock.id
+                                                            ? {
+                                                                ...candidate,
+                                                                text: event.target.value,
+                                                              }
+                                                            : candidate,
+                                                        ),
+                                                      }))
+                                                    }
+                                                  />
+                                                )}
                                               </div>
-                                              <Textarea
-                                                value={scriptBlock.text}
-                                                disabled={selectedSceneGenerating}
-                                                className={`min-h-[120px] ${editorFieldClassName}`}
-                                                onChange={(event) =>
-                                                  updateScene((scene) => ({
-                                                    ...scene,
-                                                    blocks: scene.blocks.map((candidate) =>
-                                                      candidate.id === scriptBlock.id
-                                                        ? { ...candidate, text: event.target.value }
-                                                        : candidate,
-                                                    ),
-                                                  }))
-                                                }
-                                              />
-                                            </div>
-                                          ),
-                                        )
-                                      ) : (
-                                        <div className="rounded-xl border border-dashed border-sky-200 bg-white px-3 py-4 text-sm text-slate-500">
-                                          No teacher script segment is currently linked to this
-                                          slide block.
-                                        </div>
-                                      )}
+                                            ),
+                                          )
+                                        ) : (
+                                          <div className="rounded-xl border border-dashed border-sky-200 bg-white px-3 py-4 text-sm text-slate-500">
+                                            No dedicated script segment is linked to this slide
+                                            block.
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
+                                  ) : null}
                                 </div>
                               ) : null}
 

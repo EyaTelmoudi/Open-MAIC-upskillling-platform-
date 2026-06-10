@@ -1610,7 +1610,11 @@ export async function generateSceneActions(
       const actions = parseActionsFromStructuredOutput(response, outline.type);
 
       if (actions.length > 0) {
-        const processed = processActions(actions, content.elements, agents);
+        const processed = ensureSlideBlockTeacherScripts(
+          processActions(actions, content.elements, agents),
+          content.elements,
+          outline,
+        );
         const speechTexts = extractSpeechTextsFromActions(processed);
         if (
           isOpeningOverviewSpeechAcceptable(slideRole, speechTexts) &&
@@ -1915,20 +1919,163 @@ function processActions(actions: Action[], elements: PPTElement[], agents?: Agen
   });
 }
 
+function plainTextFromElement(element: PPTElement): string {
+  if (element.type !== 'text' || !('content' in element)) {
+    return '';
+  }
+
+  return String(element.content || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function meaningfulSlideTextElements(elements: PPTElement[]): PPTElement[] {
+  const textElements = elements.filter(
+    (element) => element.type === 'text' && plainTextFromElement(element).length > 0,
+  );
+
+  return textElements.length > 1 ? textElements.slice(1) : textElements;
+}
+
+function tokenizeTextForActionMatching(value: string): string[] {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\u00c0-\u017f\s]/g, ' ')
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 2);
+}
+
+function splitSpeechIntoTeachingSegments(text: string): string[] {
+  return text
+    .replace(/。/g, '. ')
+    .replace(/\s+/g, ' ')
+    .split(/(?<=[.!?])\s+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function bestSpeechForElement(elementText: string, speechSegments: string[], fallbackIndex: number): string {
+  if (speechSegments.length === 0) return '';
+
+  const elementTokens = tokenizeTextForActionMatching(elementText);
+  let bestSegment = speechSegments[Math.min(fallbackIndex, speechSegments.length - 1)];
+  let bestScore = -1;
+
+  speechSegments.forEach((segment) => {
+    const segmentTokens = new Set(tokenizeTextForActionMatching(segment));
+    const score = elementTokens.filter((token) => segmentTokens.has(token)).length;
+    if (score > bestScore) {
+      bestScore = score;
+      bestSegment = segment;
+    }
+  });
+
+  return bestSegment;
+}
+
+function fallbackSpeechForElement(elementText: string, outline: SceneOutline): string {
+  const cleaned = elementText.replace(/\s+/g, ' ').trim();
+  if (!cleaned) return outline.description || outline.title;
+
+  return `This part focuses on: ${cleaned}. Explain it clearly, connect it to the lesson goal, and help the learner understand why it matters.`;
+}
+
+function ensureSlideBlockTeacherScripts(
+  actions: Action[],
+  elements: PPTElement[],
+  outline: SceneOutline,
+): Action[] {
+  const targetElements = meaningfulSlideTextElements(elements);
+  if (targetElements.length === 0) return actions;
+
+  const coveredElementIds = new Set<string>();
+  let currentElementId: string | null = null;
+
+  for (const action of actions) {
+    if (action.type === 'spotlight' || action.type === 'laser') {
+      currentElementId = action.elementId;
+      continue;
+    }
+
+    if (action.type === 'speech' && currentElementId) {
+      coveredElementIds.add(currentElementId);
+      currentElementId = null;
+    }
+  }
+
+  const missingElements = targetElements.filter((element) => !coveredElementIds.has(element.id));
+  if (missingElements.length === 0) return actions;
+
+  const existingSpeechSegments = actions
+    .filter((action): action is SpeechAction => action.type === 'speech')
+    .flatMap((action) => splitSpeechIntoTeachingSegments(action.text));
+
+  const completedActions = [...actions];
+  missingElements.forEach((element, index) => {
+    const elementText = plainTextFromElement(element);
+    const matchedSpeech = bestSpeechForElement(elementText, existingSpeechSegments, index);
+
+    completedActions.push(
+      {
+        id: `action_${nanoid(8)}`,
+        type: 'spotlight',
+        title: 'Focus on slide block',
+        elementId: element.id,
+      },
+      {
+        id: `action_${nanoid(8)}`,
+        type: 'speech',
+        title: 'Teacher script',
+        text: matchedSpeech || fallbackSpeechForElement(elementText, outline),
+      },
+    );
+  });
+
+  return completedActions;
+}
+
 /**
  * Generate default slide Actions (fallback)
  */
 function generateDefaultSlideActions(outline: SceneOutline, elements: PPTElement[]): Action[] {
   const actions: Action[] = [];
 
-  // Add spotlight for text elements
-  const textElements = elements.filter((el) => el.type === 'text');
+  const textElements = meaningfulSlideTextElements(elements);
   if (textElements.length > 0) {
+    textElements.forEach((element, index) => {
+      const elementText = plainTextFromElement(element);
+      actions.push(
+        {
+          id: `action_${nanoid(8)}`,
+          type: 'spotlight',
+          title: 'Focus on slide block',
+          elementId: element.id,
+        },
+        {
+          id: `action_${nanoid(8)}`,
+          type: 'speech',
+          title: 'Teacher script',
+          text: outline.keyPoints?.[index] || fallbackSpeechForElement(elementText, outline),
+        },
+      );
+    });
+
+    return actions;
+  }
+
+  const fallbackTextElements = elements.filter((el) => el.type === 'text');
+  if (fallbackTextElements.length > 0) {
     actions.push({
       id: `action_${nanoid(8)}`,
       type: 'spotlight',
       title: '聚焦重点',
-      elementId: textElements[0].id,
+      elementId: fallbackTextElements[0].id,
     });
   }
 

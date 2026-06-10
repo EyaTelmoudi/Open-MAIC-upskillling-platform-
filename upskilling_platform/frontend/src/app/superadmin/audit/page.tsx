@@ -14,6 +14,8 @@ import {
   type IdentityAuditLog,
   type PlatformAuditLog,
 } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
+import { formatDateForUser } from "../../lib/user-date-format";
 
 const PAGE_SIZE = 20;
 const AUDIT_FETCH_LIMIT = 100;
@@ -187,8 +189,8 @@ function getActionInfo(action: string) {
   );
 }
 
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleString();
+function formatDate(dateString: string, timezone?: string | null) {
+  return formatDateForUser(dateString, timezone);
 }
 
 function formatActionLabel(action: string) {
@@ -287,7 +289,7 @@ function detailsToText(details: Record<string, unknown> | null) {
     .join("\n");
 }
 
-function downloadAuditExcel(rows: AuditLogRow[]) {
+function downloadAuditExcel(rows: AuditLogRow[], timezone?: string | null) {
   const generatedAt = new Date().toISOString();
   const platformCount = rows.filter((row) => row.source === "platform").length;
   const identityCount = rows.filter((row) => row.source === "identity").length;
@@ -298,7 +300,7 @@ function downloadAuditExcel(rows: AuditLogRow[]) {
       return `
         <tr>
           <td>${index + 1}</td>
-          <td>${escapeHtml(formatDate(row.created_at))}</td>
+          <td>${escapeHtml(formatDate(row.created_at, timezone))}</td>
           <td>${escapeHtml(row.source)}</td>
           <td>${escapeHtml(actionInfo.label)}</td>
           <td>${escapeHtml(actionInfo.category)}</td>
@@ -329,7 +331,7 @@ function downloadAuditExcel(rows: AuditLogRow[]) {
 </head>
 <body>
   <h1>Super Admin Audit Trail</h1>
-  <div class="meta">Generated at ${escapeHtml(formatDate(generatedAt))}</div>
+  <div class="meta">Generated at ${escapeHtml(formatDate(generatedAt, timezone))}</div>
   <table class="summary">
     <tr>
       <td>Total Records</td><td>${rows.length}</td>
@@ -373,6 +375,7 @@ function downloadAuditExcel(rows: AuditLogRow[]) {
 }
 
 export default function AuditLogPage() {
+  const { user } = useAuth();
   const [logs, setLogs] = useState<AuditLogRow[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -494,7 +497,7 @@ export default function AuditLogPage() {
     try {
       setExportLoading(true);
       const rows = await loadAuditRows();
-      downloadAuditExcel(rows);
+      downloadAuditExcel(rows, user?.timezone);
     } catch (error) {
       console.error("Export failed", error);
       setLoadError(error instanceof Error ? error.message : "Failed to export audit logs.");
@@ -638,7 +641,7 @@ export default function AuditLogPage() {
 
                   return (
                     <tr key={log.id} className="transition-colors hover:bg-slate-50/80">
-                      <td className="px-6 py-4 text-sm text-slate-700">{formatDate(log.created_at)}</td>
+                      <td className="px-6 py-4 text-sm text-slate-700">{formatDate(log.created_at, user?.timezone)}</td>
                       <td className="px-6 py-4">
                         <div className="flex max-w-[320px] flex-col gap-2">
                           <div className="flex flex-wrap items-center gap-2">

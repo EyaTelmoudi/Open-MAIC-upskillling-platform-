@@ -155,7 +155,7 @@ type SavedPreferences = {
 function getDefaultPreferences(): SavedPreferences {
   return {
     language: "English",
-    timezone: "UTC+01:00",
+    timezone: "Africa/Tunis",
     themeVersion: THEME_PREF_VERSION,
   };
 }

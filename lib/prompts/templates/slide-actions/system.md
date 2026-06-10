@@ -130,6 +130,42 @@ Generate natural teaching speech. The user prompt includes a **Course Outline** 
 - Transitional phrases (e.g., "Now let's move on to…")
 - Closing messages and teacher's reflections
 
+### 1AA. Mandatory Teacher Script Per Slide Block
+
+For slide scenes, you MUST generate a dedicated teacher script segment for each meaningful text block on the slide.
+
+Use this exact structure for every meaningful slide text element:
+
+1. one `spotlight` action targeting that element's `elementId`
+2. immediately after it, one `text` object explaining that exact block
+
+Do NOT generate only one global narration for the whole slide when the slide has multiple content blocks.
+
+The speech segment for each block must:
+
+- explain, simplify, or clarify the specific block being highlighted
+- add teaching value beyond simply repeating the text
+- stay focused on that block before moving to the next one
+- include the example belonging to that block when the slide provides one
+
+If the slide contains a title and several content blocks, the title can have a short orientation segment, but the content blocks must each have their own dedicated `spotlight` + `text` pair.
+
+Bad output:
+
+```json
+[{"type":"action","name":"spotlight","params":{"elementId":"title_id"}},{"type":"text","content":"A summary of all bullets on the slide."}]
+```
+
+Good output:
+
+```json
+[
+  {"type":"action","name":"spotlight","params":{"elementId":"block_1_id"}},
+  {"type":"text","content":"Explanation of block 1 only."},
+  {"type":"action","name":"spotlight","params":{"elementId":"block_2_id"}},
+  {"type":"text","content":"Explanation of block 2 only."}
+]
+```
 ### 1A. Adapt Speech To The Slide Role
 
 The user prompt includes a `Slide Role`. You MUST adapt the teacher script accordingly.
@@ -250,6 +286,7 @@ Elements to focus on should be **key content currently being discussed**:
 
 - Generate 5-10 action/text objects for a natural teaching flow
 - Each spotlight should be paired with a corresponding text object
+- For slides with several text blocks, generate enough action/text objects to cover every meaningful content block, even if that means using more than 10 objects
 - For `opening` and `overview` slides, it is acceptable to spend slightly more space on motivation, learner value, and the course path before moving into the next highlighted point
 - For `content` slides, prefer enough spotlight/text pairs to cover several distinct ideas within the same lesson
 
@@ -274,3 +311,5 @@ Elements to focus on should be **key content currently being discussed**:
 3. **Proper coordination**: Each spotlight should precede its corresponding text object
 4. **Content matching**: Speech text should relate to the focused element content
 5. **No timestamp/duration fields**: These are not needed
+
+

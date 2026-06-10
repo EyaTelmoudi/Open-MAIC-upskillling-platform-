@@ -35,6 +35,24 @@ from agno.workflow import Step, StepInput, StepOutput, Workflow
 
 DEFAULT_HINDSIGHT_URL = os.getenv("HINDSIGHT_URL", os.getenv("HINDSIGHT_API_URL", "http://127.0.0.1:8888"))
 DEFAULT_HINDSIGHT_API_KEY = os.getenv("HINDSIGHT_API_KEY", "")
+DEFAULT_GENERAL_COACH_MODEL = (
+    os.getenv("AI_COACHING_AGENT_2_GENERAL_MODEL")
+    or os.getenv("COACH_MODE_JUDGE_MODEL")
+    or "openai/gpt-oss-120b:free"
+)
+DEFAULT_GENERAL_COACH_URL = (
+    os.getenv("AI_COACHING_AGENT_2_GENERAL_MODEL_URL")
+    or os.getenv("COACH_MODE_JUDGE_URL")
+    or os.getenv("OPENAI_BASE_URL")
+    or "https://openrouter.ai/api/v1/chat/completions"
+)
+DEFAULT_GENERAL_COACH_API_KEY = (
+    os.getenv("AI_COACHING_AGENT_2_GENERAL_MODEL_API_KEY")
+    or os.getenv("COACH_MODE_JUDGE_API_KEY")
+    or os.getenv("OPENROUTER_API_KEY")
+    or os.getenv("OPENAI_API_KEY")
+    or ""
+)
 AGENT_PREFIX = "[AI Coaching Agent 2]"
 
 
@@ -80,6 +98,108 @@ def _build_course_bank_id(tenant_id: str, course_id: str) -> str:
 
 def _build_user_course_bank_id(tenant_id: str, user_id: str, course_id: str) -> str:
     return f"tenant:{tenant_id}:user:{user_id}:course:{course_id}"
+
+
+def _chat_completions_url(base_url: str) -> str:
+    cleaned = _clean_text(base_url).rstrip("/")
+    if cleaned.endswith("/chat/completions"):
+        return cleaned
+    if cleaned.endswith("/v1"):
+        return f"{cleaned}/chat/completions"
+    return f"{cleaned}/chat/completions"
+
+
+def _looks_like_no_memory_answer(answer: str) -> bool:
+    normalized = (
+        _clean_text(answer)
+        .lower()
+        .replace("’", "'")
+        .replace("‘", "'")
+        .replace("`", "'")
+    )
+    if not normalized:
+        return True
+    no_memory_markers = [
+        "no relevant course memories",
+        "don't have any stored information",
+        "do not have any stored information",
+        "don't have enough information",
+        "do not have enough information",
+        "don't have the information needed",
+        "do not have the information needed",
+        "not have enough information",
+        "not have the information needed",
+        "could not produce a grounded coaching answer",
+        "not enough grounded course memory",
+    ]
+    return any(marker in normalized for marker in no_memory_markers)
+
+
+def _static_general_coaching_fallback(question: str) -> str:
+    normalized_question = _clean_text(question).lower()
+    if "llm" in normalized_question or "large language model" in normalized_question:
+        return (
+            "An LLM, or Large Language Model, is an AI model trained on a large amount of text so it can understand "
+            "and generate language.\n\n"
+            "Simple example: when you ask it a question, it predicts a useful answer word by word based on patterns "
+            "it learned during training.\n\n"
+            "Why it matters: LLMs can help with explanations, summaries, writing, coding assistance, and learning support.\n\n"
+            "Important limit: an LLM does not truly understand like a human and can sometimes produce incorrect answers, "
+            "so important information should be verified."
+        )
+
+    return (
+        "I do not have enough stored course memory for this question yet, so I cannot ground the answer in your course history. "
+        "You can ask the question inside a specific course or lesson, or provide a little more context and I will help explain it clearly."
+    )
+
+
+def _general_coaching_fallback(question: str) -> str:
+    api_key = _clean_text(DEFAULT_GENERAL_COACH_API_KEY)
+    if not api_key:
+        return _static_general_coaching_fallback(question)
+
+    payload = {
+        "model": DEFAULT_GENERAL_COACH_MODEL,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a concise learning coach. Answer the learner's question clearly. "
+                    "If no course memory is available, give a general educational explanation and avoid claiming "
+                    "that it is based on stored course progress. Keep the answer practical and beginner-friendly."
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"Learner question: {question}",
+            },
+        ],
+        "temperature": 0.2,
+        "max_tokens": 500,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    with httpx.Client(timeout=60.0) as client:
+        response = client.post(_chat_completions_url(DEFAULT_GENERAL_COACH_URL), headers=headers, json=payload)
+
+    response_body = response.json() if response.content else {}
+    if not response.is_success:
+        detail = (
+            _clean_text(_as_dict(response_body).get("error"))
+            or _clean_text(_as_dict(response_body).get("detail"))
+            or f"general coaching fallback failed with status {response.status_code}"
+        )
+        raise RuntimeError(detail)
+
+    choices = _as_list(_as_dict(response_body).get("choices"))
+    first_choice = _as_dict(choices[0]) if choices else {}
+    message = _as_dict(first_choice.get("message"))
+    return _clean_text(message.get("content")) or _clean_text(first_choice.get("text"))
 
 
 class AICoachingAgent2AskInput(BaseModel):
@@ -351,6 +471,15 @@ def _reflect_user_course_with_course_recall(payload: AICoachingAgent2AskInput) -
         "I could not produce a grounded coaching answer from the recalled course and learner memory."
     )
 
+    fallback_used = False
+    if _looks_like_no_memory_answer(answer):
+        try:
+            answer = _general_coaching_fallback(payload.question)
+            fallback_used = True
+            _log("General coaching fallback answered because no relevant Hindsight memory was found.")
+        except Exception as error:
+            _log(f"General coaching fallback failed: {type(error).__name__}: {error}")
+
     if retain_future.done() and retain_result is None and not retain_error:
         try:
             retain_result = _as_dict(retain_future.result())
@@ -370,6 +499,7 @@ def _reflect_user_course_with_course_recall(payload: AICoachingAgent2AskInput) -
                 "action": _clean_text(_as_dict(retain_result).get("action")) or None,
             },
             "retainError": retain_error,
+            "generalFallbackUsed": fallback_used,
         },
         "supportingMemories": combined_supporting_memories[:8],
     }

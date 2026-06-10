@@ -29,21 +29,19 @@ import {
   type TeamProgress,
 } from "@/app/lib/api";
 import { routes } from "@/app/lib/routes";
+import { useAuth } from "@/app/context/AuthContext";
+import { formatDateOnlyForUser } from "@/app/lib/user-date-format";
 
-function formatDate(value?: string | null) {
+function formatDate(value?: string | null, timezone?: string | null) {
   if (!value) {
     return "Unknown";
   }
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString("en-GB");
+  return formatDateOnlyForUser(value, timezone);
 }
 
 export default function TeamManagerTeamDetailPage() {
+  const { user } = useAuth();
   const params = useParams<{ id: string }>();
   const teamId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
@@ -241,7 +239,7 @@ export default function TeamManagerTeamDetailPage() {
                       </p>
                     </div>
                     <span className="hidden rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 sm:inline-flex">
-                      Created {formatDate(team.created_at)}
+                      Created {formatDate(team.created_at, user?.timezone)}
                     </span>
                   </div>
 
@@ -302,7 +300,7 @@ export default function TeamManagerTeamDetailPage() {
                               {member.user_name}
                             </p>
                             <p className="mt-1 text-xs text-slate-500">
-                              {member.role} - Joined {formatDate(member.joined_at)}
+                              {member.role} - Joined {formatDate(member.joined_at, user?.timezone)}
                             </p>
                           </div>
                           <button
