@@ -428,7 +428,7 @@ export async function POST(req: NextRequest) {
                     message: progress.message,
                     scenesGenerated: progress.scenesGenerated,
                     totalScenes: progress.totalScenes,
-                    draftId: draftId || undefined,
+                    draftId: classroomId ? draftId || undefined : undefined,
                     classroomId: classroomId || undefined,
                   });
                 },

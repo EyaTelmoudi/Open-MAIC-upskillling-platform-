@@ -1,8 +1,7 @@
 ﻿% ============================================================
-%  CHAPITRE : FONDEMENTS IA, CONCEPTION ET ARCHITECTURE
-% ============================================================
+%  CHAPITRE 2 : CONCEPT ET ÉTUDE PRÉALABLE
 
-\chapter{Fondements IA, conception et architecture de la solution}
+\chapter{Concepts de base et étude préalable}
 
 \minitoc
 
@@ -12,29 +11,14 @@
 \section{Introduction}
 % ------------------------------------------------------------
 
-Après avoir présenté le contexte du projet, l'étude de l'existant, les exigences fonctionnelles
-et non fonctionnelles ainsi que la méthodologie de travail adoptée, ce chapitre est consacré
-à la conception de la solution proposée et aux choix techniques retenus pour sa mise en œuvre.
+Après avoir présenté le contexte général du projet, l'étude de l'existant, les exigences ainsi que la méthodologie de travail adoptée, ce chapitre introduit les fondements théoriques et les choix d'architecture de la solution proposée.
 
-La réalisation d'une plateforme de formation et de mentorat assistée par l'intelligence
-artificielle repose sur plusieurs concepts liés à l'ingénierie logicielle, aux systèmes distribués
-et aux technologies d'intelligence artificielle. Il est donc nécessaire de présenter les fondements
-techniques sur lesquels s'appuie la plateforme afin de mieux comprendre son architecture et
-l'organisation de ses différents modules.
+La plateforme repose sur plusieurs concepts clés de l'intelligence artificielle moderne, notamment les modèles de langage (LLMs), les systèmes multi-agents, le Retrieval-Augmented Generation (RAG), les embeddings, les prompts système et les agent skills, qui constituent la base du fonctionnement des agents intelligents.
 
-Ce chapitre présente d'abord les principaux concepts mobilisés dans le cadre du projet,
-notamment les modèles de langage de grande taille, les agents intelligents, les systèmes
-multi-agents, les embeddings, les prompts système, les agent skills, le RAG ainsi que les
-mécanismes de mémoire utilisés pour enrichir les interactions avec les agents. Il expose ensuite
-l'architecture globale de la solution, les choix technologiques retenus, l'organisation des services
-et la structure du système multi-agent.
-
-Enfin, ce chapitre présente les modèles de conception et la modélisation des données afin de
-fournir une représentation claire de la solution avant d'aborder sa réalisation et sa validation
-dans les parties suivantes.
+Le chapitre présente également le système de mémoire persistante basé sur Hindsight, ainsi que l'architecture globale de la solution et ses principaux choix techniques, afin de préparer la phase d'implémentation.
 
 % ------------------------------------------------------------
-\section{Fondements de l'intelligence artificielle utilisée}
+\section{Fondements de l'intelligence artificielle}
 % ------------------------------------------------------------
 
 La plateforme développée dans le cadre de ce projet repose sur plusieurs concepts fondamentaux de l'intelligence artificielle moderne qui constituent la base de son fonctionnement.
@@ -43,41 +27,34 @@ Les sections suivantes présentent les principaux fondements mobilisés, notamme
 
 \subsection{Les modèles de langage de grande taille (LLMs)}
 
+Les modèles de langage de grande taille (LLMs) occupent une place essentielle dans les systèmes d'intelligence artificielle modernes. Leur compréhension est indispensable pour comprendre leur intégration et leur rôle au sein de la plateforme.
+
 \subsubsection{Définition des LLMs}
 
 Un grand modèle de langage \cite{cloudflare_llm} (Large Language Model, LLM) est un modèle d'intelligence artificielle entraîné sur de très vastes corpus de données textuelles afin d'apprendre les structures statistiques et sémantiques du langage naturel. Il est capable de comprendre, générer et manipuler du texte avec un haut niveau de cohérence, en produisant des sorties adaptées au contexte d'entrée.
 
 \subsubsection{Utilisation dans le projet}
 
-Dans le cadre de ce projet, les modèles de langage de grande taille sont utilisés pour
-assister certaines fonctionnalités intelligentes de la plateforme. Ils interviennent notamment
-dans la génération de contenus pédagogiques, l'analyse des demandes formulées par les
-utilisateurs, la production de réponses adaptées au contexte d'apprentissage et la génération
-d'activités personnalisées.
+Dans la plateforme, les LLMs sont utilisés comme moteur principal des fonctionnalités intelligentes. Ils interviennent notamment dans :
 
-Ces modèles ne sont pas utilisés de manière isolée. Ils sont intégrés dans des traitements
-applicatifs qui leur fournissent un contexte précis, comme le cours concerné, la progression
-de l'utilisateur ou l'objectif pédagogique recherché. Les réponses produites peuvent ensuite
-être structurées, par exemple sous forme de données JSON, afin d'être exploitées par les
-différents modules de la plateforme.
+\begin{itemize}
+    \item la génération de contenus pédagogiques,
+    \item l'analyse des requêtes des utilisateurs,
+    \item la production de réponses contextualisées,
+    \item la génération d'activités personnalisées.
+\end{itemize}
+
+Ces modèles ne sont pas exploités de manière isolée. Ils sont intégrés dans un pipeline applicatif enrichi par un contexte métier (cours, progression de l'apprenant, objectifs pédagogiques), et leurs sorties peuvent être structurées (ex. JSON) afin d'être exploitées par les différents modules du système.
 
 \subsubsection{Étude du choix du LLM}
 
-Le choix du modèle de langage constitue une étape importante dans la conception des
-fonctionnalités intelligentes de la plateforme. Ce choix doit tenir compte de plusieurs critères,
-notamment la qualité des réponses générées, la capacité du modèle à traiter des contextes
-longs, le coût d'utilisation, la facilité d'intégration et la compatibilité avec les besoins du
-projet.
+Le choix du modèle de langage repose sur plusieurs critères : qualité des réponses, capacité à gérer de longs contextes, coût d'utilisation, facilité d'intégration et compatibilité avec les besoins du projet.
 
-Dans ce cadre, plusieurs modèles de langage ont été étudiés afin d'identifier la solution la
-plus adaptée aux contraintes fonctionnelles et techniques de la plateforme. Le
-tableau~\ref{tab:comparaison_llm} présente une comparaison des principaux modèles
-considérés selon leur fournisseur, leur nombre de paramètres, leur fenêtre de contexte et leur
-coût d'utilisation.
+Une comparaison de plusieurs modèles a été réalisée afin d'identifier la solution la plus adaptée aux contraintes de la plateforme (tableau~\ref{tab:comparaison_llm}).
 
 \begin{table}[H]
 \centering
-\caption{Comparaison des LLMs compatibles avec OpenMAIC et Hindsight}
+\caption{Étude comparative des LLMs}
 \label{tab:comparaison_llm}
 \renewcommand{\arraystretch}{1.25}
 \resizebox{\textwidth}{!}{%
@@ -105,28 +82,23 @@ Mistral Small 4 \cite{mistral_small_4_model_card} & Mistral AI & Non communiqué
 
 \subsubsection{Choix retenu}
 
-Le modèle retenu pour les fonctionnalités d'intelligence artificielle de la plateforme est
-\textit{openai/gpt-oss-120b:free}, accessible via OpenRouter. Ce modèle est utilisé comme
-modèle principal pour la génération de contenus pédagogiques, l'assistance aux utilisateurs,
-la formulation de recommandations et la production de réponses contextualisées.
+Le modèle retenu est \textit{openai/gpt-oss-120b:free}, accessible via OpenRouter. Il est utilisé comme modèle principal pour la génération de contenus pédagogiques, l'assistance aux utilisateurs et la production de réponses contextualisées.
 
-Ce choix s'explique par sa capacité à produire des réponses structurées, sa fenêtre de contexte
-étendue de 131K tokens et son coût nul dans sa variante gratuite. Ces caractéristiques sont
-adaptées aux besoins du projet, notamment pendant les phases de test, d'intégration et de
-validation, où le volume de requêtes peut être important.
+Ce choix s'explique par :
 
-Le modèle hébergé sur les serveurs internes de la société a également été pris en compte,
-notamment pour les cas où l'utilisation d'un modèle local serait préférable du point de vue du
-contrôle de l'environnement d'exécution. Toutefois, ce modèle n'a pas été retenu comme modèle
-principal, car son utilisation reste limitée au réseau interne de l'entreprise. Cette contrainte
-réduit sa disponibilité lors du développement, des tests et des démonstrations réalisées en
-dehors de l'infrastructure de 3S.
+\begin{itemize}
+    \item sa grande fenêtre de contexte (131K tokens),
+    \item son coût nul en version gratuite,
+    \item sa capacité à produire des réponses structurées.
+\end{itemize}
 
-Ainsi, \textit{openai/gpt-oss-120b:free} a été privilégié comme modèle principal, tandis que le
-modèle interne reste une solution complémentaire envisageable dans un contexte d'utilisation
-strictement interne à l'entreprise.
+Un modèle interne de l'entreprise a également été considéré, mais son usage reste limité au réseau interne, ce qui réduit sa flexibilité lors du développement et des tests. Il est donc conservé comme solution complémentaire.
 
 \subsection{Les agents intelligents et les systèmes multi-agents}
+
+Les agents intelligents sont une brique essentielle des systèmes IA modernes, permettant de structurer des comportements autonomes basés sur les LLMs.
+
+Cette section présente leur rôle ainsi que celui des systèmes multi-agents dans l'architecture de la plateforme.
 
 \subsubsection{Définition des agents intelligents}
 
@@ -153,52 +125,19 @@ responsabilités, la modularité et l'évolution progressive du système.
 
 \subsubsection{Utilisation dans le projet}
 
-Dans le cadre de ce projet, l'utilisation d'un système multi-agents a été retenue afin de
-séparer les responsabilités liées aux différentes fonctionnalités intelligentes de la plateforme.
-En effet, les besoins du projet ne se limitent pas à une seule tâche d'assistance : la plateforme
-doit générer des contenus pédagogiques, accompagner les apprenants, mémoriser certaines
-informations utiles, proposer des recommandations et produire des défis personnalisés.
+Dans le cadre de ce projet, une approche multi-agents a été adoptée afin de structurer les différentes fonctionnalités intelligentes de la plateforme. Elle permet de répartir les responsabilités entre plusieurs agents spécialisés, chacun intervenant sur un aspect précis du système.
 
-Le recours à plusieurs agents spécialisés permet donc d'éviter une logique unique trop
-généraliste et difficile à maintenir. Chaque agent prend en charge une responsabilité précise,
-ce qui facilite l'évolution du système, l'amélioration indépendante de chaque fonctionnalité et
-l'adaptation des traitements au contexte de l'apprenant.
+Cette organisation permet d'éviter une logique centralisée unique et favorise la modularité ainsi que l'évolution indépendante des fonctionnalités IA.
 
-Dans cette architecture, certains agents peuvent également s'appuyer sur des sous-agents.
-Un sous-agent désigne ici un composant spécialisé rattaché à un agent principal, chargé
-d'exécuter une tâche interne précise au service de cet agent.
+Les principaux agents intégrés dans la plateforme sont : l'agent de création de cours, l'agent de coaching pédagogique, l'agent de mémoire apprenant, l'agent de recommandation et l'agent de défis personnalisés.
 
-Les principaux agents développés dans la plateforme sont les suivants :
-
-\begin{itemize}
-    \item \textbf{Agent de création de cours :} il assiste la génération de contenus pédagogiques
-    structurés à partir des objectifs de formation et des informations fournies par l'utilisateur.
-    Il s'appuie sur deux sous-agents spécialisés. Le premier est un sous-agent de mémoire de
-    cours, chargé d'exploiter les informations relatives au cours en cours de création afin
-    d'améliorer la cohérence des contenus générés et d'assurer une continuité entre les
-    différentes étapes de construction du cours. Le second est un sous-agent de révision de
-    scènes, qui aide l'administrateur à ajuster certaines parties d'un cours généré à partir
-    d'une consigne de modification, sans devoir réécrire manuellement tout le contenu concerné.
-
-    \item \textbf{Agent de coaching :} il accompagne l'apprenant pendant son parcours de formation
-    en lui fournissant des réponses contextualisées et des conseils adaptés à sa progression.
-
-    \item \textbf{Agent de mémoire apprenant :} il constitue un agent transversal chargé de
-    structurer, conserver et récupérer les informations utiles liées au parcours de l'apprenant,
-    à ses interactions et aux difficultés rencontrées.
-
-    \item \textbf{Agent de recommandation :} il propose des contenus ou des actions adaptés au
-    profil de l'apprenant, à ses compétences et à son avancement dans les parcours de formation.
-
-    \item \textbf{Agent de défis personnalisés :} il génère des exercices ou des défis adaptés au
-    niveau et aux besoins de l'apprenant afin de renforcer l'engagement et la progression.
-\end{itemize}
-
-Ainsi, l'approche multi-agents permet d'organiser les fonctionnalités intelligentes de la
-plateforme autour de responsabilités distinctes, tout en conservant une architecture modulaire
-et évolutive.
+Ainsi, cette architecture multi-agents assure une meilleure spécialisation des traitements tout en maintenant une cohérence globale du système
 
 \subsection{Le Retrieval-Augmented Generation (RAG)}
+
+Le Retrieval-Augmented Generation (RAG) est un mécanisme important utilisé dans la plateforme pour améliorer les réponses des modèles de langage.
+
+Cette section présente son principe général et son intégration dans le projet.
 
 \subsubsection{Définition du RAG}
 
@@ -206,7 +145,7 @@ Le Retrieval-Augmented Generation (RAG) \cite{aws_rag} est une approche qui cons
 
 \subsubsection{Workflow général}
 
-Le fonctionnement général d'un système RAG suit plusieurs étapes. Les données utiles sont d'abord préparées, découpées en fragments et transformées en représentations exploitables pour la recherche, généralement à l'aide d'embeddings. Lorsqu'un utilisateur formule une requête, le système recherche les fragments les plus pertinents dans la base de connaissances, puis les injecte dans le prompt transmis au LLM. Le modèle génère alors une réponse en s'appuyant à la fois sur la question de l'utilisateur et sur le contexte récupéré.
+Le fonctionnement général d'un système RAG suit plusieurs étapes. Les données utiles sont d'abord préparées, découpées en fragments et transformées en représentations exploitables pour la recherche, généralement à l'aide d'embeddings. Lorsqu'un utilisateur formule une requête, le système recherche les fragments les plus pertinents dans la base de connaissances, puis les injecte dans le prompt transmis au LLM. Le modèle génère alors une réponse en s'appuyant à la fois sur la question de l'utilisateur et sur le contexte récupéré. La figure~\ref{fig:rag_workflow} illustre les différentes étapes de ce processus.
 
 \begin{figure}[H]
     \centering
@@ -221,19 +160,15 @@ L'\textit{agentic RAG} \cite{ibm_agentic_rag} désigne une évolution du RAG dan
 
 \subsubsection{Utilisation dans le projet}
 
-Dans la plateforme, l'approche d'\textit{agentic RAG} est utilisée dans les fonctionnalités qui
-nécessitent une réponse contextualisée, notamment le coaching pédagogique, les
-recommandations, les défis personnalisés et l'exploitation de la mémoire liée aux cours ou aux
-apprenants. Elle permet aux agents de récupérer les informations utiles selon la demande, le
-profil de l'utilisateur, le cours concerné et l'objectif pédagogique recherché.
+Dans la plateforme, l'Agentic RAG est utilisé pour les fonctionnalités nécessitant une forte contextualisation, notamment le coaching pédagogique, les recommandations, les défis personnalisés et l'exploitation de la mémoire des cours et des apprenants. Il permet aux agents de récupérer les informations pertinentes en fonction du contexte utilisateur et de l'objectif pédagogique.
 
-Ce choix est plus adapté qu'un RAG classique, car les besoins de récupération varient d'un
-agent à l'autre. Un agent de coaching, un agent de recommandation et un agent de défis
-personnalisés n'exploitent pas le même contexte. L'\textit{agentic RAG} permet donc d'adapter
-la récupération des informations à la responsabilité de chaque agent, afin de produire des
-réponses plus personnalisées et cohérentes avec la situation pédagogique.
+Cette approche est plus adaptée qu'un RAG classique, car chaque agent (coaching, recommandation, défis) exploite un contexte différent. L'Agentic RAG permet ainsi d'adapter dynamiquement la récupération d'informations à chaque responsabilité, afin de produire des réponses plus cohérentes et personnalisées.
 
 \subsection{Modèles d’Embeddings}
+
+Les embeddings jouent un rôle central dans la recherche sémantique et le RAG.
+
+Cette section en présente le principe et l’utilisation dans le projet.
 
 \subsubsection{Définition des embeddings}
 
@@ -245,10 +180,7 @@ Dans les systèmes basés sur les Transformers, les embeddings représentent des
 
 \subsubsection{Étude du choix du modèle d'embeddings}
 
-Le choix du modèle d'embeddings influence directement la qualité de la recherche sémantique
-dans le système RAG. La comparaison porte donc sur la dimension des vecteurs, le mode de
-déploiement, le coût d'utilisation et l'intégration avec les mémoires et les contenus
-pédagogiques de la plateforme.
+Le choix du modèle d'embeddings influence la qualité de la recherche sémantique dans le système RAG. Une comparaison des principaux modèles est présentée dans le tableau~\ref{tab:comparaison_embeddings} selon plusieurs critères techniques et économiques.
 
 \begin{table}[H]
 \centering
@@ -289,6 +221,8 @@ mémoire utilisé dans le projet, qui supporte les embeddings locaux basés sur 
 
 \subsection{Les prompts système des agents IA}
 
+Cette section présente les prompts système des agents IA ainsi que leur utilisation dans la plateforme.
+
 \subsubsection{Définition}
 
 Un prompt système \cite{kern_system_prompt} correspond à un ensemble de consignes placées
@@ -321,7 +255,7 @@ l'Agent de recommandation.
 \begin{figure}[H]
 \centering
 \IfFileExists{figures/system_prompt_agent_defis.png}{%
-    \includegraphics[width=0.95\textwidth]{figures/system_prompt_agent_defis.png}
+    \includegraphics[width=0.75\textwidth]{figures/system_prompt_agent_defis.png}
 }{%
     \fbox{\parbox{0.85\textwidth}{\centering Capture du prompt système de l'Agent de recommandation à insérer ici.}}
 }
@@ -330,6 +264,8 @@ l'Agent de recommandation.
 \end{figure}
 
 \subsection{Les agent skills}
+
+Cette section présente les agent skills et leur intégration dans la plateforme.
 
 \subsubsection{Définition}
 
@@ -341,130 +277,77 @@ un cas particulier.
 
 \subsubsection{Besoin des skills dans le projet}
 
-Dans le cadre de ce projet, l'utilisation des skills permet d'éviter de regrouper toutes les
-règles de fonctionnement dans un seul prompt système. Cette approche rend les agents plus
-modulaires et plus faciles à faire évoluer. Lorsqu'une tâche spécifique doit être réalisée,
-l'agent peut mobiliser uniquement le skill correspondant, sans surcharger son contexte avec
-des consignes inutiles.
+Dans le cadre de ce projet, l'utilisation des skills permet d'éviter de centraliser l'ensemble des règles de fonctionnement dans un seul prompt système. Cette approche rend les agents plus modulaires et facilite leur évolution.
 
-Ce choix est particulièrement utile pour les fonctionnalités qui nécessitent plusieurs modes
-de traitement selon la situation de l'apprenant, comme la génération de défis personnalisés.
-Chaque skill permet alors de traiter un besoin pédagogique précis tout en gardant une
-organisation claire et maintenable.
+Lorsqu'une tâche spécifique doit être exécutée, l'agent peut activer uniquement le skill correspondant, sans alourdir son contexte avec des instructions inutiles. Cela permet une meilleure séparation des responsabilités et une organisation plus claire du comportement des agents.
 
-\subsubsection{Skills ajoutés dans la plateforme}
-
-Dans la plateforme, les skills sont utilisés principalement par l'\textbf{Agent de création de
-cours} et par l'\textbf{Agent de défis personnalisés}. Ils permettent de spécialiser le
-comportement de ces agents selon la nature de la tâche à réaliser, sans surcharger leur prompt
-principal avec toutes les règles possibles.
-
-Pour l'\textbf{Agent de création de cours}, plusieurs skills de génération pédagogique ont été
-ajoutés afin d'encadrer les différentes étapes de construction d'un cours. Un premier skill est
-chargé de transformer la demande de l'utilisateur, les documents fournis et les ressources
-disponibles en un plan structuré comprenant le titre du cours, la langue d'enseignement, les
-scènes, leurs objectifs et leur ordre pédagogique. D'autres skills interviennent ensuite selon le
-type de scène à produire : génération de diapositives, génération de quiz, création de scènes
-interactives, production de simulations, de diagrammes, d'exercices de code ou de jeux éducatifs.
-
-Cet agent utilise également des skills dédiés à la génération des actions pédagogiques associées
-aux scènes, comme les explications orales, les transitions entre les idées ou la mise en évidence
-de certains éléments sur une diapositive. Un skill de révision de scène permet aussi d'aider
-l'administrateur à modifier une scène existante à partir d'une consigne, sans réécrire
-manuellement tout le contenu concerné.
-
-Pour l'\textbf{Agent de défis personnalisés}, les skills permettent d'adapter le type de défi à la
-situation de l'apprenant. Cet agent peut ainsi choisir le mode de défi le plus approprié, générer
-un exercice à partir d'une erreur commise dans un quiz précédent, cibler une difficulté déclarée
-par l'apprenant, exploiter un point important du cours ou proposer un renforcement général à
-partir du contenu étudié.
-
-Ainsi, les skills ajoutés dans la plateforme permettent de séparer les différentes stratégies de
-génération et d'adaptation pédagogique. Cette organisation rend les agents plus modulaires,
-plus lisibles et plus faciles à faire évoluer, tout en améliorant la cohérence des contenus et des
-activités générés.
+Ainsi, les skills contribuent à structurer les logiques de traitement de manière indépendante, tout en améliorant la maintenabilité et la flexibilité du système.
 
 % ------------------------------------------------------------
 \section{Système de mémoire persistante des agents IA}
-% ------------------------------------------------------------
 
-La personnalisation des interactions avec les agents IA nécessite de conserver certaines
-informations au-delà d'une simple session d'utilisation. Dans la plateforme, cette mémoire
-permet de réutiliser les éléments liés au parcours de l'apprenant, aux contenus de formation,
-aux difficultés rencontrées et aux interactions précédentes.
+La mémoire persistante permet aux agents IA de conserver et réutiliser des informations au-delà d'une seule session. Dans la plateforme, elle sert à exploiter le parcours de l'apprenant, ses interactions et les contenus déjà traités.
 
-Cette section revient sur la solution retenue pour mettre en place cette mémoire persistante.
-Elle présente son fonctionnement général, les opérations qui structurent le cycle de vie des
-mémoires, son intégration dans la plateforme ainsi que l'organisation des différentes mémoires
-exploitées par les agents IA.
+Cette section présente la solution retenue pour la gestion de cette mémoire, son fonctionnement et son intégration dans l'architecture de la plateforme.
 
 \subsection{Présentation de Hindsight}
 
-Hindsight \cite{hindsight_homepage} est un système de mémoire conçu pour les agents IA. Il fournit une couche dédiée à la mémorisation, à la récupération et à l'exploitation des informations retenues au fil des interactions. Hindsight ne se limite donc pas à stocker des messages : il vise à construire une mémoire durable, structurée et réutilisable par des agents intelligents \cite{hindsight_github}.
+Hindsight \cite{hindsight_github} est un système de mémoire conçu pour les agents IA. Il fournit une couche dédiée à la mémorisation, à la récupération et à l'exploitation des informations retenues au fil des interactions, permettant ainsi de construire une mémoire durable et réutilisable.
 
-Dans ce projet, Hindsight est retenu comme solution de support à la mémoire persistante
-des agents IA. Son utilisation s'inscrit dans le besoin de conserver un contexte exploitable au
-fil des interactions, afin de renforcer la continuité et la personnalisation des traitements
-réalisés par la plateforme.
+Dans ce projet, Hindsight est retenu comme solution de mémoire persistante pour les agents IA, afin de conserver un contexte exploitable au fil des interactions et de renforcer la continuité des traitements.
 
 \subsection{Architecture générale de Hindsight}
 
-L'architecture de Hindsight peut être comprise en deux niveaux. Le premier niveau correspond à la couche d'intégration : l'agent ou l'application n'accède pas directement au stockage interne, mais communique avec Hindsight à travers un client, un SDK ou une API HTTP. Cette interface expose les opérations de mémoire principales, notamment \textit{retain}, \textit{recall} et \textit{reflect}. Le second niveau correspond à la couche de mémoire elle-même, organisée autour de banques de mémoire, appelées \textit{memory banks}. Chaque banque isole un contexte de mémorisation, par exemple un utilisateur, un agent, un cours ou un domaine métier.
+L'architecture de Hindsight repose sur deux niveaux principaux. Le premier correspond à la couche d'intégration, permettant aux agents de communiquer avec le système via une API, un SDK ou un client. Cette couche expose les opérations essentielles de gestion de mémoire telles que \textit{retain}, \textit{recall} et \textit{reflect}. Le second niveau est la couche de mémoire, organisée en \textit{memory banks} afin d'isoler les contextes selon l'utilisateur, le domaine ou le cours.
 
-À l'intérieur d'une \textit{memory bank}, les informations ne sont pas stockées uniquement comme un historique brut de messages. Hindsight les organise sous plusieurs formes complémentaires. Les documents et leurs fragments, ou \textit{chunks}, constituent les sources initiales. À partir de ces sources, le système extrait des mémoires, des entités, des relations et des informations temporelles. Ces éléments alimentent ensuite différents types de connaissances : des faits liés au monde, des expériences propres à l'agent, des observations consolidées et, dans certains cas, des modèles mentaux qui représentent une compréhension plus stable construite à partir des mémoires accumulées.
-
-La figure~\ref{fig:hindsight_architecture} présente une vue conceptuelle de cette architecture
-et met en évidence l'organisation des sources, des mémoires et des connaissances manipulées
-par Hindsight.
+Au sein de chaque \textit{memory bank}, les informations sont structurées sous forme d'unités enrichies contenant des entités, des relations et des données temporelles. Ces éléments sont ensuite consolidés en différentes formes de connaissances, allant de faits simples à des représentations contextuelles plus globales (Figure~2.3).
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/hindsight_architecture.png}
+\includegraphics[width=0.75\textwidth]{figures/hindsight_architecture.png}
 \caption{Architecture conceptuelle de Hindsight \cite{hindsight_homepage}}
 \label{fig:hindsight_architecture}
 \end{figure}
 
 \subsection{Fonctionnalités fondamentales utilisées}
 
-Dans ce projet, l'intégration de Hindsight repose principalement sur trois opérations complémentaires : \textit{retain}, \textit{recall} et \textit{reflect}. Ces opérations couvrent le cycle de vie de la mémoire d'un agent : enregistrer une information, la retrouver lorsqu'elle devient utile, puis raisonner à partir des mémoires disponibles.
+Dans le cadre du projet, Hindsight s'appuie sur trois opérations principales : \textit{retain}, \textit{recall} et \textit{reflect}, couvrant l'ensemble du cycle de gestion de la mémoire.
 
-\begin{itemize}
-    \item \textbf{Retain :} cette opération correspond à l'écriture dans la mémoire. Comme l'illustre la figure \ref{fig:hindsight_retain_architecture}, Hindsight ne stocke pas directement le texte brut : il utilise le LLM pour extraire les faits importants, identifier les entités, les périodes temporelles et les types de faits, puis normaliser les entités afin d'éviter les doublons. Ces informations sont ensuite transformées en \textit{memory units}, enrichies par des métadonnées et des embeddings, puis reliées entre elles par des liens d'entités, temporels, sémantiques ou causaux. Enfin, les souvenirs sont classés dans des catégories de mémoire, comme \textit{world}, \textit{experience}, \textit{opinion} ou \textit{observation}, avant leur stockage final \cite{hindsight_retain}. Dans la plateforme, cette opération permet de mémoriser les difficultés exprimées par l'apprenant, ses erreurs récurrentes, ses préférences pédagogiques et les éléments importants issus de ses interactions avec les agents.
+\textbf{Retain :} cette opération correspond à l'enregistrement des informations dans la mémoire. Comme illustré à la Figure~\ref{fig:hindsight_retain_architecture}, le système ne stocke pas le texte brut, mais exploite un LLM pour extraire les informations importantes (faits, entités, contexte temporel), puis les normalise afin d'éviter les doublons. Ces données sont transformées en \textit{memory units} enrichies par des métadonnées et des embeddings, puis organisées et classées en différentes catégories (\textit{world}, \textit{experience}, \textit{opinion}, \textit{observation}) avant stockage. Dans la plateforme, cette opération permet de conserver les interactions de l'apprenant, ses difficultés, ses erreurs récurrentes et ses préférences.
 
-    \begin{center}
-        \IfFileExists{figures/hindsight_retain_architecture.png}{%
-            \includegraphics[width=0.98\textwidth]{figures/hindsight_retain_architecture.png}
-        }{%
-            \fbox{\parbox{0.85\textwidth}{\centering Schéma de fonctionnement de l'opération Retain à insérer ici.}}
-        }
-        \captionof{figure}{Fonctionnement de l'opération \textit{Retain} dans Hindsight \cite{hindsight_github}}
-        \label{fig:hindsight_retain_architecture}
-    \end{center}
+\begin{center}
+    \IfFileExists{figures/hindsight_retain_architecture.png}{%
+        \includegraphics[width=0.98\textwidth]{figures/hindsight_retain_architecture.png}
+    }{%
+        \fbox{\parbox{0.85\textwidth}{\centering Schéma de fonctionnement de l'opération Retain à insérer ici.}}
+    }
+    \captionof{figure}{Fonctionnement de l'opération \textit{Retain} dans Hindsight \cite{hindsight_github}}
+    \label{fig:hindsight_retain_architecture}
+\end{center}
 
-    \item \textbf{Recall :} cette opération correspond à la récupération intelligente des mémoires déjà stockées. Comme l'illustre la figure \ref{fig:hindsight_recall_architecture}, Hindsight ne renvoie pas toute la mémoire à l'agent : il lance plusieurs recherches en parallèle, notamment la recherche sémantique par similarité vectorielle, la recherche par mots-clés, l'exploration des liens entre entités et l'exploitation des informations temporelles. Les résultats obtenus sont ensuite fusionnés, réordonnés et filtrés selon le budget de tokens disponible, afin de constituer un ensemble de souvenirs contextualisés à transmettre au LLM \cite{hindsight_recall}. Dans ce projet, \textit{recall} permet donc de retrouver les informations les plus utiles sur l'apprenant, son historique et le cours avant la génération d'une réponse.
+\textbf{Recall :} cette opération correspond à la récupération intelligente des mémoires déjà stockées. Comme l'illustre la figure \ref{fig:hindsight_recall_architecture}, Hindsight ne renvoie pas toute la mémoire à l'agent : il lance plusieurs recherches en parallèle, notamment la recherche sémantique par similarité vectorielle, la recherche par mots-clés, l'exploration des liens entre entités et l'exploitation des informations temporelles. Les résultats obtenus sont ensuite fusionnés, réordonnés et filtrés selon le budget de tokens disponible, afin de constituer un ensemble de souvenirs contextualisés à transmettre au LLM \cite{hindsight_recall}. Dans ce projet, \textit{recall} permet donc de retrouver les informations les plus utiles sur l'apprenant, son historique et le cours avant la génération d'une réponse.
 
-    \begin{center}
-        \IfFileExists{figures/hindsight_recall_architecture.png}{%
-            \includegraphics[width=0.9\textwidth]{figures/hindsight_recall_architecture.png}
-        }{%
-            \fbox{\parbox{0.85\textwidth}{\centering Schéma de fonctionnement de l'opération Recall à insérer ici.}}
-        }
-        \captionof{figure}{Fonctionnement de l'opération \textit{Recall} dans Hindsight \cite{hindsight_github}}
-        \label{fig:hindsight_recall_architecture}
-    \end{center}
+\begin{center}
+    \IfFileExists{figures/hindsight_recall_architecture.png}{%
+        \includegraphics[width=0.9\textwidth]{figures/hindsight_recall_architecture.png}
+    }{%
+        \fbox{\parbox{0.85\textwidth}{\centering Schéma de fonctionnement de l'opération Recall à insérer ici.}}
+    }
+    \captionof{figure}{Fonctionnement de l'opération \textit{Recall} dans Hindsight \cite{hindsight_github}}
+    \label{fig:hindsight_recall_architecture}
+\end{center}
 
-    \item \textbf{Reflect :} cette opération correspond à la phase de réflexion et de mise à jour de la mémoire après une interaction. Comme l'illustre la figure \ref{fig:hindsight_reflect_architecture}, Hindsight récupère d'abord les mémoires pertinentes, construit un contexte, charge le profil de l'agent, puis utilise le LLM pour générer une réponse cohérente avec ce contexte. La réponse produite est ensuite analysée afin d'identifier de nouvelles observations ou de mettre à jour des opinions existantes, avec un niveau de confiance associé. Ces éléments sont réinjectés dans la mémoire persistante, ce qui permet à l'agent d'améliorer progressivement la cohérence de ses futures interactions \cite{hindsight_reflect}. Dans ce projet, \textit{reflect} est utile pour dégager des tendances sur le parcours d'un apprenant, consolider des observations pédagogiques et enrichir la mémoire des agents au fil des échanges.
+\noindent\textbf{Reflect :} cette opération correspond à la phase de réflexion et de mise à jour de la mémoire après une interaction. Comme l'illustre la figure \ref{fig:hindsight_reflect_architecture}, Hindsight récupère d'abord les mémoires pertinentes, construit un contexte, charge le profil de l'agent, puis utilise le LLM pour générer une réponse cohérente avec ce contexte. La réponse produite est ensuite analysée afin d'identifier de nouvelles observations ou de mettre à jour des opinions existantes, avec un niveau de confiance associé. Ces éléments sont réinjectés dans la mémoire persistante, ce qui permet à l'agent d'améliorer progressivement la cohérence de ses futures interactions \cite{hindsight_reflect}. Dans ce projet, \textit{reflect} est utile pour dégager des tendances sur le parcours d'un apprenant, consolider des observations pédagogiques et enrichir la mémoire des agents au fil des échanges.
 
-    \begin{center}
-        \IfFileExists{figures/hindsight_reflect_architecture.png}{%
-            \includegraphics[width=0.9\textwidth]{figures/hindsight_reflect_architecture.png}
-        }{%
-            \fbox{\parbox{0.85\textwidth}{\centering Schéma de fonctionnement de l'opération Reflect à insérer ici.}}
-        }
-        \captionof{figure}{Fonctionnement de l'opération \textit{Reflect} dans Hindsight \cite{hindsight_github}}
-        \label{fig:hindsight_reflect_architecture}
-    \end{center}
-\end{itemize}
+\begin{center}
+    \IfFileExists{figures/hindsight_reflect_architecture.png}{%
+        \includegraphics[width=0.9\textwidth]{figures/hindsight_reflect_architecture.png}
+    }{%
+        \fbox{\parbox{0.85\textwidth}{\centering Schéma de fonctionnement de l'opération Reflect à insérer ici.}}
+    }
+    \captionof{figure}{Fonctionnement de l'opération \textit{Reflect} dans Hindsight \cite{hindsight_github}}
+    \label{fig:hindsight_reflect_architecture}
+\end{center}
 
 En résumé, l'organisation de la mémoire Hindsight repose sur un cycle continu qui permet
 de conserver, d'exploiter et d'améliorer progressivement les informations utiles aux agents IA.
@@ -472,496 +355,38 @@ Cette approche donne à la plateforme une mémoire durable, capable de maintenir
 au fil des interactions et de soutenir une personnalisation plus cohérente des réponses, des
 recommandations et des activités proposées.
 
-\subsection{Infrastructure et configuration de Hindsight dans le projet}
 
-L'infrastructure mise en place pour Hindsight peut être décrite à travers plusieurs éléments complémentaires :
-
-\subsubsection{Position dans l'architecture}
-
-Hindsight est intégré comme une couche de mémoire séparée de la logique applicative. Les
-agents communiquent avec cette couche à travers son API, sans manipuler directement les
-tables, les vecteurs ou les mécanismes internes de recherche. Cette séparation permet de
-centraliser la gestion de la mémoire tout en gardant les agents focalisés sur leurs
-responsabilités fonctionnelles.
-
-\subsubsection{Stockage et persistance}
-
-Les informations mémorisées sont persistées dans une base PostgreSQL conteneurisée,
-configurée avec l'extension \textit{pgvector}. Cette extension permet à PostgreSQL de stocker
-les vecteurs issus des embeddings et d'effectuer des recherches par similarité entre ces
-vecteurs. Ainsi, lorsqu'un agent cherche une information utile, Hindsight peut comparer le
-vecteur de la requête avec les vecteurs déjà enregistrés afin de retrouver les mémoires les plus
-proches sur le plan sémantique.
-
-\subsubsection{Configuration des embeddings}
-
-Dans le cadre du projet, Hindsight a été configuré pour utiliser le modèle
-\textit{BAAI/bge-small-en-v1.5} afin de générer les représentations vectorielles des informations
-mémorisées. Cette configuration permet d'associer chaque mémoire à une représentation
-sémantique exploitable par la couche de mémoire.
-
-\subsubsection{Configuration du LLM}
-
-Hindsight a été configuré pour utiliser \textit{openai/gpt-oss-120b:free} via OpenRouter dans les
-étapes nécessitant de l'analyse ou du raisonnement, notamment l'extraction des faits pendant
-\textit{retain} et l'enrichissement de la mémoire pendant \textit{reflect}. Le modèle
-\textit{gemma-4-4b}, hébergé sur le serveur interne de la société, est conservé comme solution
-alternative lorsque le modèle principal n'est pas disponible ou lorsqu'une utilisation interne
-est requise.
 
 \subsection{Structure des mémoires persistantes dans Hindsight}
 
-Dans ce projet, Hindsight organise les informations sous forme de banques mémoire séparées,
-appelées \textit{memory banks}. Chaque banque est identifiée à partir du \textit{tenantId},
-du \textit{userId} et du \textit{courseId}, selon le contexte concerné. Cette organisation permet
-d'isoler les mémoires par organisation, par apprenant ou par cours, tout en fournissant aux
-agents un contexte précis à exploiter.
+Dans ce projet, Hindsight organise les informations sous forme de \textit{memory banks} séparées, indexées à partir du \textit{tenantId}, du \textit{userId} et du \textit{courseId}. Cette organisation permet d'isoler les contextes (organisation, apprenant, cours) et d'offrir aux agents une mémoire structurée et ciblée. Le préfixe \texttt{tenant:\{tenantId\}} garantit également la cohérence avec l'architecture multi-tenant et évite tout mélange entre environnements.
 
-Le préfixe \texttt{tenant:\{tenantId\}} est conservé dans chaque identifiant afin de rattacher
-chaque mémoire à l'organisation concernée. Ce choix est cohérent avec l'architecture
-multi-tenant de la plateforme et permet d'éviter le mélange des mémoires entre différentes
-filiales ou espaces d'utilisation.
+On distingue principalement quatre types de banques mémoire :
 
 \begin{itemize}
-    \item \textbf{Banque de cours :} elle contient la mémoire pédagogique du cours publié et
-    suit l'identifiant :
+    \item \textbf{Banque de cours} \\
+    \texttt{tenant:\{tenantId\}:course:\{courseId\}} \\
+    Elle contient la mémoire pédagogique stable du cours (objectifs, leçons, quiz, supports, concepts). Elle est alimentée après la publication du cours et utilisée par les agents de coaching, recommandation et défis.
 
-    \begin{center}
-    \texttt{tenant:\{tenantId\}:course:\{courseId\}}
-    \end{center}
+    \item \textbf{Banque apprenant-cours} \\
+    \texttt{tenant:\{tenantId\}:user:\{userId\}:course:\{courseId\}} \\
+    Elle regroupe l'historique de l'apprenant dans un cours (progression, résultats, erreurs, difficultés, interactions et retours).
 
-    Elle est alimentée par le sous-agent de mémoire de cours après la génération et la
-    publication du cours. Elle conserve les éléments stables du contenu pédagogique :
-    objectifs, leçons, explications, quiz, supports, transcriptions vidéo et concepts importants.
-    Cette banque est notamment utilisée par l'Agent de coaching, l'Agent de recommandation
-    et l'Agent de défis personnalisés.
+    \item \textbf{Banque générale de l'apprenant} \\
+    \texttt{tenant:\{tenantId\}:user:\{userId\}} \\
+    Elle stocke les informations transversales comme les préférences pédagogiques, le profil et les connaissances générales.
 
-    \item \textbf{Banque apprenant-cours :} elle représente l'historique personnel d'un
-    apprenant dans un cours donné et suit la forme :
-
-    \begin{center}
-    \texttt{tenant:\{tenantId\}:user:\{userId\}:course:\{courseId\}}
-    \end{center}
-
-    Elle est alimentée par l'Agent de mémoire apprenant à partir des événements du parcours :
-    complétion de leçon, progression vidéo, résultats de quiz, mauvaises réponses, difficultés
-    détectées, messages de coaching liés au cours et résultats des défis personnalisés.
-
-    \item \textbf{Banque générale de l'apprenant :} elle mémorise les informations durables qui
-    ne sont pas limitées à un cours particulier, comme les préférences pédagogiques, les
-    éléments de profil, les connaissances préalables ou les informations générales exprimées
-    pendant les échanges. Son identifiant est :
-
-    \begin{center}
-    \texttt{tenant:\{tenantId\}:user:\{userId\}}
-    \end{center}
-
-    \item \textbf{Banque de profil de compétences :} elle est utilisée par l'Agent de
-    recommandation pour conserver la synthèse des compétences de l'apprenant, notamment
-    son profil de compétences et l'analyse de ses écarts de compétences. Elle suit l'identifiant :
-
-    \begin{center}
-    \texttt{tenant:\{tenantId\}:user:\{userId\}:skill-profile}
-    \end{center}
-
-    Elle permet à l'Agent de recommandation de s'appuyer sur une mémoire synthétique déjà
-    structurée, sans recalculer toute l'analyse à chaque demande.
+    \item \textbf{Banque de profil de compétences} \\
+    \texttt{tenant:\{tenantId\}:user:\{userId\}:skill-profile} \\
+    Elle contient une synthèse des compétences et des écarts, utilisée principalement par l'Agent de recommandation pour éviter les recalculs.
 \end{itemize}
 
-Ainsi, la structure des mémoires dans Hindsight repose sur une séparation entre la connaissance du cours, l'historique de l'apprenant dans un cours, le profil général de l'apprenant et la synthèse de ses compétences. Cette organisation rend la mémoire plus contrôlable et limite les risques de confusion entre les contextes. Elle permet aussi aux agents de choisir la bonne banque selon leur objectif : comprendre le contenu d'un cours, analyser la progression d'un apprenant, personnaliser une réponse ou produire une recommandation.
+Ainsi, cette structuration sépare clairement les connaissances liées au cours, au parcours utilisateur et aux compétences. Elle améliore la lisibilité de la mémoire, limite les ambiguïtés et permet aux agents de sélectionner directement le contexte pertinent selon leur objectif.
 
-\section{Architecture de la plateforme}
-
-Cette section présente l'architecture globale retenue pour la plateforme. Elle décrit d'abord
-l'organisation générale du système en couches, afin de clarifier la séparation entre l'interface
-utilisateur, les services métier, les composants IA, la mémoire persistante et les données. Elle
-présente ensuite l'architecture microservices du backend, le modèle multi-tenant adopté, la
-structure des données ainsi que l'organisation des agents IA intégrés à la solution.
-
-\subsection{Vue d'ensemble de l'architecture}
-
-La plateforme repose sur une architecture en couches afin de structurer le système de manière
-claire et évolutive. Cette vue d'ensemble permet de présenter les principales responsabilités de
-la solution ainsi que les échanges entre ses composants.
-
-\subsubsection{Organisation générale des couches}
-
-L'architecture est structurée autour de six couches principales, présentées de haut en bas selon le parcours d'une requête dans le système :
-
-\begin{enumerate}
-    \item \textbf{Couche de présentation :} elle correspond à l'interface web utilisée par les
-    différents profils de la plateforme. Elle permet d'afficher les données, de déclencher les
-    actions utilisateur et de communiquer avec le backend à travers des appels API.
-
-    \item \textbf{Couche API Gateway :} elle constitue le point d'entrée unique entre
-    l'interface web et les services internes. Elle reçoit les requêtes du frontend, les redirige
-    vers le service approprié et centralise l'accès aux fonctionnalités backend.
-
-    \item \textbf{Couche des microservices :} elle regroupe les services responsables des
-    principaux domaines fonctionnels de la plateforme, tels que l'identité, l'administration,
-    la gestion des cours, le suivi de progression et la gamification. Elle applique les règles
-    métier et prépare les données nécessaires aux traitements du système.
-
-    \item \textbf{Couche IA :} elle regroupe les agents spécialisés responsables des traitements
-    intelligents de la plateforme, comme la création assistée de cours, le coaching, la
-    mémorisation, la recommandation et la génération de défis personnalisés.
-
-    \item \textbf{Couche Hindsight :} elle constitue la couche de mémoire persistante utilisée
-    par les agents IA. Elle permet de conserver et de récupérer les informations utiles à la
-    personnalisation des traitements.
-
-    \item \textbf{Couche de données :} elle regroupe les systèmes de stockage utilisés par la
-    plateforme, notamment PostgreSQL et les composants nécessaires à la persistance des
-    données métier, des historiques et des résultats produits par le système.
-\end{enumerate}
-
-La figure~\ref{fig:platform_layered_architecture} synthétise cette organisation en couches
-et montre la position des principaux composants de la plateforme.
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/platform_layered_architecture.png}{%
-        \includegraphics[width=0.95\textwidth,height=0.72\textheight,keepaspectratio]{figures/platform_layered_architecture.png}
-    }{%
-        \fbox{\parbox{0.85\textwidth}{\centering Schéma d'architecture en couches à insérer ici.}}
-    }
-    \caption{Vue d'ensemble de l'architecture en couches de la plateforme}
-    \label{fig:platform_layered_architecture}
-\end{figure}
-
-\subsubsection{Articulation entre les couches}
-
-Ces six couches s'articulent de manière progressive. L'utilisateur interagit avec la couche de présentation, qui envoie ses requêtes vers l'\textit{API Gateway}. Celle-ci transmet les appels aux microservices concernés. Lorsque le traitement nécessite une personnalisation ou une génération intelligente, les microservices sollicitent la couche IA. Les agents peuvent alors récupérer ou enrichir le contexte à travers Hindsight, puis retourner le résultat vers les services métier. Les données nécessaires au suivi applicatif sont ensuite stockées dans la couche de données, tandis que les traces utiles à la personnalisation sont conservées dans la mémoire persistante.
-
-\subsubsection{Séparation entre logique métier et logique IA}
-
-Cette organisation met en évidence une séparation importante entre la logique métier et la logique IA. Les microservices restent responsables des règles fonctionnelles de la plateforme, alors que les agents IA sont responsables des traitements intelligents liés au contenu, à l'accompagnement et à la personnalisation. Cette séparation rend l'architecture plus lisible, facilite l'évolution des agents et limite l'impact d'une modification IA sur le fonctionnement métier de la plateforme.
-
-Les sous-sections suivantes détaillent ensuite les deux parties principales de cette architecture : l'organisation microservices du backend, puis l'architecture des agents IA et leurs workflows.
-
-\subsection{Architecture microservices du backend}
-
-L'architecture backend de la plateforme repose sur une approche microservices. Ce choix permet d'éviter un backend monolithique dans lequel l'authentification, la gestion pédagogique, le suivi des apprenants et les traitements IA seraient regroupés dans une seule application. La plateforme couvre plusieurs domaines fonctionnels distincts ; il est donc plus adapté de séparer ces responsabilités afin de faciliter la maintenance, l'évolution et le déploiement progressif des fonctionnalités.
-
-Dans ce projet, le backend est structuré autour de quatre services principaux :
-\textit{Identity}, \textit{Learning}, \textit{Agents} et \textit{API Gateway}. Ce découpage permet
-d'introduire les principaux composants backend qui seront détaillés dans les sous-sections
-suivantes.
-
-\subsubsection{API Gateway}
-
-L'accès aux microservices est centralisé à travers une couche \textit{API Gateway}. Traefik, utilisé comme reverse proxy, est chargé de recevoir les requêtes entrantes et de les rediriger vers le microservice approprié selon les règles de routage définies. Cette couche reçoit les requêtes provenant du frontend, applique les règles de routage et transmet chaque appel vers le service approprié. Elle permet donc au frontend de communiquer avec un point d'entrée unique au lieu de connaître directement les adresses internes des services. Elle facilite aussi l'organisation des routes API, l'isolation des services dans le réseau Docker et l'évolution de l'architecture lorsqu'un nouveau service est ajouté.
-
-\subsubsection{Microservices réels et modules fonctionnels internes}
-
-Dans l'implémentation de la plateforme, le backend n'est pas découpé en autant de services que de fonctionnalités. Il repose sur trois microservices principaux : \textit{identity}, \textit{learning} et \textit{agents}. Les éléments comme l'authentification, la gestion des rôles, les cours, la progression, les quiz, les recommandations ou les défis correspondent donc à des modules fonctionnels internes rattachés à l'un de ces microservices, et non à des microservices indépendants.
-
-\begin{itemize}
-    \item \textbf{Microservice identity :} ce microservice porte tout le domaine lié à l'identité et à l'accès à la plateforme. Il contient les modules internes d'authentification, de gestion des tenants, de gestion des utilisateurs, des rôles, des permissions, de l'onboarding, de la configuration initiale et des journaux d'audit. Il constitue donc le point de référence pour contrôler qui accède à la plateforme et avec quels droits.
-
-    \item \textbf{Microservice learning :} ce microservice regroupe le domaine pédagogique de la plateforme. Il contient les modules internes liés aux cours, aux modules, aux leçons, aux inscriptions, à la progression, aux quiz, aux tentatives, aux objectifs, aux équipes, à la gamification, aux recommandations métier et aux défis côté plateforme. Les recommandations et les défis ne sont donc pas des microservices séparés : ce sont des fonctionnalités du service \textit{learning} qui peuvent préparer les données, sauvegarder les résultats et appeler la couche IA lorsque la génération intelligente est nécessaire.
-
-    \item \textbf{Microservice agents :} ce microservice constitue le composant backend dédié aux traitements d'intelligence artificielle. Il regroupe la logique d'orchestration des agents de création de cours, de coaching pédagogique, de mémoire apprenant, de recommandation et de défis personnalisés. Il reçoit les demandes provenant de la plateforme, prépare le contexte nécessaire, déclenche l'agent concerné, puis retourne un résultat exploitable par les services métier. Il centralise ainsi l'exécution des workflows IA et isole cette logique spécialisée du reste du backend.
-\end{itemize}
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/backend_microservices_components.png}{%
-        \includegraphics[width=0.98\textwidth,height=0.74\textheight,keepaspectratio]{figures/backend_microservices_components.png}
-    }{%
-        \fbox{\parbox{0.85\textwidth}{\centering Diagramme de composants UML des microservices backend à insérer ici.}}
-    }
-    \caption{Diagramme de l'architecture microservices du backend}
-    \label{fig:backend_microservices_components}
-\end{figure}
-
-\subsubsection{Communication entre les services}
-
-La communication entre le frontend et le backend passe principalement par l'\textit{API Gateway},
-qui redirige les requêtes vers les microservices concernés selon les routes définies.
-
-La majorité des échanges sont synchrones lorsqu'une réponse immédiate est attendue par
-l'utilisateur, par exemple lors de la connexion, de l'ouverture d'une leçon ou de la récupération
-d'une recommandation. Certaines actions métier peuvent aussi déclencher des traitements IA,
-comme l'indexation d'un cours publié, la mémorisation d'une trace apprenant ou la génération
-de recommandations à partir d'un quiz échoué.
-
-\subsection{Architecture multi-tenant}
-
-Une architecture multi-tenant désigne un modèle dans lequel une même instance applicative
-est partagée par plusieurs organisations, appelées tenants, tout en maintenant une séparation
-logique de leurs données, de leurs utilisateurs et de leurs règles d'accès
-\cite{medimagh_multitenant}.
-
-Dans le cadre de ce projet, ce choix est adapté au contexte du groupe 3S, composé de
-plusieurs sociétés pouvant utiliser une même plateforme de formation tout en conservant leurs
-propres utilisateurs, rôles, cours et données de suivi. L'objectif est donc de mutualiser
-l'infrastructure applicative tout en garantissant l'isolation des données entre les organisations.
-
-\subsubsection{Isolation des données au niveau des services}
-
-L'isolation des données est appliquée au niveau des services backend afin de garantir que
-chaque organisation accède uniquement à ses propres informations. Cette séparation repose
-principalement sur l'association des données métier à un identifiant de tenant, appelé
-\textit{tenant\_id}. Lorsqu'une requête est traitée, ce contexte permet aux services backend de
-sélectionner uniquement les données appartenant à l'organisation concernée.
-
-Les services de la plateforme exploitent ensuite ce contexte pour limiter les utilisateurs, les
-rôles, les cours, les inscriptions, les progressions et les traitements IA au périmètre de
-l'organisation concernée. Ainsi, même si l'infrastructure applicative est partagée entre plusieurs
-sociétés du groupe 3S, les données et les traitements restent séparés logiquement.
-
-\subsubsection{Gestion des rôles par tenant}
-
-La gestion des rôles suit aussi cette logique multi-tenant. Un utilisateur possède généralement un rôle dans un tenant donné, par exemple \textit{Admin}, \textit{Formateur} ou \textit{Apprenant}. L'\textit{Admin} gère la configuration et les membres de son organisation, le \textit{Formateur} crée ou administre les contenus pédagogiques, tandis que l'\textit{Apprenant} consulte les cours, passe les quiz et reçoit les recommandations ou défis personnalisés. En complément, la plateforme prévoit un rôle \textit{Super Admin}, rattaché à la couche administrative du groupe 3S. Ce rôle dispose d'une vision transversale sur les tenants et permet de créer, configurer ou administrer les différentes sociétés du groupe depuis un niveau central. Comme l'illustre la figure~\ref{fig:multi_tenant_use_case_roles}, cette organisation permet donc d'appliquer des droits spécifiques à chaque tenant, tout en conservant un niveau d'administration global pour le pilotage de l'ensemble de la plateforme.
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/multi_tenant_use_case_roles.png}{%
-        \makebox[\textwidth][c]{%
-            \includegraphics[width=1.05\textwidth,height=0.84\textheight,keepaspectratio]{figures/multi_tenant_use_case_roles.png}%
-        }
-    }{%
-        \fbox{\parbox{0.85\textwidth}{\centering Diagramme de cas d'utilisation UML des rôles multi-tenant à insérer ici.}}
-    }
-    \caption{Diagramme de cas d'utilisation UML des rôles dans l'architecture multi-tenant}
-    \label{fig:multi_tenant_use_case_roles}
-\end{figure}
-
-Cette architecture garantit donc que la plateforme reste commune au niveau technique, tout en séparant les organisations au niveau fonctionnel et au niveau des données. Cette logique se retrouve directement dans le modèle de données, où les principales informations métier sont rattachées à un tenant afin de préserver l'isolation entre les sociétés du groupe.
-
-\subsection{Modèle de données}
-
-Le modèle de données de la plateforme repose sur une base relationnelle PostgreSQL pour
-stocker les informations structurées du système. Ces données concernent principalement les
-utilisateurs, les organisations, les cours, les inscriptions, la progression des apprenants, les
-évaluations, les défis personnalisés et les recommandations.
-
-Ce choix est adapté au projet, car ces informations sont fortement liées entre elles et nécessitent
-une cohérence relationnelle afin d'assurer le suivi des parcours, le contrôle des accès et la
-gestion des contenus pédagogiques. Les données propres à chaque organisation restent rattachées
-au contexte du tenant, conformément à l'architecture multi-tenant présentée précédemment.
-
-\subsubsection{Organisation générale des données}
-
-Les données manipulées par la plateforme peuvent être regroupées en plusieurs familles
-fonctionnelles. La première concerne l'identité et l'administration des organisations. La deuxième
-porte sur les contenus pédagogiques, notamment les cours, modules, leçons et évaluations. La
-troisième concerne le suivi de l'apprentissage, à travers les inscriptions, la progression et les
-résultats des apprenants. Enfin, certaines données sont liées aux fonctionnalités intelligentes,
-comme les recommandations, les profils de compétences et les défis personnalisés.
-
-Cette organisation permet de structurer les informations nécessaires au fonctionnement de la
-plateforme sans exposer inutilement les détails internes de chaque table.
-
-\subsubsection{Stockage hybride des ressources}
-
-La plateforme adopte un stockage hybride afin de séparer les données structurées des ressources
-pédagogiques volumineuses. Les métadonnées, comme le titre d'un cours, l'ordre d'une leçon,
-l'inscription d'un apprenant ou le score d'un quiz, sont conservées dans PostgreSQL.
-
-En revanche, les fichiers pédagogiques tels que les vidéos, images, documents PDF, miniatures
-et supports de cours sont stockés dans MinIO, un stockage objet compatible S3. La base
-relationnelle conserve uniquement les références vers ces ressources, par exemple sous forme de
-chemins ou de liens.
-
-Cette séparation permet d'alléger la base relationnelle, de mieux gérer les fichiers volumineux
-et de faciliter l'organisation des ressources pédagogiques par tenant. Elle offre ainsi une
-structure plus adaptée aux besoins d'une plateforme de formation contenant à la fois des données
-métier et des contenus multimédias.
-
-Ainsi, le modèle de données combine une base relationnelle pour assurer la cohérence des
-informations métier et un stockage objet pour gérer efficacement les ressources pédagogiques.
-Cette organisation soutient à la fois le fonctionnement multi-tenant et le suivi des parcours
-d'apprentissage.
-
-\subsection{Architecture des agents IA}
-
-La couche IA de la plateforme est organisée autour de plusieurs agents spécialisés, chacun associé à une responsabilité pédagogique précise. L'objectif n'est pas de construire un seul agent généraliste chargé de toutes les tâches, mais de répartir les traitements intelligents entre des agents plus ciblés : agent de création de cours, agent de coaching pédagogique, agent de mémoire apprenant, agent de recommandation et agent de défis personnalisés. Cette séparation permet de mieux contrôler le comportement de chaque agent et d'adapter ses consignes au contexte fonctionnel dans lequel il intervient.
-
-\subsubsection{Agent de création de cours}
-
-Cet agent assure la génération assistée des cours à travers une orchestration autour d'OpenMAIC. À partir d'une consigne fournie par l'expert pédagogique, éventuellement accompagnée d'un document PDF, il prépare la demande, suit l'exécution du processus et récupère le brouillon produit. OpenMAIC prend en charge la génération principale du contenu pédagogique, notamment les scènes de cours, les diapositives, les scripts du professeur, les quiz et, lorsque c'est pertinent, les activités interactives. Le résultat n'est pas un fichier statique, mais un brouillon structuré et éditable, ensuite sauvegardé dans la plateforme afin d'être révisé, validé puis transformé en cours officiel. Après la validation finale, le cours peut être enrichi par la génération audio TTS et transmis au Course Memory Agent pour son intégration dans la mémoire persistante. Le déroulement détaillé de cet agent est illustré par la figure \ref{fig:course_maker_agent_workflow}.
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/course_maker_agent_workflow.png}{%
-        \makebox[\textwidth][c]{\includegraphics[width=1.05\textwidth,height=0.72\textheight,keepaspectratio]{figures/course_maker_agent_workflow.png}}
-    }{%
-        \fbox{\parbox{0.85\textwidth}{\centering Diagramme d'activité UML de l'agent de création de cours à insérer ici.}}
-    }
-    \caption{Diagramme d'activité UML de l'agent de création de cours}
-    \label{fig:course_maker_agent_workflow}
-\end{figure}
-
-\subsubsection{Agent de coaching pédagogique}
-
-Cet agent accompagne l'apprenant pendant son parcours en répondant à ses questions à partir du contexte du cours et de sa mémoire personnelle. Lorsqu'une question est posée, la plateforme transmet la demande à l'agent \textit{AI Coaching Agent}. Celui-ci récupère d'abord les informations pertinentes du cours à travers l'opération \textit{recall} de Hindsight, tout en déclenchant la mémorisation de la question de l'apprenant via l'agent de mémoire apprenant. Les éléments rappelés sont ensuite utilisés pour construire une requête enrichie, puis Hindsight exécute une opération \textit{reflect} sur la mémoire propre à l'apprenant et au cours. La réponse produite est ainsi contextualisée, liée au contenu pédagogique et adaptée à l'historique de l'utilisateur. Le déroulement de cet agent est illustré par la figure \ref{fig:ai_coaching_agent_workflow}.
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/ai_coaching_agent_workflow.png}{%
-        \makebox[\textwidth][c]{\includegraphics[width=1.02\textwidth,height=0.70\textheight,keepaspectratio]{figures/ai_coaching_agent_workflow.png}}
-    }{%
-        \fbox{\parbox{0.85\textwidth}{\centering Diagramme d'activité UML de l'agent de coaching pédagogique à insérer ici.}}
-    }
-    \caption{Diagramme d'activité UML de l'agent de coaching pédagogique}
-    \label{fig:ai_coaching_agent_workflow}
-\end{figure}
-
-\subsubsection{Agent de mémoire apprenant}
-
-Cet agent alimente la mémoire persistante du suivi pédagogique. Il est déclenché par plusieurs événements du parcours apprenant, comme l'envoi d'un message au \textit{AI Coaching Agent}, la complétion d'une leçon, le passage d'un quiz, la progression dans une vidéo, la détection d'une difficulté, la réponse à un défi personnalisé ou la complétion d'un cours. Après validation des données reçues, il prépare le contenu à mémoriser. Pour les messages de coaching, il vérifie les mémoires similaires avec \textit{recall} afin d'éviter les doublons, puis conserve les nouvelles informations avec \textit{retain}. Pour les autres événements d'apprentissage, il enregistre une trace structurée dans la banque mémoire de l'apprenant et du cours. Ces informations peuvent ensuite être rappelées par les autres agents pour personnaliser leurs réponses.
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/learner_memory_agent_workflow.png}{%
-        \makebox[\textwidth][c]{\includegraphics[angle=90,width=1.15\textheight,height=1.42\textwidth,keepaspectratio]{figures/learner_memory_agent_workflow.png}}
-    }{%
-        \fbox{\parbox{0.85\textwidth}{\centering Diagramme d'activité UML de l'agent de mémoire apprenant à insérer ici.}}
-    }
-    \caption{Diagramme d'activité UML de l'agent de mémoire apprenant}
-    \label{fig:learner_memory_agent_workflow}
-\end{figure}
-
-\subsubsection{Agent de recommandation}
-
-Cet agent a pour objectif de personnaliser le parcours d'apprentissage en proposant à chaque apprenant les actions les plus adaptées à son état actuel. Il s'appuie d'abord sur les mémoires liées aux cours suivis par l'apprenant afin de construire un \textit{skill gap radar}, c'est-à-dire une synthèse des domaines de compétences maîtrisés, partiellement maîtrisés ou encore faibles. Les compétences faibles sont ensuite comparées avec le catalogue des cours publiés. Cette comparaison ne repose pas uniquement sur une décision manuelle : Hindsight et le LLM interviennent pour transformer les signaux d'apprentissage en domaines de compétences, tandis que l'agent applique ensuite une logique de correspondance par mots-clés entre ces compétences et les informations des cours, comme le titre, la description, la catégorie et le niveau. Pour chaque cours candidat, un score de pertinence est calculé selon le nombre de mots-clés communs, l'état de la compétence détectée et la situation de l'apprenant dans le cours. Par exemple, une compétence non maîtrisée reçoit une priorité plus forte, tandis qu'un cours déjà terminé est moins favorisé. Si le score obtenu dépasse le seuil défini, l'agent génère une recommandation de cours, de leçon ou de révision selon le contexte. Dans le cas contraire, il propose simplement un sujet à retravailler. Le déroulement détaillé de cet agent est présenté dans la figure \ref{fig:recommendation_agent_workflow}.
-
-\begin{figure}[H]
-    \centering
-    \IfFileExists{figures/recommendation_agent_workflow.png}{%
-        \makebox[\textwidth][c]{\includegraphics[width=1.05\textwidth,height=0.72\textheight,keepaspectratio]{figures/recommendation_agent_workflow.png}}
-    }{%
-        \fbox{\parbox{0.85\textwidth}{\centering Diagramme d'activité UML de l'agent de recommandation à insérer ici.}}
-    }
-    \caption{Diagramme d'activité UML de l'agent de recommandation}
-    \label{fig:recommendation_agent_workflow}
-\end{figure}
-
-\subsubsection{Agent de défis personnalisés}
-
-Cet agent, appelé \textit{Solo Challenge Agent}, est lancé automatiquement lorsque l'utilisateur se connecte et accède à la plateforme. Son rôle est de préparer une courte activité personnalisée, généralement sous forme d'une question à choix multiples, afin de renforcer une notion liée au parcours réel de l'apprenant. Au démarrage, la plateforme transmet les informations d'identification de l'utilisateur, notamment le \textit{tenantId}, le \textit{userId} et le rôle. L'agent recherche ensuite le cours le plus pertinent pour le défi : il utilise en priorité le dernier cours publié auquel l'apprenant est inscrit, mais il peut basculer vers le cours d'un quiz échoué récent lorsque cette difficulté n'a pas encore été corrigée par un défi réussi.
-
-    L'agent interroge ensuite Hindsight avec l'opération \textit{recall} sur la mémoire propre à l'apprenant et au cours, afin de récupérer les difficultés, confusions, mauvaises réponses et signaux pédagogiques déjà mémorisés. Ces éléments sont utilisés pour choisir le type de défi à générer. Cette décision est encadrée par le skill \textit{solo-challenge-mode-selector}. Ce skill contient les règles de sélection du mode de défi : il impose de choisir exactement un mode parmi \textit{failed\_quiz\_reformulation}, \textit{learner\_reported\_difficulty}, \textit{course\_problem\_signal} et \textit{general\_course\_reinforcement}. Le premier mode cible un quiz réellement échoué, le deuxième cible une difficulté explicitement déclarée par l'apprenant, le troisième exploite un signal de blocage détecté dans la mémoire, et le dernier sert de renforcement général lorsqu'aucune difficulté prioritaire n'est disponible.
-
-    Après la sélection du mode, l'agent charge le skill détaillé correspondant. Par exemple, le mode \textit{failed\_quiz\_reformulation} demande de reformuler une question liée au concept échoué sans recopier l'énoncé original, tandis que le mode \textit{learner\_reported\_difficulty} transforme une difficulté déclarée en question ciblée. La génération finale est réalisée avec Hindsight \textit{reflect} sur la banque mémoire du cours. L'agent attend une réponse structurée contenant le titre du défi, l'introduction, l'énoncé, quatre options, la bonne réponse et une explication. Avant d'envoyer le défi à l'interface, la plateforme sauvegarde la tentative dans PostgreSQL, masque la bonne réponse côté client, puis vérifie la réponse de l'apprenant lors de la soumission. Le résultat est ensuite mémorisé par l'agent de mémoire apprenant afin d'enrichir les futures recommandations et les prochains défis. Le déroulement détaillé de cet agent est illustré par la figure \ref{fig:solo_challenge_agent_workflow}.
-
-\begin{landscape}
-\begin{figure}[p]
-    \centering
-    \IfFileExists{figures/solo_challenge_agent_workflow.png}{%
-        \includegraphics[width=1.08\linewidth,height=0.88\textheight,keepaspectratio]{figures/solo_challenge_agent_workflow.png}
-    }{%
-        \fbox{\parbox{0.85\linewidth}{\centering Diagramme d'activité UML de l'agent de défis personnalisés à insérer ici.}}
-    }
-    \caption{Diagramme d'activité UML de l'agent de défis personnalisés}
-    \label{fig:solo_challenge_agent_workflow}
-\end{figure}
-\end{landscape}
-
-En conclusion, cette architecture met en place une couche IA structurée autour de workflows spécialisés, mais cohérents entre eux. Chaque traitement intelligent est déclenché dans un contexte précis, reçoit des données bien définies et produit une sortie exploitable par la plateforme. Cette séparation évite de concentrer toute la logique d'intelligence artificielle dans un seul composant et facilite le contrôle du comportement de chaque agent. Elle permet également d'assurer une personnalisation progressive du parcours apprenant, car les décisions prises par les agents s'appuient sur les événements réels de l'utilisation de la plateforme. Ainsi, l'architecture proposée ne se limite pas à ajouter des réponses générées par IA : elle organise l'IA comme une couche fonctionnelle intégrée au système, capable d'accompagner la création, le suivi, l'analyse et l'adaptation du parcours pédagogique.
-
-\section{Choix technologiques et justification}
-
-Cette section présente les principales technologies retenues pour la réalisation de la plateforme.
-L'objectif n'est pas seulement de lister les outils utilisés, mais de justifier leur choix par rapport
-aux besoins techniques du projet et aux alternatives possibles.
-
-\subsection{Stack frontend et backend}
-
-La plateforme repose sur une stack web séparant l'interface utilisateur, les services backend
-et les traitements liés à l'intelligence artificielle. Les choix technologiques ont été effectués
-en tenant compte de la maintenabilité, de la modularité, de la compatibilité avec l'architecture
-microservices et de la facilité d'intégration avec les autres composants du système.
-
-Le tableau~\ref{tab:frontend_backend_stack} présente les principales technologies retenues
-pour le frontend et le backend, ainsi que leur rôle et leur justification technique.
-
-\begin{table}[H]
-\centering
-\small
-\renewcommand{\arraystretch}{1.25}
-\caption{Tableau comparatif des technologies frontend et backend retenues}
-\label{tab:frontend_backend_stack}
-\begin{tabularx}{\textwidth}{|p{2.8cm}|p{4.2cm}|X|}
-\hline
-\textbf{Technologie} & \textbf{Rôle dans le projet} & \textbf{Justification} \\
-\hline
-React & Construction des composants de l'interface utilisateur. & React permet de construire des interfaces modulaires à partir de composants réutilisables, ce qui facilite l'organisation des écrans et la maintenance de l'interface. \\
-\hline
-Next.js & Framework frontend basé sur React pour organiser les pages et les routes. & Next.js apporte une structure applicative au-dessus de React, avec un routage intégré et une meilleure organisation des pages, alors qu'une application React seule nécessite davantage de configuration. \\
-\hline
-FastAPI & Développement des microservices backend. & FastAPI s'intègre directement avec l'écosystème Python utilisé par les services IA et offre une définition rapide d'API REST typées, alors que NestJS aurait introduit une stack backend Node.js séparée. \\
-\hline
-Traefik & Routage des requêtes vers les services backend. & Traefik s'intègre facilement avec Docker et permet de centraliser le routage vers les différents services backend à partir de règles déclarées dans l'environnement de déploiement. \\
-\hline
-\end{tabularx}
-\end{table}
-
-\subsection{Bases de données, IA et infrastructure}
-
-Les choix liés au stockage, à la mémoire persistante, aux modèles d'IA et au déploiement ont
-été réalisés en fonction des contraintes du projet : cohérence des données, isolation par tenant,
-recherche sémantique, simplicité de déploiement et maîtrise des coûts.
-
-Le tableau~\ref{tab:data_ai_infra_stack} synthétise les choix retenus pour les données, l'IA
-et l'infrastructure.
-
-\begingroup
-\small
-\renewcommand{\arraystretch}{1.18}
-\begin{longtable}{|p{2.7cm}|p{4.2cm}|p{7.2cm}|}
-\caption{Tableau comparatif des technologies de données, IA et infrastructure}
-\label{tab:data_ai_infra_stack}\\
-\hline
-\textbf{Technologie} & \textbf{Rôle dans le projet} & \textbf{Justification} \\
-\hline
-\endfirsthead
-\hline
-\textbf{Technologie} & \textbf{Rôle dans le projet} & \textbf{Justification} \\
-\hline
-\endhead
-PostgreSQL & Stockage des données relationnelles de la plateforme. & PostgreSQL est adapté aux données fortement liées, comme les utilisateurs, cours, inscriptions et progressions, car il garantit la cohérence relationnelle nécessaire au suivi pédagogique. \\
-\hline
-pgvector & Stockage et recherche des représentations vectorielles. & pgvector permet d'ajouter la recherche par similarité directement dans PostgreSQL, ce qui simplifie l'infrastructure et évite de maintenir un service de stockage vectoriel indépendant. \\
-\hline
-MinIO & Stockage objet des fichiers pédagogiques volumineux. & MinIO permet de gérer efficacement les vidéos, images, PDF et supports de cours, tandis que PostgreSQL conserve uniquement les métadonnées et les références vers ces ressources. \\
-\hline
-Hindsight & Mémoire persistante exploitée par les agents IA. & Hindsight fournit des opérations dédiées à la mémorisation et à la récupération sémantique, ce qui permet d'exploiter une mémoire plus structurée qu'un simple historique de conversation. \\
-\hline
-Agno & Orchestration des agents IA et structuration de leurs workflows. & Agno permet d'organiser les agents autour de rôles, d'outils et de workflows explicites, ce qui facilite la maintenance des traitements IA et leur intégration dans la plateforme. \\
-\hline
-OpenRouter / LLM & Accès au modèle de langage principal utilisé par les fonctionnalités IA. & OpenRouter permet d'utiliser un modèle performant et accessible hors réseau interne, tout en conservant le modèle local de l'entreprise comme solution de secours lorsque le contexte le permet. \\
-\hline
-RabbitMQ & Gestion des échanges asynchrones entre certains services. & RabbitMQ permet de traiter des événements métier sans bloquer directement le parcours utilisateur, ce qui convient aux notifications et aux traitements déclenchés en arrière-plan. \\
-\hline
-Redis & Stockage temporaire de contextes préparés pour certains agents IA. & Redis est adapté aux données intermédiaires et temporaires, tandis que PostgreSQL reste réservé aux données métier persistantes nécessitant une cohérence relationnelle. \\
-\hline
-Piper & Génération audio locale pour la synthèse vocale des contenus. & Piper permet de produire des voix de synthèse dans l'environnement de déploiement, ce qui limite la dépendance à un service externe pour la génération audio. \\
-\hline
-Docker / Docker Compose & Conteneurisation et orchestration locale des services de la plateforme. & Docker isole les services dans des conteneurs reproductibles, tandis que Docker Compose facilite leur lancement coordonné dans un même environnement. \\
-\hline
-\end{longtable}
-\endgroup
 
 \section{Conclusion}
 
-Ce chapitre a permis de poser les bases nécessaires à la conception de la plateforme proposée.
-Les notions liées à l'intelligence artificielle ont été abordées en relation directe avec les besoins
-du projet, notamment la personnalisation des parcours, l'assistance des utilisateurs et
-l'exploitation du contexte d'apprentissage. Cette analyse a permis de montrer que les
-fonctionnalités intelligentes ne constituent pas un ajout isolé, mais un élément intégré au
-fonctionnement global de la solution.
+Ce chapitre a permis de poser les bases théoriques nécessaires à la compréhension de la solution proposée. Ces fondements constituent le socle sur lequel repose l'ensemble des mécanismes d'intelligence et d'interaction de la plateforme.
 
-La conception présentée dans ce chapitre met en évidence une architecture organisée autour
-de responsabilités clairement séparées. Cette organisation facilite l'évolution de la plateforme,
-l'intégration des agents IA, la gestion de la mémoire persistante et l'isolation des données entre
-les différentes organisations. Les choix technologiques retenus viennent soutenir cette
-architecture en répondant aux contraintes de modularité, de traçabilité, de recherche
-sémantique et de déploiement.
+Ils offrent ainsi une vision claire des principes qui guident la conception et la mise en œuvre du système dans la suite du projet.
 
-Ainsi, ce chapitre établit le cadre conceptuel et architectural sur lequel repose la réalisation
-de la plateforme. Le chapitre suivant sera consacré à la mise en oeuvre de la solution, à travers
-la présentation des principales fonctionnalités développées et de leur fonctionnement dans
-l'environnement applicatif.

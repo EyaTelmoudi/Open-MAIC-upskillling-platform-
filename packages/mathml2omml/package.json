@@ -31,10 +31,12 @@
   "files": [
     "dist"
   ],
+  "dependencies": {
+    "entities": "^6.0.0"
+  },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@rollup/plugin-node-resolve": "^16.0.1",
-    "entities": "^6.0.0",
     "husky": "^9.1.7",
     "jest": "^29.7.0",
     "lint-staged": "^15.5.0",

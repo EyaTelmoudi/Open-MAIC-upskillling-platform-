@@ -73,7 +73,10 @@ def check_enrollment_completion(db: Session, user_id: UUID, course_id: UUID) -> 
             .filter(
                 UserProgress.user_id == user_id,
                 UserProgress.lesson_id == lesson.id,
-                UserProgress.status == "completed",
+                or_(
+                    UserProgress.status == "completed",
+                    UserProgress.completed_at.isnot(None),
+                ),
             )
             .first()
         )
@@ -423,7 +426,10 @@ class VideoProgressService:
         video_data["last_heartbeat"] = datetime.utcnow().isoformat()
 
         progress.video_data = video_data
-        progress.status = "completed" if completion_unlocked else "in_progress"
+        if was_completed or completion_unlocked:
+            progress.status = "completed"
+        else:
+            progress.status = "in_progress"
 
         if progress.status == "completed" and not progress.completed_at:
             progress.completed_at = datetime.utcnow()

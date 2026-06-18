@@ -190,7 +190,9 @@ export async function generateClassroom(
     modelString,
     providerId,
     apiKey,
-  } = await resolveModel({});
+  } = await resolveModel({
+    modelString: process.env.CLASSROOM_GENERATION_MODEL || process.env.DEFAULT_MODEL,
+  });
   log.info(`Using server-configured model: ${modelString}`);
 
   // Fail fast if the resolved provider has no API key configured

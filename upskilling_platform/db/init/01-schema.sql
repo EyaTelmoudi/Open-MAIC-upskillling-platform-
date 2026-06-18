@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS tenants (
     entra_tenant_id VARCHAR(255),
     entra_redirect_uris JSONB DEFAULT '[]'::jsonb,
     seat_limit INTEGER,
-    created_by_id UUID REFERENCES users(id),
+    created_by_id UUID,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -47,6 +47,17 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS ix_users_email ON users (email);
 CREATE INDEX IF NOT EXISTS ix_users_tenant_id ON users (tenant_id);
 CREATE INDEX IF NOT EXISTS ix_users_invitation_token ON users (invitation_token);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_tenants_created_by_id_users'
+    ) THEN
+        ALTER TABLE tenants
+            ADD CONSTRAINT fk_tenants_created_by_id_users
+            FOREIGN KEY (created_by_id) REFERENCES users(id);
+    END IF;
+END $$;
 
 -- Courses (updated with tenant_id)
 CREATE TABLE IF NOT EXISTS courses (
@@ -263,7 +274,8 @@ CREATE TABLE IF NOT EXISTS skills (
     description TEXT,
     category VARCHAR NOT NULL,
     esco_code VARCHAR,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- Skill Edges (graph relationships between skills)

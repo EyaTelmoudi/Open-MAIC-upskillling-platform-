@@ -38,7 +38,6 @@ import {
   type GoalMetricsSummary,
 } from "@/app/lib/goal-utils";
 import {
-  AlertTriangle,
   Flag,
   ListChecks,
   Loader2,
@@ -937,19 +936,6 @@ export function GoalsContent({ workspace = "learner", view = "details" }: GoalsC
                   </>
                 )}
 
-                {!canManageGoals && (
-                  <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-primary" />
-                      <h2 className="text-lg font-semibold text-text-primary">Good Goal Design</h2>
-                    </div>
-                    <ul className="mt-4 space-y-3 text-sm text-text-secondary">
-                      <li>Use auto-tracked goals whenever the platform can measure the result.</li>
-                      <li>Use reminders from the platform as your “what should I do next?” signal.</li>
-                      <li>Set fewer goals, but make each one concrete and deadline-driven.</li>
-                    </ul>
-                  </div>
-                )}
               </div>
             </div>
             )}

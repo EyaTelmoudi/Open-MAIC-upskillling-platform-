@@ -25,6 +25,10 @@ export default {
 	plugins: [
 		resolve({ preferBuiltins: true }),
 		commonjs(),
-		typescript({ typescript: require("typescript") }),
+		typescript({
+			typescript: require("typescript"),
+			cacheRoot: "../../.rpt2-cache-pptxgenjs",
+			clean: true,
+		}),
 	]
 };

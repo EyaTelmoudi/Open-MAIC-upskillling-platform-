@@ -164,6 +164,8 @@
   }%
 }
 
+\let\l@introduction\l@chapter
+
 \makeatother
 
 % =========================
@@ -200,7 +202,15 @@
 \input{introduction_generale}
 \input{chapitres/chapitre1}
 \input{chapitres/chapitre3}
+\input{chapitres/chapitre2}
 \input{chapitres/chapitre4}
+\input{chapitres/chapitre5}
+
+% =========================
+% CONCLUSION ET PERSPECTIVES
+% =========================
+
+\input{conclusion}
 
 % =========================
 % BIBLIOGRAPHIE
@@ -224,5 +234,8 @@
 \printbibliography[heading=none, keyword=web]
 
 \appendix
+
+\clearpage
+\includepdf[pages=-]{abstract.pdf}
 
 \end{document}

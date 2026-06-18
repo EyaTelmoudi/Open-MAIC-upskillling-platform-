@@ -53,6 +53,21 @@ DEFAULT_GENERAL_COACH_API_KEY = (
     or os.getenv("OPENAI_API_KEY")
     or ""
 )
+DEFAULT_SECONDARY_GENERAL_COACH_MODEL = (
+    os.getenv("AI_COACHING_AGENT_2_SECONDARY_GENERAL_MODEL")
+    or os.getenv("AI_COACHING_AGENT_2_FALLBACK_MODEL")
+    or ""
+)
+DEFAULT_SECONDARY_GENERAL_COACH_URL = (
+    os.getenv("AI_COACHING_AGENT_2_SECONDARY_GENERAL_MODEL_URL")
+    or os.getenv("AI_COACHING_AGENT_2_FALLBACK_MODEL_URL")
+    or ""
+)
+DEFAULT_SECONDARY_GENERAL_COACH_API_KEY = (
+    os.getenv("AI_COACHING_AGENT_2_SECONDARY_GENERAL_MODEL_API_KEY")
+    or os.getenv("AI_COACHING_AGENT_2_FALLBACK_MODEL_API_KEY")
+    or ""
+)
 AGENT_PREFIX = "[AI Coaching Agent 2]"
 
 
@@ -154,13 +169,12 @@ def _static_general_coaching_fallback(question: str) -> str:
     )
 
 
-def _general_coaching_fallback(question: str) -> str:
-    api_key = _clean_text(DEFAULT_GENERAL_COACH_API_KEY)
+def _call_general_coaching_provider(question: str, *, model: str, url: str, api_key: str) -> str:
     if not api_key:
-        return _static_general_coaching_fallback(question)
+        raise RuntimeError("general coaching provider API key is not configured")
 
     payload = {
-        "model": DEFAULT_GENERAL_COACH_MODEL,
+        "model": model,
         "messages": [
             {
                 "role": "system",
@@ -185,7 +199,7 @@ def _general_coaching_fallback(question: str) -> str:
     }
 
     with httpx.Client(timeout=60.0) as client:
-        response = client.post(_chat_completions_url(DEFAULT_GENERAL_COACH_URL), headers=headers, json=payload)
+        response = client.post(_chat_completions_url(url), headers=headers, json=payload)
 
     response_body = response.json() if response.content else {}
     if not response.is_success:
@@ -199,7 +213,42 @@ def _general_coaching_fallback(question: str) -> str:
     choices = _as_list(_as_dict(response_body).get("choices"))
     first_choice = _as_dict(choices[0]) if choices else {}
     message = _as_dict(first_choice.get("message"))
-    return _clean_text(message.get("content")) or _clean_text(first_choice.get("text"))
+    answer = _clean_text(message.get("content")) or _clean_text(first_choice.get("text"))
+    if answer:
+        return answer
+
+    reasoning = _clean_text(message.get("reasoning"))
+    if reasoning:
+        raise RuntimeError("general coaching provider returned reasoning but no answer content")
+
+    raise RuntimeError("general coaching provider returned an empty answer")
+
+
+def _general_coaching_fallback(question: str) -> str:
+    providers = [
+        (
+            "primary",
+            _clean_text(DEFAULT_GENERAL_COACH_MODEL),
+            _clean_text(DEFAULT_GENERAL_COACH_URL),
+            _clean_text(DEFAULT_GENERAL_COACH_API_KEY),
+        ),
+        (
+            "secondary",
+            _clean_text(DEFAULT_SECONDARY_GENERAL_COACH_MODEL),
+            _clean_text(DEFAULT_SECONDARY_GENERAL_COACH_URL),
+            _clean_text(DEFAULT_SECONDARY_GENERAL_COACH_API_KEY),
+        ),
+    ]
+
+    for label, model, url, api_key in providers:
+        if not model or not url or not api_key:
+            continue
+        try:
+            return _call_general_coaching_provider(question, model=model, url=url, api_key=api_key)
+        except Exception as error:
+            _log(f"General coaching {label} provider failed: {type(error).__name__}: {error}")
+
+    return _static_general_coaching_fallback(question)
 
 
 class AICoachingAgent2AskInput(BaseModel):
@@ -526,6 +575,25 @@ def ask_with_ai_coaching_agent_2(step_input: StepInput) -> StepOutput:
         return StepOutput(content=_success_content(structured), success=True)
     except Exception as error:
         _log(f"Course recall + user-course reflect failed: {type(error).__name__}: {error}")
+        fallback_answer = _general_coaching_fallback(payload.question)
+        return StepOutput(
+            content=_success_content(
+                {
+                    "answer": fallback_answer,
+                    "bankId": _build_user_course_bank_id(payload.tenantId, payload.userId, payload.courseId),
+                    "basedOn": {
+                        "courseRecall": {},
+                        "userCourseReflect": {},
+                        "learnerMemoryRetention": {},
+                        "retainError": None,
+                        "generalFallbackUsed": True,
+                        "fallbackReason": f"{type(error).__name__}: {error}",
+                    },
+                    "supportingMemories": [],
+                }
+            ),
+            success=True,
+        )
         return StepOutput(
             content={
                 "success": False,

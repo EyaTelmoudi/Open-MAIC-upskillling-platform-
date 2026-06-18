@@ -637,7 +637,10 @@ export function AiCourseBuilderContent({
               scenesGenerated: eventData.scenesGenerated,
               totalScenes: eventData.totalScenes,
             });
-            if (eventData.draftId) {
+            if (
+              eventData.draftId &&
+              ['draft_initialized', 'scene_ready'].includes(eventData.step)
+            ) {
               void loadDraft(eventData.draftId, { allowNotReady: true }).catch(() => undefined);
             }
           } else if (eventData.type === 'done') {

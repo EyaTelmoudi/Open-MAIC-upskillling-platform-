@@ -12,8 +12,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const IDENTITY_BASE = process.env.NEXT_PUBLIC_IDENTITY_URL || API_BASE;
+const API_BASE =
+  process.env.INTERNAL_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  'http://localhost:8000';
+const IDENTITY_BASE =
+  process.env.INTERNAL_IDENTITY_URL ||
+  process.env.NEXT_PUBLIC_IDENTITY_URL ||
+  API_BASE;
 
 const SETUP_ALLOWED_PATHS = [
   '/setup',

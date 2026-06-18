@@ -12,26 +12,29 @@ services:
     networks:
       - upskilling_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:3.12-management
+    hostname: rabbitmq
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_NODENAME: rabbit@rabbitmq
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - upskilling_network
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "timeout 5 bash -ec '</dev/tcp/127.0.0.1/5672'"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 180s
 
   minio:
     image: minio/minio:latest
@@ -49,6 +52,47 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  hindsight:
+    build:
+      context: ../hindsight/hindsight
+      dockerfile: docker/standalone/Dockerfile
+      target: api-only
+      args:
+        INCLUDE_API: "true"
+        INCLUDE_CP: "false"
+        INCLUDE_LOCAL_MODELS: "${HINDSIGHT_INCLUDE_LOCAL_MODELS:-false}"
+        PRELOAD_ML_MODELS: "${HINDSIGHT_PRELOAD_ML_MODELS:-false}"
+    restart: unless-stopped
+    stop_grace_period: 30s
+    env_file: ${APP_ENV_FILE:-.env}
+    environment:
+      HINDSIGHT_ENABLE_API: "true"
+      HINDSIGHT_ENABLE_CP: "false"
+      HINDSIGHT_API_HOST: 0.0.0.0
+      HINDSIGHT_API_PORT: 8888
+      HINDSIGHT_API_LOG_LEVEL: ${HINDSIGHT_API_LOG_LEVEL:-info}
+      HINDSIGHT_API_LLM_PROVIDER: ${HINDSIGHT_API_LLM_PROVIDER:-openrouter}
+      HINDSIGHT_API_LLM_API_KEY: ${HINDSIGHT_API_LLM_API_KEY:-${OPENROUTER_API_KEY:-}}
+      HINDSIGHT_API_LLM_BASE_URL: ${HINDSIGHT_API_LLM_BASE_URL:-}
+      HINDSIGHT_API_LLM_MODEL: ${HINDSIGHT_API_LLM_MODEL:-openai/gpt-oss-120b:free}
+      HINDSIGHT_API_OPENROUTER_API_KEY: ${HINDSIGHT_API_OPENROUTER_API_KEY:-${OPENROUTER_API_KEY:-}}
+      HINDSIGHT_API_EMBEDDINGS_PROVIDER: ${HINDSIGHT_API_EMBEDDINGS_PROVIDER:-openrouter}
+      HINDSIGHT_API_RERANKER_PROVIDER: ${HINDSIGHT_API_RERANKER_PROVIDER:-openrouter}
+      HINDSIGHT_API_SKIP_LLM_VERIFICATION: ${HINDSIGHT_API_SKIP_LLM_VERIFICATION:-false}
+      HINDSIGHT_API_LAZY_RERANKER: ${HINDSIGHT_API_LAZY_RERANKER:-true}
+    expose:
+      - "8888"
+    volumes:
+      - hindsight_data:/home/hindsight/.pg0
+    networks:
+      - upskilling_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
 
   traefik:
     image: traefik:v3.1
@@ -77,7 +121,7 @@ services:
         NEXT_PUBLIC_AGENTS_URL: ${PUBLIC_APP_URL}
         NEXT_PUBLIC_NOTIFICATIONS_URL: ${PUBLIC_APP_URL}
         NEXT_PUBLIC_FRONTEND_URL: ${PUBLIC_APP_URL}
-        NEXT_PUBLIC_SETUP_KEY: ${SETUP_KEY}
+        NEXT_PUBLIC_SETUP_KEY: ${SETUP_SECRET_KEY}
         SKIP_NEXT_BUILD_CHECKS: "1"
     restart: unless-stopped
     env_file: ${APP_ENV_FILE:-.env}
@@ -85,9 +129,11 @@ services:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
+      INTERNAL_API_URL: http://traefik
+      INTERNAL_IDENTITY_URL: http://identity:8001
       LEARNING_URL: http://learning:8002
       LEARNING_SERVICE_BASE_URL: http://learning:8002
-      HINDSIGHT_URL: ${HINDSIGHT_URL:-}
+      HINDSIGHT_URL: ${HINDSIGHT_URL:-http://hindsight:8888}
       HINDSIGHT_API_KEY: ${HINDSIGHT_API_KEY:-}
     expose:
       - "3000"
@@ -105,6 +151,8 @@ services:
       learning:
         condition: service_started
       notifications:
+        condition: service_started
+      hindsight:
         condition: service_started
 
   identity:
@@ -212,6 +260,7 @@ volumes:
   postgres_data:
   rabbitmq_data:
   minio_data:
+  hindsight_data:
 
 networks:
   upskilling_network:

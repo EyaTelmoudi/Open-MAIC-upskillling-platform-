@@ -1,4 +1,4 @@
-\chapter{Contexte général et étude de l’existant}
+\chapter{Contexte général et méthodologie de travail}
 
 \minitoc
 
@@ -8,7 +8,8 @@
 
 Ce chapitre a pour objectif de présenter le cadre général du projet de fin d’études. 
 Nous commençons par une présentation de l’entreprise d’accueil ainsi que de ses principaux domaines d’activité. 
-Ensuite, nous étudions les solutions existantes dans le domaine concerné afin d’identifier leurs limites et les améliorations possibles. 
+Ensuite, nous exposons la problématique à l’origine du projet ainsi que les objectifs visés. 
+Nous étudions également les solutions existantes dans le domaine concerné afin d’identifier leurs limites avant de présenter la solution proposée. 
 Enfin, nous présentons les exigences du projet ainsi que la méthodologie de travail adoptée durant sa réalisation.
 
 % =====================================================
@@ -68,87 +69,17 @@ Cette palette de compétences, combinée à l'écosystème du Groupe 3S, permet 
 
 
 
-\section{Contexte du projet}
+\section{Contexte et objectifs du projet}
 
-Ce projet intitulé \textit{« Plateforme de formation et de mentorat assistée par l'intelligence artificielle »} a été 
-réalisé au sein de la société Standard Sharing Software (3S) dans le cadre du Projet de Fin 
-d'Études en vue de l'obtention du diplôme national d'ingénieur.
+Ce projet intitulé \textit{« Plateforme de formation et de mentorat assistée par l'intelligence artificielle »} a été réalisé au sein de la société Standard Sharing Software (3S) dans le cadre du Projet de Fin d'Études en vue de l'obtention du diplôme national d'ingénieur.
 
-% =====================================================
+Dans un environnement professionnel en constante évolution, les entreprises peinent à assurer une montée en compétences efficace de leurs collaborateurs. Les dispositifs de formation classiques montrent aujourd'hui leurs limites, notamment en matière de motivation et d'engagement des apprenants face à des contenus statiques et peu personnalisés.
 
-\subsection{Problématique}
+Les observations réalisées au sein de 3S montrent que l'intégration et l'évolution des collaborateurs nécessitent un accompagnement régulier afin de faciliter l'acquisition de compétences, le suivi de la progression et l'adaptation des parcours aux besoins réels de chaque profil. Toutefois, cet accompagnement dépend fortement de la disponibilité des encadrants, ce qui peut créer des écarts de progression et rendre difficile l'évaluation objective des acquis.
 
-Dans un environnement professionnel en constante évolution, les entreprises peinent à assurer 
-une montée en compétences efficace de leurs collaborateurs. Les dispositifs de formation classiques montrent 
-aujourd'hui leurs limites : les études indiquent que seulement 10 à 15\% des cours en ligne 
-sont effectivement complétés, révélant un problème profond de motivation et d'engagement des 
-apprenants face à des contenus statiques et non personnalisés.
+À cela s'ajoute l'absence de mécanismes structurés de coaching et de mentorat dans les plateformes existantes, qui restent souvent rigides et peu intelligentes.
 
-Les observations réalisées au sein de 3S montrent que l'intégration des nouveaux collaborateurs 
-et l'évolution continue des équipes nécessitent un accompagnement régulier afin de leur permettre 
-de comprendre rapidement les outils, les méthodes de travail et les technologies utilisées dans 
-les projets. Toutefois, cet accompagnement dépend fortement de la disponibilité des encadrants 
-et des membres expérimentés de l'équipe. Cette situation peut entraîner des écarts de progression 
-entre les apprenants et rendre difficile l'évaluation objective de leurs acquis.
-
-À cela s'ajoute l'absence quasi totale de mécanismes de coaching et de mentorat structurés 
-au sein des plateformes existantes. Les collaborateurs se retrouvent souvent sans suivi individualisé 
-ni accompagnement adapté à leur profil 
-et à leur progression. Les outils disponibles sur le marché restent cloisonnés, rigides et peu 
-intelligents : ils ne permettent pas d'identifier les lacunes en temps réel, de recommander des 
-contenus pertinents ni de mettre en relation efficacement un apprenant avec un mentor qualifié.
-
-Dans ce contexte, le projet répond à un besoin réel observé au sein de l'entreprise. Il 
-propose une solution adaptée permettant de structurer les parcours de formation, de 
-renforcer l'accompagnement des collaborateurs et de mieux suivre leur progression tout 
-au long de leur montée en compétences.
-
-% =====================================================
-
-\subsection{Objectif}
-
-Ce projet vise à concevoir et développer une plateforme web intelligente qui centralise la 
-gestion des formations, le suivi des compétences et le mentorat au sein de l'entreprise. 
-L'objectif est de proposer à chaque apprenant un parcours personnalisé, soutenu par des 
-recommandations intelligentes et un coaching adapté à son profil et à sa progression.
-
-La plateforme intègre également des mécanismes de gamification afin de renforcer la motivation 
-des utilisateurs et d'améliorer le taux de complétion des formations. Elle doit aussi permettre 
-à plusieurs entités du Groupe 3S d'utiliser la solution de manière indépendante, tout en 
-partageant une infrastructure commune. Cette organisation vise à garantir une gestion séparée 
-des utilisateurs, des données et des configurations propres à chaque entité.
-
-% =====================================================
-
-\subsection{Solution proposée}
-
-Pour répondre à ces problématiques, nous proposons une plateforme web intelligente intégrant 
-la gestion des utilisateurs, des formations, des compétences et des parcours d'apprentissage, 
-ainsi qu'un module de mentorat structurant la relation entre mentors et apprenants.
-
-L'intelligence artificielle est au cœur de la solution : des modules intelligents exploitant 
-le contexte de l'utilisateur assurent des recommandations personnalisées, une assistance continue et un 
-coaching adapté à chaque utilisateur. Dans ce cadre, la recommandation IA désigne la proposition 
-de contenus adaptés au profil de l'apprenant, l'assistance IA correspond à l'aide fournie à 
-l'utilisateur lors de son parcours, tandis que le coaching IA renvoie à un accompagnement 
-personnalisé basé sur sa progression et ses besoins. Des fonctionnalités de gamification complètent cette 
-expérience en encourageant l'engagement et la progression des apprenants tout au long de 
-leur parcours.
-
-La solution est conçue pour être utilisée par plusieurs filiales du Groupe 3S à partir d'une 
-infrastructure commune. Pour cela, elle repose sur une organisation multi-tenant, c'est-à-dire 
-un modèle dans lequel plusieurs entités utilisent la même application tout en disposant chacune 
-d'un espace indépendant. Chaque filiale peut ainsi gérer ses propres utilisateurs, ses formations, 
-ses parcours et ses paramètres, sans interférence avec les autres entités.
-
-Ce choix est particulièrement adapté au Groupe 3S, car celui-ci regroupe plusieurs filiales aux 
-activités et besoins de formation différents, tout en appartenant à une même structure 
-organisationnelle. Une telle approche permet donc de mutualiser l'infrastructure technique, de 
-faciliter l'administration globale de la solution et de préserver l'autonomie de chaque filiale 
-dans la gestion de ses données et de ses parcours de formation.
-
-
-
+Dans ce contexte, le projet répond à un besoin réel de structuration des parcours de formation et d'amélioration du suivi et de l'accompagnement des collaborateurs. Il vise à concevoir une plateforme web intelligente centralisant les formations, les compétences et le mentorat, avec des mécanismes de personnalisation, de recommandation et de gamification afin d'améliorer l'engagement et l'efficacité de l'apprentissage.
 
 \section{Étude et analyse de l'existant}
 
@@ -267,18 +198,19 @@ des solutions étudiées selon les critères retenus pour notre projet.
 \caption{Comparaison des solutions existantes}
 \label{tab:comparaison}
 
-\renewcommand{\arraystretch}{1.6}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.25}
+\footnotesize
 
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{|p{3.8cm}|p{3cm}|p{3cm}|p{3cm}|p{3cm}|p{3cm}|p{3cm}|}
+\begin{tabular}{|p{2.5cm}|p{1.9cm}|p{1.9cm}|p{1.9cm}|p{1.9cm}|p{2cm}|p{1.9cm}|}
 
 \hline
 
 \textbf{Critère} 
-& \textbf{\shortstack{Google\\Skills}} 
-& \textbf{\shortstack{Duolingo}} 
+& \textbf{Google Skills} 
+& \textbf{Duolingo} 
 & \textbf{360Learning} 
-& \textbf{\shortstack{CYPHER\\Learning}}
+& \textbf{CYPHER Learning}
 & \textbf{OpenMAIC}
 & \textbf{Moodle} \\
 
@@ -289,7 +221,7 @@ Coaching IA
 & Oui (GPT-4) 
 & Partiel 
 & Non  
-& Oui (multi-agents + LLM externe requis)
+& Oui (multi-agents + LLM)
 & Non \\
 
 \hline
@@ -307,7 +239,7 @@ Gamification
 Génération auto de cours 
 & Non 
 & Oui (IA générative) 
-& Oui (à partir de PDF/DOCX) 
+& Oui (PDF/DOCX) 
 & Oui (CYPHER Copilot) 
 & Oui (multi-agents)
 & Non \\
@@ -319,7 +251,7 @@ Assistance conversationnelle
 & Oui (Lily) 
 & Non 
 & Non 
-& Oui (AI Teacher + assistants + classmates orchestrés)
+& Oui (AI Teacher + assistants)
 & Non \\
 
 \hline
@@ -344,11 +276,11 @@ Suivi des compétences
 
 \hline
 
-Confidentialité des données 
-& Faible (serveurs Google) 
-& Faible (serveurs Duolingo) 
+Confidentialité 
+& Faible (Google) 
+& Faible (Duolingo) 
 & Bonne (RGPD, AI Act) 
-& Moyenne (cloud éditeur)  
+& Moyenne (cloud)  
 & Totale (auto-hébergeable)
 & Totale (auto-hébergeable) \\
 
@@ -369,29 +301,28 @@ Open source
 & Non 
 & Non 
 & Non 
-& Oui (AGPL-3.0, self-hosted, extensible, BYO LLM requis)
+& Oui (AGPL-3.0, BYO LLM)
 & Oui (GPL) \\
 
 \hline
 
 \textbf{Coût} 
 
-& \textbf{Gratuit (Starter) ; Pro à 29\$/mois ; Career Certificates à 49\$/mois \cite{googleSkills}}
+& \textbf{Gratuit (Starter) ; Pro 29\$/mois \cite{googleSkills}}
 
-& \textbf{Gratuit ; Super Duolingo à partir de 12,99\$/mois ; Max avec fonctionnalités IA avancées \cite{duolingoMax}}
+& \textbf{Gratuit ; Super Duolingo 12,99\$/mois \cite{duolingoMax}}
 
-& \textbf{8\$/utilisateur/ mois (Team) ; Business et Enterprise sur devis \cite{learning360prix}}
+& \textbf{8\$/utilisateur/mois (Team) \cite{learning360prix}}
 
-& \textbf{Sur devis (à partir d’environ 10\,000\$/an selon les besoins de l’organisation) \cite{cypherLearningprix}}  
+& \textbf{Sur devis (dès 10\,000\$/an) \cite{cypherLearningprix}}  
 
-& \textbf{Gratuit (open source) ; nécessite API LLM externe et infrastructure d’hébergement \cite{openmaic}}
+& \textbf{Gratuit (OSS) ; API LLM + hébergement requis \cite{openmaic}}
 
-& \textbf{Gratuit (open source) ; coûts liés à l’hébergement et au support selon le déploiement \cite{moodle}} \\
+& \textbf{Gratuit (OSS) ; hébergement + support \cite{moodle}} \\
 
 \hline
 
 \end{tabular}%
-}
 
 \end{table}
 
@@ -402,68 +333,47 @@ Open source
 
 
  
-\subsection{Améliorations et innovations}
+\subsection{Solution proposée}
 
-L'analyse des solutions existantes montre clairement qu'aucune d'entre elles ne répond 
-de manière complète aux besoins d'une entreprise souhaitant centraliser la formation, 
-le suivi des compétences et le mentorat dans un seul outil intelligent. Cette section 
-présente les principaux axes d'amélioration qui guident la conception de notre plateforme.
+L'analyse des solutions existantes montre qu'aucune d'entre elles ne répond de manière complète 
+aux besoins d'une entreprise souhaitant centraliser la formation, le suivi des compétences et 
+l'accompagnement intelligent des collaborateurs au sein d'un outil unifié. À partir de ce constat, 
+nous proposons une plateforme web centralisée permettant de gérer les utilisateurs, les formations, 
+les compétences et les parcours d'apprentissage dans un environnement unique.
 
-\textbf{Mentorat structuré et coaching intelligent.}
-Aucune des plateformes étudiées ne propose un accompagnement humain et intelligent 
-combiné dans un même outil. Les collaborateurs en phase d'intégration se retrouvent 
-souvent sans suivi structuré, tandis que les rares outils de recommandation existants 
-manquent de mémoire contextuelle et ne s'adaptent pas au profil évolutif de l'apprenant. 
-Notre solution place le coaching IA au centre de l'expérience d'apprentissage : un module 
-intelligent suit en continu le parcours de chaque utilisateur, identifie ses lacunes et 
-lui propose un accompagnement personnalisé à tout moment. Le mentorat vient renforcer 
-cette dynamique en s'appuyant sur les données du coaching pour orienter les échanges 
-entre mentor et apprenant, assurer un suivi cohérent de la progression et adapter 
-les recommandations aux besoins réels de chaque collaborateur.
+La plateforme intègre des fonctionnalités d'intelligence artificielle destinées à accompagner les 
+apprenants tout au long de leur parcours de formation. Un module de coaching intelligent fournit 
+une assistance pédagogique personnalisée en fonction du profil de l'utilisateur, de sa progression 
+et de ses objectifs d'apprentissage. Il permet d'obtenir des explications complémentaires et des 
+clarifications adaptées afin de faciliter la compréhension des contenus étudiés.
 
-\textbf{Génération de cours adaptée au contexte interne.}
-Les outils de création automatique de cours existants produisent des contenus à partir de documents génériques. Notre solution va plus loin en permettant de générer des parcours d'apprentissage directement à partir des ressources internes de l'entreprise, en tenant compte des compétences cibles, du niveau de l'apprenant et des besoins métiers spécifiques de chaque filiale du Groupe 3S.
+La solution permet également la génération automatique de contenus pédagogiques à partir de 
+consignes simplifiées et propose des recommandations de ressources adaptées au niveau et aux 
+besoins de chaque apprenant. Afin de renforcer l'acquisition des connaissances, la plateforme 
+suggère également des exercices et des défis personnalisés permettant de mettre en pratique les 
+notions étudiées et de consolider les compétences développées.
 
-\textbf{Gamification au service de la motivation.}
-Notre plateforme intègre des mécanismes de gamification — points, badges, niveaux et tableaux de progression — directement liés aux compétences acquises, afin de rendre l'apprentissage plus engageant et d'encourager les apprenants à aller au bout de leur parcours.
+La plateforme permet également de proposer des parcours d'apprentissage adaptés au contexte interne 
+du Groupe 3S. Les recommandations et les contenus générés tiennent compte des ressources internes, 
+des compétences cibles, du niveau de l'apprenant et des besoins métiers des différentes filiales. 
+Des mécanismes de gamification, tels que les points, les badges, les niveaux et les tableaux de 
+progression, sont intégrés afin de renforcer la motivation et d'encourager la complétion des 
+formations.
 
-\textbf{Architecture multi-tenant adaptée au Groupe 3S.}
-Parmi les solutions étudiées, seul CYPHER Learning propose une architecture multi-tenant, 
-et uniquement dans son plan Enterprise à coût élevé. Notre plateforme est conçue nativement 
-avec cette architecture, permettant à chaque filiale du Groupe 3S de disposer de son propre 
-espace cloisonné, avec des configurations, des contenus et des utilisateurs indépendants, 
-le tout sur une infrastructure partagée et mutualisée.
-
-\textbf{Confidentialité des données et contrôle des contenus.}
-Dans le contexte d'une entreprise, les contenus de formation peuvent contenir des informations 
-internes liées aux méthodes de travail, aux outils utilisés, aux projets ou aux processus propres 
-à l'organisation. Il est donc essentiel que ces contenus restent accessibles uniquement aux 
-utilisateurs autorisés.
-
-Notre solution prend en compte cet aspect en assurant une séparation des espaces entre les 
-différentes entités de l'entreprise. Chaque entité dispose de ses propres formations, parcours, 
-utilisateurs et paramètres, ce qui permet de limiter l'accès aux contenus internes selon 
-l'appartenance et le rôle de chaque utilisateur. Ainsi, les cours créés au sein d'une entité 
-restent visibles uniquement par les collaborateurs concernés.
-
-Cette organisation permet de renforcer la confidentialité des données, de mieux contrôler la 
-diffusion des contenus pédagogiques et d'éviter qu'une information interne soit partagée en 
-dehors du périmètre prévu.
-
-\textbf{Vision unifiée du développement professionnel.}
-Les outils du marché traitent séparément la formation, le suivi des compétences et le 
-mentorat, obligeant les responsables à jongler entre plusieurs plateformes sans vision 
-globale. Notre solution centralise ces trois dimensions dans un seul environnement cohérent, 
-offrant aux managers un tableau de bord complet pour suivre l'évolution 
-professionnelle de chaque collaborateur.
+Enfin, la solution est adaptée à l'organisation du Groupe 3S, qui regroupe plusieurs filiales aux 
+besoins de formation différents. Chaque filiale dispose d'un espace indépendant pour gérer ses 
+utilisateurs, ses formations, ses parcours, ses contenus et ses paramètres, tout en partageant une 
+infrastructure commune. Cette organisation permet de préserver la confidentialité des données, de 
+contrôler l'accès aux contenus internes et d'offrir aux responsables une vision unifiée du 
+développement professionnel des collaborateurs.
 
 
 \section{Spécification des exigences}
 
-Cette section présente l'ensemble des exigences identifiées pour la plateforme 
-\textit{Skill Forge}. Ces exigences ont été définies à partir de l'analyse des 
-besoins du Groupe 3S et des limites des solutions existantes étudiées dans la 
-section précédente. Elles se divisent en deux catégories : les exigences 
+Cette section présente l'ensemble des exigences identifiées pour la plateforme. 
+Ces exigences ont été définies à partir de l'analyse des besoins du Groupe 3S 
+et des limites des solutions existantes étudiées dans la section précédente. 
+Elles se divisent en deux catégories : les exigences 
 fonctionnelles, qui décrivent ce que le système doit faire, et les exigences 
 non fonctionnelles, qui définissent comment il doit le faire.
 
@@ -475,78 +385,44 @@ Les exigences fonctionnelles décrivent les fonctionnalités que le système doi
 offrir pour répondre aux besoins des utilisateurs. Le tableau~\ref{tab:ef} 
 présente l'ensemble des exigences fonctionnelles identifiées.
 
-\renewcommand{\arraystretch}{1.3}
-
-\begin{longtable}{|p{1.2cm}|p{4cm}|p{9.5cm}|}
-
+\begin{table}[H]
+\centering
 \caption{Exigences fonctionnelles}
-\label{tab:ef} \\
-
+\label{tab:ef}
+\renewcommand{\arraystretch}{1.3}
+\footnotesize
+\begin{tabular}{|p{1.2cm}|p{3.5cm}|p{9.5cm}|}
 \hline
 \textbf{ID} & \textbf{Catégorie} & \textbf{Description} \\
 \hline
-\endfirsthead
-
-\hline
-\textbf{ID} & \textbf{Catégorie} & \textbf{Description} \\
-\hline
-\endhead
-
 EF-01 & Authentification & Le système doit permettre l'authentification sécurisée des utilisateurs. \\
 \hline
-
-EF-02 & Gestion des rôles & Le système doit gérer plusieurs rôles : super administrateur, administrateur, manager, expert pédagogique, responsable d’équipe et membre d’équipe. \\
+EF-02 & Gestion des rôles & Le système doit gérer plusieurs rôles : super administrateur, administrateur, manager, expert pédagogique et membre d'équipe. \\
 \hline
-
 EF-03 & Gestion des profils & Le système doit permettre la création et la modification des profils utilisateurs. \\
 \hline
-
 EF-04 & Multi-tenant & Le système doit permettre la gestion de plusieurs entreprises (tenants) de façon cloisonnée. \\
 \hline
-
 EF-05 & Gestion des formations & Le système doit permettre la création, la modification, la suppression et la consultation des formations. \\
 \hline
-
-EF-06 & Compétences & Le système doit permettre la gestion des compétences associées aux formations et aux utilisateurs. \\
+EF-06 & Suivi des apprentissages & Le système doit permettre le suivi de l'avancement de chaque apprenant dans son parcours. \\
 \hline
-
-EF-07 & Parcours d'apprentissage & Le système doit permettre la création de parcours d'apprentissage personnalisés et l'affectation de compétences cibles. \\
+EF-07 & Recommandation IA & Le système doit recommander des contenus de formation adaptés au profil et aux besoins de chaque utilisateur. \\
 \hline
-
-EF-08 & Suivi de progression & Le système doit permettre le suivi de l'avancement de chaque apprenant dans son parcours. \\
+EF-08 & Coaching IA & Le système doit intégrer un module d'assistance intelligent capable d'accompagner l'utilisateur tout au long de son apprentissage. \\
 \hline
-
-EF-09 & Recommandation IA & Le système doit recommander des contenus de formation adaptés au profil et aux besoins de chaque utilisateur. \\
+EF-09 & Génération de cours & Le système doit permettre la génération automatique de cours à partir de documents ou de sujets fournis. \\
 \hline
-
-EF-10 & Coaching IA & Le système doit intégrer un module d'assistance intelligent capable d'accompagner l'utilisateur tout au long de son apprentissage. \\
+EF-10 & Évaluations & Le système doit permettre la création et la gestion de quiz. \\
 \hline
-
-EF-11 & Génération de cours & Le système doit permettre la génération automatique de cours à partir de documents ou de sujets fournis. \\
+EF-11 & Gamification & Le système doit permettre l'attribution de points, badges et récompenses selon la progression des apprenants. \\
 \hline
-
-EF-12 & Évaluations & Le système doit permettre la création et la gestion de quiz, tests et évaluations de validation. \\
+EF-12 & Recherche & Le système doit permettre la recherche et la consultation des formations disponibles. \\
 \hline
-
-EF-13 & Gamification & Le système doit permettre l'attribution de points, badges et récompenses selon la progression des apprenants. \\
+EF-13 & Traçabilité & Le système doit enregistrer les activités des utilisateurs sur la plateforme. \\
 \hline
-
-EF-14 & Mentorat & Le système doit permettre l'affectation de mentors aux apprenants et la gestion de leurs interactions. \\
-\hline
-
-EF-15 & Tableau de bord & Le système doit fournir des tableaux de bord de suivi de la progression, des compétences et de l'engagement. \\
-\hline
-
-EF-16 & Recherche & Le système doit permettre la recherche et la consultation des formations disponibles. \\
-\hline
-
-EF-17 & Gestion des contenus & Le système doit permettre la gestion des ressources pédagogiques (vidéos, documents, liens). \\
-\hline
-
-EF-18 & Traçabilité & Le système doit enregistrer les activités des utilisateurs sur la plateforme. \\
-\hline
-
-\end{longtable}
+\end{tabular}
+\end{table}
 
 
 \subsection{Exigences non fonctionnelles}
@@ -559,7 +435,7 @@ tableau~\ref{tab:enf} présente l'ensemble des exigences non fonctionnelles rete
 
 \renewcommand{\arraystretch}{1.3}
 
-\begin{longtable}{|p{1.6cm}|p{3cm}|p{9.5cm}|}
+\begin{longtable}{|p{1.2cm}|p{2.8cm}|p{11cm}|}
 
 \caption{Exigences non fonctionnelles}
 \label{tab:enf} \\
@@ -574,46 +450,43 @@ tableau~\ref{tab:enf} présente l'ensemble des exigences non fonctionnelles rete
 \hline
 \endhead
 
-ENF-01 & Sécurité & La plateforme doit protéger les données des utilisateurs et garantir un contrôle d'accès strict selon les rôles. \\
+ENF-01 & Sécurité & L'authentification est assurée via JWT (HS256) avec access token (15 min) et refresh token (7 jours). Les mots de passe locaux sont hashés avec bcrypt. Un SSO est également implémenté via Azure Entra ID, avec une configuration par tenant (client\_id, tenant\_id). \\
 \hline
 
-ENF-02 & Confidentialité & La plateforme doit garantir que les contenus de formation, les parcours pédagogiques et les données de progression restent accessibles uniquement dans le périmètre de l'entité concernée. \\
+ENF-02 & Confidentialité & La plateforme doit garantir que les contenus de formation, les parcours pédagogiques et les données de progression restent accessibles uniquement dans le périmètre de l'entité concernée. Pour cela, la plateforme repose sur une architecture multi-tenant. L'isolation des données est assurée via tenant\_id (utilisé dans les tables principales). Chaque JWT contient le tenantId, tandis que le SuperAdmin dispose d'un accès global sans appartenance à un tenant. \\
 \hline
 
-ENF-03 & Performance & La plateforme doit assurer un temps de réponse inférieur à 2 secondes pour 95\% des requêtes courantes, hors traitements complexes liés à la génération de contenus et aux recommandations intelligentes. \\
+ENF-03 & Performance & Les API principales de la plateforme répondent en moins de 2 secondes pour la majorité des requêtes courantes, à l'exception des traitements liés à l'intelligence artificielle (RAG, génération de contenu et recommandations). \\
 \hline
 
-ENF-04 & Disponibilité & La plateforme doit assurer une continuité de service fiable pour l'ensemble des utilisateurs. \\
+ENF-04 & Disponibilité & La plateforme est conçue pour assurer une disponibilité continue grâce à une architecture backend stable et découplée, garantissant le fonctionnement des services essentiels même en cas de défaillance partielle. \\
 \hline
 
-ENF-05 & Évolutivité & La plateforme doit être conçue pour permettre l'ajout de nouvelles fonctionnalités sans remettre en cause l'architecture existante. \\
+ENF-05 & Évolutivité & L'architecture microservices permet l'ajout de nouveaux modules ou fonctionnalités sans impact sur les services existants. \\
 \hline
 
-ENF-06 & Modularité & La plateforme doit reposer sur une architecture modulaire facilitant la maintenance et l'intégration de nouveaux services. \\
+ENF-06 & Modularité & Le système est structuré en services indépendants (authentification, formation, IA, etc.), facilitant la maintenance et l'évolution de la plateforme. \\
 \hline
 
-ENF-07 & Maintenabilité & Le code doit être clair, documenté et organisé de façon à faciliter les interventions futures. \\
+ENF-07 & Maintenabilité & Le code backend et frontend est organisé en couches avec une séparation claire des responsabilités, ce qui facilite les interventions, la correction et l'évolution du système. \\
 \hline
 
-ENF-08 & Extensibilité & La plateforme doit être conçue pour s'adapter à de nouveaux besoins dans un contexte multi-tenant en évolution. \\
+ENF-08 & Extensibilité & La plateforme permet l'intégration de nouveaux agents IA et de nouvelles fonctionnalités sans modification de l'architecture existante. \\
 \hline
 
-ENF-09 & Ergonomie & La plateforme doit offrir une interface simple, claire et intuitive, accessible à des utilisateurs de profils variés. \\
+ENF-09 & Ergonomie & L'interface utilisateur propose une navigation simple et intuitive adaptée aux différents profils (apprenant, administrateur, mentor). \\
 \hline
 
-ENF-10 & Accessibilité & La plateforme doit être accessible depuis différents types d'écrans et navigateurs modernes. \\
+ENF-10 & Accessibilité & La plateforme est accessible via navigateur web et s'adapte aux différents formats d'écran (desktop, tablette). \\
 \hline
 
-ENF-11 & Intégrité des données & La plateforme doit garantir la cohérence et l'intégrité des données à tout moment. \\
+ENF-11 & Intégrité des données & La plateforme doit garantir l'intégrité des certificats générés et empêcher toute falsification. Pour cela, un mécanisme de signature numérique RS256 (RSA avec SHA-256) est utilisé afin de vérifier l'authenticité des certificats. Chaque certificat est également associé à un QR code permettant sa vérification via une URL sécurisée. \\
 \hline
 
-ENF-12 & Journalisation & La plateforme doit permettre le suivi des erreurs et la journalisation des événements système. \\
+ENF-12 & Journalisation & Les événements système sont tracés via un système d'audit logs composé de deux tables : identity\_audit\_logs (actions utilisateurs, scoped tenant) et super\_admin\_audit\_logs (actions globales plateforme). \\
 \hline
 
-ENF-13 & Compatibilité IA & La plateforme doit être compatible avec l'intégration de modèles de langage et de modules intelligents configurables. \\
-\hline
-
-ENF-14 & Déployabilité & La plateforme doit faciliter son déploiement et la mise à jour de ses composants de manière indépendante. \\
+ENF-13 & Déployabilité & Les composants de la plateforme (backend, frontend et services IA) sont conteneurisés avec Docker, permettant un déploiement indépendant, reproductible et simplifié. \\
 \hline
 
 \end{longtable}
@@ -623,7 +496,7 @@ ENF-14 & Déployabilité & La plateforme doit faciliter son déploiement et la m
 
 La réalisation d'une plateforme intelligente intégrant des fonctionnalités d'intelligence 
 artificielle, de mentorat et de gestion des compétences nécessite une démarche de développement 
-adaptée à la complexité du projet. Ce chapitre présente la méthodologie adoptée pour conduire 
+adaptée à la complexité du projet. Cette section présente la méthodologie adoptée pour conduire 
 les différentes phases de réalisation, depuis la définition des besoins jusqu'à l'implémentation 
 de la solution. Après une analyse des approches traditionnelles de gestion de projet logiciel, nous présentons 
 le cadre méthodologique retenu ainsi que les outils utilisés pour assister le développement.
@@ -632,210 +505,48 @@ le cadre méthodologique retenu ainsi que les outils utilisés pour assister le 
 
 \subsection{Analyse des approches de développement}
 
-\subsubsection{Méthodes agiles traditionnelles}
+\subsubsection{Évolution des méthodes de développement et limites dans le contexte de l'IA}
 
-Depuis le début des années 2000, les méthodes agiles --- Scrum, Kanban, Extreme Programming
-(XP) --- ont constitué le socle dominant du développement logiciel. Fondées sur des itérations
-courtes (sprints de deux à quatre semaines), des équipes pluridisciplinaires et une livraison
-continue de valeur, ces méthodes ont représenté une rupture salutaire avec les modèles
-séquentiels de type \textit{waterfall}.
+Les méthodes agiles telles que Scrum, Kanban et Extreme Programming (XP) constituent depuis les années 2000 un cadre de référence du développement logiciel. Basées sur des itérations courtes, la collaboration d'équipes pluridisciplinaires et une livraison continue de valeur, elles ont permis d'améliorer la flexibilité et la réactivité par rapport aux approches traditionnelles de type waterfall.
 
-Cependant, ces méthodes ont été conçues pour un contexte précis : celui d'une équipe humaine
-complète --- développeurs, product owner, testeurs, UX designers --- collaborant selon un
-rythme cadencé par des cérémonies régulières (daily standups, sprint reviews, rétrospectives).
-Or, l'émergence de l'IA générative remet fondamentalement en question ce modèle.
+Cependant, avec l'émergence de l'intelligence artificielle générative et des systèmes agentiques, ces méthodes montrent certaines limites. Le modèle agile repose sur des équipes humaines structurées (développeurs, testeurs, Product Owner, UX designers) et sur des cérémonies régulières, ce qui devient moins adapté dans un contexte où les tâches peuvent être partiellement automatisées ou orchestrées par des systèmes intelligents.
 
-\subsubsection{Inadéquation structurelle avec le développement assisté par l'IA}
+Plusieurs travaux récents indiquent que l'intégration de l'IA dans le cycle de développement logiciel accélère fortement la production, rendant les cycles de type sprint de plus en plus courts et parfois inadaptés. Par ailleurs, les méthodes agiles actuelles ne prévoient pas explicitement le rôle de l'IA dans le processus de développement, celle-ci étant encore considérée comme un simple outil d'assistance.
 
-Comme l'a souligné une étude publiée dans le \textit{Journal du Net} en mars 2026,
-l'arrivée de l'IA agentique dans le cycle de développement logiciel (SDLC) rend les
-méthodes agiles « progressivement inadaptées »~\cite{bourguignon2026}. Plusieurs raisons
-structurelles expliquent cette inadéquation :
-
-\begin{itemize}
-    \item \textbf{Modèle d'équipe obsolète.} Scrum repose sur une squad de plusieurs
-    développeurs, un product owner, des testeurs et des UX designers. Avec l'IA, un
-    développeur augmenté peut orchestrer des agents capables de jouer chacun de ces rôles.
-    La taille des équipes se contracte, rendant le modèle organisationnel agile inadapté.
-
-    \item \textbf{Sprints trop longs.} Le cycle en deux à quatre semaines introduit une
-    latence incompatible avec la vitesse de génération du code par les agents IA.
-    Anupam Mishra et Raja, architects chez AWS, ont démontré lors d'AWS re:Invent 2025
-    que « les sprints ne devraient plus durer deux semaines mais quelques heures »~\cite{awsreinvent2025}.
-
-    \item \textbf{Absence d'implication de l'IA dans le cycle.} Ni Scrum ni Kanban ne
-    définissent de rôle, de rituel ou d'artefact spécifiquement conçu pour l'orchestration
-    d'agents IA. L'IA y est traitée au mieux comme un outil auxiliaire de productivité,
-    jamais comme un collaborateur à part entière du processus de développement.
-
-    \item \textbf{Gaspillage lié aux dépendances humaines.} La grande majorité du temps
-    dans un SDLC classique n'est pas consacrée à l'écriture de code mais à des réunions
-    d'alignement, des attentes entre équipes et des escalades. Les agents IA éliminent
-    naturellement ces frictions lorsqu'ils sont orchestrés dans un cadre adapté.
-\end{itemize}
+Dans ce contexte, le développement assisté par l'IA remet en question certaines pratiques classiques, notamment la durée des sprints, la structure des équipes et la gestion des interactions humaines, ouvrant la voie à de nouveaux modèles de développement plus flexibles et automatisés.
 
 \subsubsection{Le vibe coding : une réponse insuffisante}
 
-Face à ces limites, une première génération de développeurs a adopté le \textit{vibe coding},
-concept popularisé par Andrej Karpathy en 2025~\cite{sarkar2025vibecoding} : laisser l'IA générer le code par
-enchaînement de prompts conversationnels sans supervision structurée. Si cette approche
-permet un prototypage rapide, elle s'avère rapidement insuffisante pour des applications
-de production, notamment en raison de l'absence d'architecture cohérente, de la fragilité
-de la sécurité, et de la dégradation progressive du contexte de l'agent.
-En 2026, l'industrie a largement convergé vers des méthodologies plus structurées,
-capables de tirer parti de la puissance de l'IA sans en subir les dérives.
+Dans ce contexte de remise en question des méthodes de développement traditionnelles face à l'essor de l'intelligence artificielle, une première approche expérimentale a émergé sous le nom de \textit{vibe coding}, concept popularisé par Andrej Karpathy en 2025~\cite{sarkar2025vibecoding}.
+
+Cette approche consiste à laisser l'IA générer du code à partir d'enchaînements de prompts conversationnels, sans réelle structuration du processus de développement. Si elle permet un prototypage rapide, elle montre rapidement ses limites pour des applications en production, notamment en raison de l'absence d'architecture cohérente, de faiblesses en matière de sécurité et de la perte progressive du contexte de l'agent.
+
+Ainsi, en 2026, l'industrie s'oriente davantage vers des approches plus structurées, capables de tirer parti de l'IA tout en conservant un cadre rigoureux de développement logiciel.
 
 \subsection{Approche AI-Driven Development Lifecycle (AI-DLC)}
 
-\subsubsection{Présentation}
+L'\textbf{AI-Driven Development Lifecycle (AI-DLC)} est une méthodologie proposée par AWS en 2025~\cite{awsblog2025}, visant à intégrer l'intelligence artificielle comme acteur central du cycle de développement logiciel, tout en maintenant une supervision humaine pour les décisions critiques.
 
-L'\textbf{AI-Driven Development Lifecycle (AI-DLC)} est une méthodologie de
-développement logiciel introduite par AWS en juillet 2025~\cite{awsblog2025}
-et formalisée lors d'AWS re:Invent 2025~\cite{awsreinvent2025}. Elle est définie
-comme une approche qui « assigne stratégiquement les tâches routinières à l'IA
-tout en maintenant la supervision humaine pour les décisions critiques, couvrant
-l'ensemble du cycle de vie du développement logiciel »~\cite{awsblog2025}.
-Son architecture repose sur un cycle collaboratif obligatoire à chaque étape :
-l'IA génère un plan, les parties prenantes le révisent et le valident avant toute
-exécution~\cite{awsblog2025b}.
+Contrairement aux approches agiles traditionnelles, l'AI-DLC place la spécification et la planification au c{\oe}ur du processus, en considérant l'IA comme un collaborateur à part entière.
 
-Contrairement aux approches agiles qui \textit{intègrent} l'IA en périphérie de
-processus conçus pour les humains, l'AI-DLC \textit{réimagine} le cycle de
-développement en partant du principe que les agents IA sont des participants à
-part entière du processus.
+Ce cadre repose principalement sur la planification avant exécution, la décomposition des tâches, la gestion rigoureuse du contexte et la validation humaine continue. Le cycle de développement est structuré en trois phases principales : l'inception, la construction et l'opération, couvrant respectivement la définition des besoins, l'implémentation et le déploiement/maintenance.
 
-\subsubsection{Principes fondamentaux}
+\subsection{Étude comparative des frameworks d'implémentation de l'AI-DLC}
 
-L'AI-DLC repose sur cinq principes directeurs :
+L'adoption croissante des approches AI-Driven Development Lifecycle a conduit à l'émergence de plusieurs frameworks destinés à structurer le développement assisté par l'intelligence artificielle. Parmi les solutions les plus répandues figurent GitHub Spec Kit~\cite{githubspeckit}, BMAD Method~\cite{bmad2025}, GSD Framework~\cite{gsd2026} et AWS Kiro~\cite{kiro2025}. Ces frameworks se distinguent par leur mode de gestion du contexte, leur niveau d'automatisation, leur compatibilité avec les outils de développement assistés par IA ainsi que leur complexité d'utilisation.
 
-\begin{enumerate}
-    \item \textbf{Planification avant exécution.} Avant toute génération de code, l'agent IA
-    produit un plan explicite que le développeur valide. Ce cycle \textit{plan → validation
-    humaine → exécution → vérification} garantit l'alignement entre l'intention humaine
-    et la production de l'agent.
-
-    \item \textbf{Spécification comme source de vérité.} La spécification --- décrivant ce
-    que le système doit garantir, ses contraintes et ses critères d'acceptation --- devient
-    l'artefact central du projet. Tout le code, les tests et la documentation en découlent.
-
-    \item \textbf{Décomposition atomique des tâches.} Les problèmes ambigus ou larges sont
-    systématiquement décomposés en unités de travail étroites et non ambiguës avant d'être
-    confiés à un agent, évitant ainsi la dérive incontrôlée.
-
-    \item \textbf{Gestion rigoureuse du contexte.} Le contexte des agents est traité comme
-    une ressource précieuse : on l'enrichit avec les artefacts pertinents et on le purge des
-    informations obsolètes, afin de maintenir la qualité de la génération.
-
-    \item \textbf{Vérification humaine à chaque étape.} Le développeur conserve la propriété
-    intellectuelle et la responsabilité du code. L'IA agit comme un collaborateur expert
-    sous supervision, non comme un système autonome.
-\end{enumerate}
-
-\subsubsection{Phases de l'AI-DLC}
-
-Le cycle AI-DLC est structuré en trois phases principales, elles-mêmes découpées en
-étapes adaptatives (neuf au total pour un nouveau projet from scratch) :
-
-\begin{description}
-    \item[\textbf{Phase 1 --- Inception.}] Comprend la définition de l'intention, la
-    clarification des exigences (session de \textit{mob elaboration} réunissant toutes
-    les parties prenantes), la création des user stories et l'analyse de l'architecture.
-    L'agent IA génère les artefacts, le développeur les valide en temps réel.
-
-    \item[\textbf{Phase 2 --- Construction.}] L'agent analyse le contexte existant
-    (reverse engineering du code brownfield si nécessaire), propose un plan d'implémentation
-    détaillé, génère le code par unités atomiques, et les tests unitaires et d'intégration
-    accompagnent chaque livraison.
-
-    \item[\textbf{Phase 3 --- Opération.}] Couvre le déploiement, la validation en
-    environnement de staging, la surveillance et l'intégration CI/CD. L'IA assiste
-    également la correction des régressions et la réduction de la dette technique.
-\end{description}
-
-Le caractère adaptatif de ce cadre est essentiel : un simple correctif de bug ne traverse
-que deux ou trois étapes ; une nouvelle fonctionnalité complexe en traverse davantage.
-L'agent lui-même propose le chemin le plus approprié que le développeur peut ajuster.
-
-\subsection{Frameworks d'Implémentation de l'AI-DLC}
-
-L'adoption croissante de l'AI-DLC a donné naissance à plusieurs frameworks concrets,
-chacun proposant une implémentation particulière des principes décrits ci-dessus.
-Nous présentons ici les quatre principaux frameworks disponibles en 2025--2026.
-
-\subsubsection{GitHub Spec Kit}
-
-Publié fin 2025 par GitHub en open source, le \textbf{GitHub Spec Kit} est une boîte à outils
-officielle pour le Spec-Driven Development (SDD)~\cite{githubspeckit}. Il structure le cycle
-de développement en quatre phases séquentielles :
-
-\begin{center}
-\texttt{Spec} $\rightarrow$ \texttt{Plan} $\rightarrow$ \texttt{Tasks} $\rightarrow$ \texttt{Implement}
-\end{center}
-
-Chaque phase produit un artefact Markdown versionné qui alimente la phase suivante,
-fournissant à l'agent IA un contexte structuré plutôt que des prompts ad hoc. Spec Kit
-supporte plus de trente intégrations d'agents (Claude Code, Codex CLI, Gemini CLI,
-OpenCode, Cursor, etc.) et s'installe sans lock-in dans l'environnement existant.
-Il constitue une couche légère et pragmatique, idéale pour initier un projet selon les
-principes SDD.
-
-\subsubsection{BMAD Method}
-
-La \textbf{BMAD Method} (\textit{Breakthrough Method for Agile AI-Driven Development})
-est un framework agentique open source qui simule une équipe Agile complète via
-douze agents IA spécialisés~\cite{bmad2025}. Ces agents incarnent les rôles de l'Analyste,
-du Product Manager, de l'Architecte, du Scrum Master, du Développeur, de l'UX Designer
-et du QA.
-
-Le cycle BMAD est divisé en deux phases : une phase de \textit{Discovery \& Planning}
-(génération du brief, du PRD et de l'architecture par des agents dédiés) suivie d'une
-phase d'implémentation où les agents collaborent pour produire le code et les tests.
-La version 6 du framework introduit un mécanisme d'adaptation automatique de la
-profondeur de planification selon la complexité du projet.
-
-\subsubsection{GSD Framework}
-
-Le \textbf{GSD Framework} (\textit{Get Shit Done}) est un système léger de meta-prompting,
-d'ingénierie de contexte et de développement orienté spécification, conçu spécifiquement
-pour Claude Code et Codex CLI~\cite{gsd2026}. Il a dépassé 59\,600 étoiles sur GitHub
-en mai 2026.
-
-Son innovation principale réside dans la résolution du problème de \textit{context rot} (dégradation du contexte) :
-GSD fragmente le projet en plans atomiques (2 à 3 tâches maximum par plan), chaque
-plan étant exécuté dans une fenêtre de contexte fraîche par un sous-agent dédié.
-Le processus suit le cycle suivant :
-
-\begin{center}
-\texttt{Interview} $\rightarrow$ \texttt{Roadmap} $\rightarrow$ \texttt{Plans atomiques}
-$\rightarrow$ \texttt{Exécution} $\rightarrow$ \texttt{Vérification}
-\end{center}
-
-Les plans sont stockés sous forme de fichiers \texttt{PLAN.md} qui constituent
-directement les instructions exécutables des sous-agents, garantissant la traçabilité
-entre les exigences, les phases, les plans et les commits Git.
-
-\subsubsection{AWS Kiro}
-
-\textbf{Kiro} est un IDE agentique lancé par AWS en 2025, construit sur Code OSS,
-qui implémente nativement le Spec-Driven Development~\cite{kiro2025}. Son workflow guide
-le développeur à travers trois phases --- Exigences, Design et Tâches --- avant toute
-génération de code. Il utilise Claude Sonnet 4.5 et d'autres modèles frontier en coulisses.
-Kiro propose également des \textit{steering files} persistants qui maintiennent en
-permanence le contexte du projet (stack technique, conventions, objectifs produit).
-
-\subsection{Étude Comparative des Frameworks}
+Le tableau~\ref{tab:comparaison-frameworks-ch1} présente une comparaison des principales caractéristiques de ces frameworks selon plusieurs critères techniques et organisationnels.
 
 \begin{table}[H]
 \centering
 \renewcommand{\arraystretch}{1.4}
 \caption{Comparaison des frameworks AI-DLC disponibles en 2025--2026}
 \label{tab:comparaison-frameworks-ch1}
-\begin{tabular}{|p{2.6cm}|p{2.6cm}|p{2.6cm}|p{2.6cm}|p{2.6cm}|}
+\begin{tabular}{|p{3cm}|p{3cm}|p{3cm}|p{3cm}|p{3cm}|}
 \hline
 \textbf{Critère} & \textbf{GitHub Spec Kit} & \textbf{BMAD Method} & \textbf{GSD Framework} & \textbf{AWS Kiro} \\
 \hline
-\textbf{Type} & Toolkit SDD léger & Framework multi-agents & Méta-prompting agentique & IDE SDD intégré \\
-\hline
+
 \textbf{Gestion du contexte} & Artefacts Markdown versionné & Agents à contexte restreint & Sous-agents à contexte frais & Steering files persistants \\
 \hline
 \textbf{Agents spécialisés} & Non & Oui (12 agents) & Oui (orchestrateur + sous-agents) & Partiel (hooks automatiques) \\
@@ -853,75 +564,24 @@ permanence le contexte du projet (stack technique, conventions, objectifs produi
 \end{tabular}
 \end{table}
 
-L'analyse de ce tableau met en évidence plusieurs observations clés :
+L'analyse de ce tableau montre que GitHub Spec Kit constitue une solution légère et accessible pour initier une démarche de développement orientée spécifications. BMAD Method propose une approche plus complète basée sur des agents spécialisés, mais sa complexité peut représenter un frein pour un projet réalisé par un développeur unique. AWS Kiro offre un environnement intégré performant mais demeure fortement lié à l'écosystème AWS.
 
-\begin{itemize}
-    \item Le \textbf{GitHub Spec Kit} constitue une excellente porte d'entrée dans le
-    Spec-Driven Development mais ne résout pas nativement le problème du context rot
-    pour des projets de grande envergure.
-
-    \item La \textbf{BMAD Method} offre la structure la plus proche d'une équipe Agile
-    traditionnelle, mais sa complexité (12 agents, nombreux artefacts) peut être un
-    obstacle pour un projet porté par un développeur unique.
-
-    \item \textbf{GSD} se distingue par sa gestion avancée du contexte, sa compatibilité
-    native avec Codex CLI et OpenCode, et son architecture de sous-agents qui correspond
-    précisément aux besoins d'un projet multi-agents développé en solo.
-
-    \item \textbf{AWS Kiro} offre une expérience intégrée de qualité mais reste lié à
-    l'écosystème AWS, ce qui introduit un lock-in incompatible avec les contraintes
-    du projet.
-\end{itemize}
+Le GSD Framework se distingue quant à lui par sa gestion efficace du contexte, sa compatibilité avec les principaux outils de développement assistés par IA et son adaptation aux projets développés de manière autonome. Ces caractéristiques en font une solution particulièrement adaptée aux besoins du présent projet.
 
 \subsection{Choix de l'environnement de développement}
 
-À l'issue de cette analyse comparative, le \textbf{GSD Framework} a été retenu comme
-cadre principal de développement, car il répond aux besoins du projet en matière de
-structuration des tâches, de gestion du contexte et de traçabilité du travail réalisé.
-Ce choix est également adapté à un développement assisté par l'IA, dans lequel les
-fonctionnalités sont découpées en plans atomiques puis mises en œuvre progressivement
-avec l'appui d'un outil de développement assisté et de skills personnalisées.
+À l'issue de l'étude comparative présentée précédemment, le \textbf{GSD Framework} a été retenu comme cadre méthodologique du projet. Ce choix s'explique par sa gestion efficace du contexte, sa compatibilité avec les principaux outils de développement assistés par l'IA et sa capacité à structurer le travail sous forme de tâches atomiques. Ces caractéristiques répondent particulièrement aux besoins d'un projet complexe développé de manière autonome avec l'assistance de l'intelligence artificielle.
 
-\subsubsection{Démarche adoptée : approche hybride progressive}
+La mise en œuvre de cette méthodologie s'est déroulée en trois étapes principales. La première étape a consisté à définir les exigences fonctionnelles et non fonctionnelles de la plateforme, à identifier les cas d'usage prioritaires et à élaborer une feuille de route structurée. Le framework GSD a été utilisé pour organiser le projet en modules cohérents et en tâches de taille réduite afin de faciliter leur réalisation.
 
-La méthodologie appliquée dans ce projet a évolué en trois phases successives, reflétant
-la montée en maturité avec les principes de l'AI-DLC et les outils d'assistance au
-développement.
-
-\paragraph{Phase 1 : Découverte et planification avec GSD}
-
-La première phase a consisté à utiliser le \textbf{framework GSD} pour structurer
-l'ensemble de la démarche de découverte du projet. GSD a été mobilisé pour deux
-objectifs complémentaires :
-
-\begin{itemize}
-    \item \textbf{Définition des spécifications du projet :} formalisation des exigences
-    fonctionnelles et non fonctionnelles de la plateforme, identification des cas
-    d'usage prioritaires et définition des contraintes techniques et métier.
-
-    \item \textbf{Construction du plan d'implémentation :} décomposition du périmètre
-    en modules cohérents (base de données, backend, agents IA, interface utilisateur),
-    puis en plans atomiques de deux à trois tâches, conformément aux principes de GSD.
-    Chaque plan a été matérialisé sous forme de fichier \texttt{PLAN.md} constituant
-    directement les instructions exécutables pour les sous-agents.
-\end{itemize}
-
-Cette phase a produit l'ensemble des artefacts de planification qui ont servi de
-source de vérité tout au long du développement : spécifications, roadmap et plans
-atomiques versionnés dans le dépôt Git.
-
-\paragraph{Phase 2 : Sélection de l'outil de construction par benchmark empirique}
-
-Avant d'engager la phase de construction, une évaluation comparative des principaux
-outils d'assistance au développement disponibles en 2025--2026 a été conduite. Cinq
-outils ont été mis en compétition sur des critères objectifs et mesurables :
+Dans un second temps, plusieurs outils de développement assisté par l'IA ont été évalués selon des critères tels que la qualité du code généré, le coût, les performances et la gestion du contexte. Les résultats de cette comparaison sont présentés dans le tableau~\ref{tab:benchmark-outils-ch1}.
 
 \begin{table}[H]
 \centering
 \renewcommand{\arraystretch}{1.4}
-\caption{Benchmark des outils de développement assisté par IA}
+\caption{Comparaison des principaux outils de développement assisté par l'IA}
 \label{tab:benchmark-outils-ch1}
-\begin{tabular}{|p{2.8cm}|p{2.2cm}|p{2.2cm}|p{2.4cm}|p{2.8cm}|}
+\begin{tabular}{|p{3cm}|p{2.5cm}|p{2.5cm}|p{2.7cm}|p{3cm}|}
 \hline
 \textbf{Outil} & \textbf{Qualité du code} & \textbf{Coût} & \textbf{Performance} & \textbf{Gestion du contexte} \\
 \hline
@@ -938,52 +598,16 @@ GitHub Copilot  & Bonne     & Payant    & Bonne        & Faible \\
 \end{tabular}
 \end{table}
 
-À l'issue de ce benchmark, \textbf{Codex CLI} a été retenu comme outil principal de
-construction pour quatre raisons déterminantes : la qualité supérieure du code généré
-sur des tâches complexes, un modèle de coût accessible, une performance stable même sur
-des sessions longues, et la prise en charge native du fichier \texttt{AGENTS.md} qui
-permet une gestion structurée du contexte projet sans réinitialisation manuelle.
+À l'issue de cette évaluation, \textbf{Codex CLI} a été retenu comme principal outil d'assistance au développement en raison de la qualité des résultats obtenus, de sa stabilité et de ses capacités avancées de gestion du contexte.
 
-\paragraph{Phase 3 : Construction avec Codex CLI et skills personnalisées}
+Enfin, la phase de réalisation de la plateforme a été conduite avec Codex CLI, complété par des configurations et instructions personnalisées permettant d'adapter l'assistance fournie aux besoins spécifiques du projet. Cette approche a facilité le développement progressif des différentes fonctionnalités tout en maintenant la cohérence globale de la solution.
 
-La phase de construction a été réalisée avec \textbf{Codex CLI}, utilisé comme outil
-principal d'assistance au développement. Afin d'améliorer son efficacité et de mieux
-l'adapter aux besoins du projet, son utilisation a été renforcée par des \textit{skills}
-personnalisées dédiées à des tâches spécifiques.
 
-Ces skills ont permis d'orienter l'assistance fournie par Codex selon la nature des
-tâches à réaliser, notamment la génération de code, l'organisation des modules, la
-correction d'anomalies et l'amélioration de certaines fonctionnalités. Cette approche
-a facilité la réalisation progressive de la plateforme tout en gardant une meilleure
-cohérence avec les objectifs du projet.
-
-\subsection{Synthèse}
-
-Ce chapitre a établi le fondement méthodologique du projet en suivant une progression
-logique : de la critique des méthodes agiles traditionnelles à l'adoption d'un cadre
-innovant adapté à l'ère de l'IA générative.
-
-Les méthodes agiles classiques (Scrum, Kanban) ont été écartées non par rejet du principe
-itératif qu'elles incarnent, mais parce qu'elles n'intègrent structurellement pas l'IA
-comme collaborateur du cycle de développement. L'AI-DLC, formalisé par AWS en 2025,
-propose un cadre réimagine qui place la spécification et les agents IA au cœur du processus.
-
-Parmi les frameworks d'implémentation disponibles, le \textbf{GSD Framework} a été retenu
-pour sa gestion avancée du contexte, sa compatibilité native avec l'outillage utilisé
-(Codex CLI, OpenCode, Claude Code) et son adéquation avec le profil d'un développeur
-augmenté travaillant en autonomie sur un projet multi-agents complexe. Cette base a été
-enrichie par des skills personnalisées configurées dans Codex CLI, constituant une
-méthodologie hybride cohérente et documentée.
-
-Le chapitre suivant présente l'architecture technique de la plateforme, conçue et
-développée dans ce cadre méthodologique.
 
 \section{Conclusion}
 
-Dans ce chapitre, nous avons présenté le contexte général du projet, l'entreprise d'accueil
-3S ainsi que les besoins ayant motivé la réalisation de la plateforme. Nous avons également
-étudié les solutions existantes, défini les exigences fonctionnelles et non fonctionnelles,
-puis présenté la méthodologie de travail adoptée pour conduire le projet.
+Dans ce chapitre, nous avons présenté le contexte général du projet ainsi que l'environnement professionnel dans lequel il s'inscrit. L'analyse des solutions existantes a permis d'identifier leurs limites et de justifier la conception d'une plateforme centralisée dédiée au développement des compétences et à l'accompagnement intelligent des apprenants.
 
-Le chapitre suivant sera consacré à la présentation de l'architecture de la solution et des
-choix techniques retenus pour sa mise en œuvre.
+Nous avons également défini les exigences fonctionnelles et non fonctionnelles de la solution, puis présenté la méthodologie retenue, basée sur l'approche AI-DLC, le GSD Framework et l'outil Codex CLI.
+
+Le chapitre suivant sera consacré à la présentation de l'architecture de la plateforme et des principaux choix techniques retenus pour sa mise en œuvre.
