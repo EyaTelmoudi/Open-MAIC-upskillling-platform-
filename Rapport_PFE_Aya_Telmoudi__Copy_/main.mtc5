@@ -1,0 +1,16 @@
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {5.1}Introduction}{\reset@font\mtcSfont 71}{section.5.1}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {5.2}Tests et validation}{\reset@font\mtcSfont 71}{section.5.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {5.2.1}Tests unitaires}{\reset@font\mtcSSfont 71}{subsection.5.2.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {5.2.2}Tests fonctionnels}{\reset@font\mtcSSfont 73}{subsection.5.2.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {5.2.3}Tests de performance}{\reset@font\mtcSSfont 73}{subsection.5.2.3}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {5.2.3.1}Temps de réponse des API et capacité sous charge}{\reset@font\mtcSSSfont 74}{subsubsection.5.2.3.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {5.2.3.2}Progression et gamification}{\reset@font\mtcSSSfont 74}{subsubsection.5.2.3.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {5.2.4}Évaluation qualitative des modules IA}{\reset@font\mtcSSfont 75}{subsection.5.2.4}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {5.2.4.1}Objectif de l'évaluation}{\reset@font\mtcSSSfont 75}{subsubsection.5.2.4.1}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {5.2.4.2}Méthodologie avec RAGAS}{\reset@font\mtcSSSfont 75}{subsubsection.5.2.4.2}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {5.2.4.3}Jeu de données d'évaluation}{\reset@font\mtcSSSfont 76}{subsubsection.5.2.4.3}}
+{\reset@font\mtcSSSfont\mtc@string\contentsline{subsubsection}{\noexpand \leavevmode \numberline {5.2.4.4}Résultats obtenus avec RAGAS}{\reset@font\mtcSSSfont 76}{subsubsection.5.2.4.4}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {5.3}Évaluation et discussion des résultats}{\reset@font\mtcSfont 77}{section.5.3}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {5.3.1}Tableau de traçabilité exigences -- réalisation}{\reset@font\mtcSSfont 77}{subsection.5.3.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {5.3.2}Limites identifiées et perspectives}{\reset@font\mtcSSfont 78}{subsection.5.3.2}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {5.4}Conclusion}{\reset@font\mtcSfont 79}{section.5.4}}

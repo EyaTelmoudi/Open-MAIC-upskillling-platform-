@@ -107,6 +107,13 @@ function loadAgentEnv(repoRoot: string) {
     }
   }
 
+  if (mergedEnv.HINDSIGHT_URL === "http://hindsight:8888") {
+    mergedEnv.HINDSIGHT_URL = "http://127.0.0.1:8888";
+  }
+  if (mergedEnv.HINDSIGHT_API_URL === "http://hindsight:8888") {
+    mergedEnv.HINDSIGHT_API_URL = "http://127.0.0.1:8888";
+  }
+
   return mergedEnv;
 }
 

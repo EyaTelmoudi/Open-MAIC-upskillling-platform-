@@ -1,19 +1,53 @@
 \babel@toc {french}{}\relax 
 \addvspace {10\p@ }
-\contentsline {xchapter}{Contexte général et étude de l’existant}{1}{chapter.1}%
+\contentsline {xchapter}{Contexte général et méthodologie de travail}{3}{chapter.1}%
 \addvspace {10\p@ }
-\contentsline {xchapter}{Fondements IA, conception et architecture de la solution}{21}{chapter.2}%
-\contentsline {figure}{\numberline {2.1}{\ignorespaces Workflow général d'un système RAG \blx@tocontentsinit {0}\cite {aws_rag}}}{26}{figure.caption.8}%
-\contentsline {figure}{\numberline {2.2}{\ignorespaces Exemple de prompt système utilisé par l'Agent de recommandation}}{29}{figure.caption.10}%
-\contentsline {figure}{\numberline {2.3}{\ignorespaces Architecture conceptuelle de Hindsight \blx@tocontentsinit {0}\cite {hindsight_homepage}}}{32}{figure.caption.11}%
-\contentsline {figure}{\numberline {2.4}{\ignorespaces Fonctionnement de l'opération \textit {Retain} dans Hindsight \blx@tocontentsinit {0}\cite {hindsight_github}}}{33}{figure.2.4}%
-\contentsline {figure}{\numberline {2.5}{\ignorespaces Fonctionnement de l'opération \textit {Recall} dans Hindsight \blx@tocontentsinit {0}\cite {hindsight_github}}}{34}{figure.2.5}%
-\contentsline {figure}{\numberline {2.6}{\ignorespaces Fonctionnement de l'opération \textit {Reflect} dans Hindsight \blx@tocontentsinit {0}\cite {hindsight_github}}}{35}{figure.2.6}%
-\contentsline {figure}{\numberline {2.7}{\ignorespaces Vue d'ensemble de l'architecture en couches de la plateforme}}{39}{figure.caption.12}%
-\contentsline {figure}{\numberline {2.8}{\ignorespaces Diagramme de l'architecture microservices du backend}}{41}{figure.caption.13}%
-\contentsline {figure}{\numberline {2.9}{\ignorespaces Diagramme de cas d'utilisation UML des rôles dans l'architecture multi-tenant}}{43}{figure.caption.14}%
-\contentsline {figure}{\numberline {2.10}{\ignorespaces Diagramme d'activité UML de l'agent de création de cours}}{46}{figure.caption.15}%
-\contentsline {figure}{\numberline {2.11}{\ignorespaces Diagramme d'activité UML de l'agent de coaching pédagogique}}{47}{figure.caption.16}%
-\contentsline {figure}{\numberline {2.12}{\ignorespaces Diagramme d'activité UML de l'agent de mémoire apprenant}}{48}{figure.caption.17}%
-\contentsline {figure}{\numberline {2.13}{\ignorespaces Diagramme d'activité UML de l'agent de recommandation}}{50}{figure.caption.18}%
-\contentsline {figure}{\numberline {2.14}{\ignorespaces Diagramme d'activité UML de l'agent de défis personnalisés}}{52}{figure.caption.19}%
+\contentsline {xchapter}{Concepts de base et étude préalable}{18}{chapter.2}%
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Workflow général d'un système RAG \blx@tocontentsinit {0}\cite {aws_rag}}}{23}{figure.caption.12}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Exemple de prompt système utilisé par l'Agent de recommandation}}{26}{figure.caption.14}%
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Architecture conceptuelle de Hindsight \blx@tocontentsinit {0}\cite {hindsight_homepage}}}{28}{figure.caption.15}%
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Fonctionnement de l'opération \textit {Retain} dans Hindsight \blx@tocontentsinit {0}\cite {hindsight_github}}}{29}{figure.2.4}%
+\contentsline {figure}{\numberline {2.5}{\ignorespaces Fonctionnement de l'opération \textit {Recall} dans Hindsight \blx@tocontentsinit {0}\cite {hindsight_github}}}{30}{figure.2.5}%
+\contentsline {figure}{\numberline {2.6}{\ignorespaces Fonctionnement de l'opération \textit {Reflect} dans Hindsight \blx@tocontentsinit {0}\cite {hindsight_github}}}{31}{figure.2.6}%
+\addvspace {10\p@ }
+\contentsline {xchapter}{Conception architecturale de la plateforme}{33}{chapter.3}%
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Vue d'ensemble de l'architecture en couches de la plateforme}}{35}{figure.caption.16}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Organisation des microservices du backend}}{37}{figure.caption.17}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Architecture multi-tenant de la plateforme}}{38}{figure.caption.18}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Diagramme de cas d'utilisation UML des acteurs au sein d'un tenant}}{39}{figure.caption.19}%
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Diagramme d'activité UML de l'agent de création de cours}}{41}{figure.caption.20}%
+\contentsline {figure}{\numberline {3.6}{\ignorespaces Diagramme d'activité UML de l'agent de coaching pédagogique}}{42}{figure.caption.21}%
+\contentsline {figure}{\numberline {3.7}{\ignorespaces Diagramme d'activité UML de l'agent de mémoire apprenant}}{43}{figure.caption.22}%
+\contentsline {figure}{\numberline {3.8}{\ignorespaces Diagramme d'activité UML de l'agent de recommandation}}{44}{figure.caption.23}%
+\contentsline {figure}{\numberline {3.9}{\ignorespaces Diagramme d'activité UML de l'agent de défis personnalisés}}{45}{figure.caption.24}%
+\addvspace {10\p@ }
+\contentsline {xchapter}{Réalisation}{49}{chapter.4}%
+\contentsline {figure}{\numberline {4.1}{\ignorespaces Interface d'initialisation de la plateforme et création du compte SuperAdmin}}{51}{figure.caption.26}%
+\contentsline {figure}{\numberline {4.2}{\ignorespaces Gestion multi-tenant des entreprises depuis l'espace SuperAdmin}}{51}{figure.caption.27}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Création d'un tenant avec domaine d'entreprise, limite de sièges et paramètres d'identité}}{52}{figure.caption.28}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Gestion des utilisateurs et des comptes dans l'espace d'administration d'un tenant}}{53}{figure.caption.29}%
+\contentsline {figure}{\numberline {4.5}{\ignorespaces Interface de connexion avec authentification applicative et option Azure Entra ID}}{54}{figure.caption.30}%
+\contentsline {figure}{\numberline {4.6}{\ignorespaces Consultation des traces d'audit des actions d'administration}}{55}{figure.caption.31}%
+\contentsline {figure}{\numberline {4.7}{\ignorespaces Formulaire de création d'un cours traditionnel dans l'espace d'administration}}{56}{figure.caption.32}%
+\contentsline {figure}{\numberline {4.8}{\ignorespaces Organisation d'un cours avec ses leçons, vidéos, ressources et quiz}}{56}{figure.caption.33}%
+\contentsline {figure}{\numberline {4.9}{\ignorespaces Interface de création d'un cours généré par IA avec les champs de saisie du besoin pédagogique}}{57}{figure.caption.34}%
+\contentsline {figure}{\numberline {4.10}{\ignorespaces Résultat de génération affichant le brouillon du cours, ses leçons et ses éléments éditables}}{58}{figure.caption.35}%
+\contentsline {figure}{\numberline {4.11}{\ignorespaces Catalogue des cours disponibles pour l'apprenant}}{59}{figure.caption.36}%
+\contentsline {figure}{\numberline {4.12}{\ignorespaces Page de détail d'un cours avec l'action d'inscription}}{59}{figure.caption.37}%
+\contentsline {figure}{\numberline {4.13}{\ignorespaces Espace My Learning affichant les cours inscrits de l'apprenant}}{59}{figure.caption.38}%
+\contentsline {figure}{\numberline {4.14}{\ignorespaces Tableau de progression individuelle affichant les indicateurs d'apprentissage de l'utilisateur}}{60}{figure.caption.39}%
+\contentsline {figure}{\numberline {4.15}{\ignorespaces Suivi détaillé de la progression dans une leçon}}{60}{figure.caption.40}%
+\contentsline {figure}{\numberline {4.16}{\ignorespaces Interface de suivi des objectifs personnels et des objectifs d'équipe}}{61}{figure.caption.41}%
+\contentsline {figure}{\numberline {4.17}{\ignorespaces Liste des certificats obtenus par l'apprenant}}{61}{figure.caption.42}%
+\contentsline {figure}{\numberline {4.18}{\ignorespaces Détail d'un certificat délivré}}{62}{figure.caption.43}%
+\contentsline {figure}{\numberline {4.19}{\ignorespaces Page de vérification publique d'un certificat après scan du QR code}}{63}{figure.caption.44}%
+\contentsline {figure}{\numberline {4.20}{\ignorespaces Illustration de l'obtention des points XP}}{63}{figure.caption.45}%
+\contentsline {figure}{\numberline {4.21}{\ignorespaces Affichage des badges obtenus et non encore débloqués}}{64}{figure.caption.46}%
+\contentsline {figure}{\numberline {4.22}{\ignorespaces Interface de gestion des badges personnalisés}}{64}{figure.caption.47}%
+\contentsline {figure}{\numberline {4.23}{\ignorespaces Classement des apprenants selon leur progression}}{65}{figure.caption.48}%
+\contentsline {figure}{\numberline {4.24}{\ignorespaces Interaction entre l'apprenant et l'agent de coaching IA}}{66}{figure.caption.49}%
+\contentsline {figure}{\numberline {4.25}{\ignorespaces Recommandations personnalisées proposées par l'agent IA}}{67}{figure.caption.50}%
+\contentsline {figure}{\numberline {4.26}{\ignorespaces Challenge personnalisé généré par l'agent IA}}{68}{figure.caption.51}%
+\addvspace {10\p@ }
+\contentsline {xchapter}{Tests et validation}{70}{chapter.5}%
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Exécution des tests unitaires avec pytest et affichage du résultat dans le terminal}}{72}{figure.caption.53}%

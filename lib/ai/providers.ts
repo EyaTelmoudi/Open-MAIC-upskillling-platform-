@@ -881,6 +881,23 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     ],
   },
 
+  groq: {
+    id: 'groq',
+    name: 'Groq',
+    type: 'openai',
+    defaultBaseUrl: 'https://api.groq.com/openai/v1',
+    requiresApiKey: true,
+    icon: '/logos/groq.svg',
+    models: [
+      {
+        id: 'openai/gpt-oss-20b',
+        name: 'GPT-OSS 20B',
+        contextWindow: 131072,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+    ],
+  },
+
   'tencent-hunyuan': {
     id: 'tencent-hunyuan',
     name: 'Tencent Hunyuan',

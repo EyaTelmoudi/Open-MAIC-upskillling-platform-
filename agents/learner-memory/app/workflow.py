@@ -508,7 +508,7 @@ def _ensure_bank_exists(
         headers["Authorization"] = f"Bearer {hindsight_api_key}"
 
     timeout = httpx.Timeout(20.0)
-    with httpx.Client(timeout=timeout) as client:
+    with httpx.Client(timeout=timeout, trust_env=False) as client:
         profile_response = client.get(
             f"{hindsight_url}/v1/default/banks/{bank_id}/profile",
             headers=headers,

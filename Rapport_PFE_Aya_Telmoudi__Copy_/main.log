@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.5.16)  8 JUN 2026 00:58
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (MiKTeX 25.12) (preloaded format=pdflatex 2026.5.16)  16 JUN 2026 15:48
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -889,7 +889,7 @@ Package: xparse 2025-10-09 L3 Experimental document command parser
 Package: blx-case-expl3 2025/07/10 v3.21 expl3 case changing code for biblatex
 ))
 Package minitoc Info: I0024
-(minitoc)             PREPARING MINITOCS FROM main.toc on input line 84.
+(minitoc)             PREPARING MINITOCS FROM main.toc on input line 93.
 Package minitoc Info: I0033
 (minitoc)             Writing main.mtc1.
 \openout3 = `main.mtc1'.
@@ -906,6 +906,18 @@ Package minitoc Info: I0033
 (minitoc)             Writing main.mtc4.
 \openout3 = `main.mtc4'.
 
+Package minitoc Info: I0033
+(minitoc)             Writing main.mtc5.
+\openout3 = `main.mtc5'.
+
+Package minitoc Info: I0033
+(minitoc)             Writing main.mtc6.
+\openout3 = `main.mtc6'.
+
+Package minitoc Info: I0033
+(minitoc)             Writing main.mtc7.
+\openout3 = `main.mtc7'.
+
 \chapter@number@width=\skip106
 
 
@@ -920,25 +932,25 @@ Package babel Info: 'french' activates 'french' shorthands.
 )
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 164.
-LaTeX Font Info:    ... okay on input line 164.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 164.
-LaTeX Font Info:    ... okay on input line 164.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 164.
-LaTeX Font Info:    ... okay on input line 164.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 164.
-LaTeX Font Info:    ... okay on input line 164.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 164.
-LaTeX Font Info:    ... okay on input line 164.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 164.
-LaTeX Font Info:    ... okay on input line 164.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 164.
-LaTeX Font Info:    ... okay on input line 164.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 164.
-LaTeX Font Info:    ... okay on input line 164.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 164.
-LaTeX Font Info:    ... okay on input line 164.
-LaTeX Info: Redefining \degres on input line 164.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 175.
+LaTeX Font Info:    ... okay on input line 175.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 175.
+LaTeX Font Info:    ... okay on input line 175.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 175.
+LaTeX Font Info:    ... okay on input line 175.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 175.
+LaTeX Font Info:    ... okay on input line 175.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 175.
+LaTeX Font Info:    ... okay on input line 175.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 175.
+LaTeX Font Info:    ... okay on input line 175.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 175.
+LaTeX Font Info:    ... okay on input line 175.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 175.
+LaTeX Font Info:    ... okay on input line 175.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 175.
+LaTeX Font Info:    ... okay on input line 175.
+LaTeX Info: Redefining \degres on input line 175.
 
 (C:\Users\ayate\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.mk
 ii
@@ -968,7 +980,7 @@ File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 Package caption Info: Begin \AtBeginDocument code.
 Package caption Info: hyperref package is loaded.
 Package caption Info: End \AtBeginDocument code.
-Package hyperref Info: Link coloring OFF on input line 164.
+Package hyperref Info: Link coloring OFF on input line 175.
  (main.out) (main.out)
 \@outlinefile=\write5
 \openout5 = `main.out'.
@@ -1031,134 +1043,63 @@ Package biblatex Info: Automatic encoding selection.
 Package biblatex Info: Trying to load bibliographic data...
 Package biblatex Info: ... file 'main.bbl' found.
  (main.bbl)
-Package biblatex Info: Reference section=0 on input line 164.
-Package biblatex Info: Reference segment=0 on input line 164.
-<page_garde.pdf, id=439, 598.15468pt x 845.55902pt>
+Package biblatex Info: Reference section=0 on input line 175.
+Package biblatex Info: Reference segment=0 on input line 175.
+<page_garde.pdf, id=499, 598.27513pt x 845.67947pt>
 File: page_garde.pdf Graphic file (type pdf)
 <use page_garde.pdf>
-Package pdftex.def Info: page_garde.pdf  used on input line 167.
-(pdftex.def)             Requested size: 598.15321pt x 845.55696pt.
-<page_garde.pdf, id=441, page=1, 598.15468pt x 845.55902pt>
+Package pdftex.def Info: page_garde.pdf  used on input line 178.
+(pdftex.def)             Requested size: 598.27367pt x 845.67741pt.
+<page_garde.pdf, id=501, page=1, 598.27513pt x 845.67947pt>
 File: page_garde.pdf Graphic file (type pdf)
 <use page_garde.pdf, page 1>
-Package pdftex.def Info: page_garde.pdf , page1 used on input line 167.
-(pdftex.def)             Requested size: 598.15321pt x 845.55696pt.
+Package pdftex.def Info: page_garde.pdf , page1 used on input line 178.
+(pdftex.def)             Requested size: 598.27367pt x 845.67741pt.
 File: page_garde.pdf Graphic file (type pdf)
 <use page_garde.pdf, page 1>
-Package pdftex.def Info: page_garde.pdf , page1 used on input line 167.
-(pdftex.def)             Requested size: 597.66034pt x 844.86023pt.
+Package pdftex.def Info: page_garde.pdf , page1 used on input line 178.
+(pdftex.def)             Requested size: 597.7807pt x 844.98059pt.
 File: page_garde.pdf Graphic file (type pdf)
 <use page_garde.pdf, page 1>
-Package pdftex.def Info: page_garde.pdf , page1 used on input line 167.
-(pdftex.def)             Requested size: 597.66034pt x 844.86023pt.
+Package pdftex.def Info: page_garde.pdf , page1 used on input line 178.
+(pdftex.def)             Requested size: 597.7807pt x 844.98059pt.
 File: page_garde.pdf Graphic file (type pdf)
 <use page_garde.pdf, page 1>
-Package pdftex.def Info: page_garde.pdf , page1 used on input line 167.
-(pdftex.def)             Requested size: 597.66034pt x 844.86023pt.
+Package pdftex.def Info: page_garde.pdf , page1 used on input line 178.
+(pdftex.def)             Requested size: 597.7807pt x 844.98059pt.
 File: page_garde.pdf Graphic file (type pdf)
 <use page_garde.pdf, page 1>
-Package pdftex.def Info: page_garde.pdf , page1 used on input line 167.
-(pdftex.def)             Requested size: 597.66034pt x 844.86023pt.
+Package pdftex.def Info: page_garde.pdf , page1 used on input line 178.
+(pdftex.def)             Requested size: 597.7807pt x 844.98059pt.
  [1
 
 
- <./page_garde.pdf>] (remerciement.tex) (main.toc
-LaTeX Font Info:    Trying to load font information for U+msa on input line 3.
+ <./page_garde.pdf>] (dedicace.tex
+LaTeX Font Info:    Trying to load font information for U+msa on input line 67.
+
 
 (C:\Users\ayate\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 3.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 67.
+
 
 (C:\Users\ayate\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-)
-[1
+))
+(remerciement.tex [1
 
 
-{C:/Users/ayate/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}]
-Package babel Info: 'french' activates 'french' shorthands.
-(babel)             Reported on input line 75.
+{C:/Users/ayate/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}]) [2
 
 
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[2]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[3])
-\tf@toc=\write6
-\openout6 = `main.toc'.
-
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[4] (main.lof)
-\tf@lof=\write7
-\openout7 = `main.lof'.
-
- [5
-
-
-] (main.lot)
-\tf@lot=\write8
-\openout8 = `main.lot'.
-
- [6
-
-
-] (introduction_generale.tex)
-(chapitres/chapitre1.tex
-Chapitre 1.
-
-Overfull \hbox (37.7646pt too wide) in paragraph at lines 1--1
-[][] 
- []
-
-\openout3 = `main.mtc'.
-
-\openout3 = `main.mtc'.
-
-(main.mtc1)
-pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has 
-been already used, duplicate ignored
-<to be read again> 
-                   \relax 
-l.5 \newpage
-             [1
+] (main.toc [3
 
 
 ]
+Package babel Info: 'french' activates 'french' shorthands.
+(babel)             Reported on input line 71.
 
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[2]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[3]
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1174,7 +1115,110 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
+[5])
+\tf@toc=\write6
+\openout6 = `main.toc'.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[6] (main.lof [7
+
+
+])
+\tf@lof=\write7
+\openout7 = `main.lof'.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[8] (main.lot)
+\tf@lot=\write8
+\openout8 = `main.lot'.
+
+ [9
+
+
+] (introduction_generale.tex
+Underfull \hbox (badness 1033) in paragraph at lines 10--11
+\T1/cmr/m/n/12 plu-sieurs agents in-tel-li-gents spé-cia-li-sés, cha-cun ayant 
+un rôle pré-cis dans le pro-ces-sus
+ []
+
+
+pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has 
+been already used, duplicate ignored
+<to be read again> 
+                   \relax 
+l.20 L
+      e quatriÃ¨me chapitre, Â« RÃ©alisation Â», prÃ©sente les diffÃ©rents m...
+[1
+
+
+
+]) (chapitres/chapitre1.tex
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[2]
+Chapitre 1.
+
+Overfull \hbox (37.7646pt too wide) in paragraph at lines 1--1
+[][] 
+ []
+
+\openout3 = `main.mtc'.
+
+\openout3 = `main.mtc'.
+
+(main.mtc1) [3
+
+]
+
+LaTeX Warning: Citation 'site3s' on page 4 undefined on input line 28.
+
+
+LaTeX Warning: Citation 'site3sgroup' on page 4 undefined on input line 32.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[4]
+Underfull \hbox (badness 1052) in paragraph at lines 78--79
+\T1/cmr/m/n/12 col-la-bo-ra-teurs né-ces-sitent un ac-com-pa-gne-ment ré-gu-lie
+r afin de fa-ci-li-ter l'ac-qui-si-tion de
+ []
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
 [5]
+
+LaTeX Warning: Citation 'googleSkillsFeatures' on page 6 undefined on input lin
+e 114.
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1184,6 +1228,22 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 [6]
 
+LaTeX Warning: Citation 'duolingo' on page 7 undefined on input line 130.
+
+
+LaTeX Warning: Citation 'learning360' on page 7 undefined on input line 137.
+
+
+LaTeX Warning: Citation 'cypherLearning' on page 7 undefined on input line 141.
+
+
+
+Underfull \hbox (badness 1755) in paragraph at lines 141--149
+\T1/cmr/m/n/12 des par-cours d'ap-pren-tis-sage. Son ou-til phare, CY-PHER Co-p
+i-lot, per-met de gé-né-rer
+ []
+
+
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
 (fancyhdr)                \setlength{\headheight}{14.49998pt}.
@@ -1191,209 +1251,11 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [7]
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-[]|\T1/cmr/m/n/12 Oui (multi-
- []
 
+LaTeX Warning: Citation 'openmaic' on page 8 undefined on input line 162.
 
-Underfull \hbox (badness 1968) in paragraph at lines 394--394
-\T1/cmr/m/n/12 agents + LLM
- []
 
-
-Underfull \hbox (badness 1147) in paragraph at lines 394--394
-[]|\T1/cmr/m/n/12 Génération auto de
- []
-
-
-Underfull \hbox (badness 5008) in paragraph at lines 394--394
-[]|\T1/cmr/m/n/12 Oui (CY-PHER
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-[]|\T1/cmr/m/n/12 Oui (multi-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/m/n/12 + as-sis-tants
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/m/n/12 + class-mates
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-[]|\T1/cmr/m/n/12 Suivi des com-pé-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-[]|\T1/cmr/m/n/12 Confidentialité des
- []
-
-
-Underfull \hbox (badness 1466) in paragraph at lines 394--394
-[]|\T1/cmr/m/n/12 Faible (ser-veurs
- []
-
-
-Underfull \hbox (badness 1466) in paragraph at lines 394--394
-[]|\T1/cmr/m/n/12 Faible (ser-veurs
- []
-
-
-Underfull \hbox (badness 3907) in paragraph at lines 394--394
-[]|\T1/cmr/m/n/12 Bonne (RGPD,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-[]|\T1/cmr/m/n/12 Totale (auto-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-[]|\T1/cmr/m/n/12 Totale (auto-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-[]|\T1/cmr/m/n/12 Architecture multi-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/m/n/12 self-hosted, ex-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/m/n/12 ten-sible, BYO
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 ter) ; Pro à
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 29$/mois ;
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 Ca-reer Cer-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 ti-fi-cates à
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-[]|\T1/cmr/bx/n/12 Gratuit ; Su-
- []
-
-
-Underfull \hbox (badness 4886) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 per Duo-lingo
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 à par-tir de
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 12,99$/mois ;
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 Max avec
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 fonc-tion-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 na-li-tés IA
- []
-
-
-Overfull \hbox (1.9315pt too wide) in paragraph at lines 394--394
-[]|\T1/cmr/bx/n/12 8$/utilisateur/
- []
-
-
-Underfull \hbox (badness 1137) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 mois (Team) ;
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 Bu-si-ness et
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-[]|\T1/cmr/bx/n/12 Sur de-vis
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 (à par-tir
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 d'en-vi-ron
- []
-
-
-Underfull \hbox (badness 2409) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 de l'or-ga-ni-sa-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 source) ; né-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 ces-site API
- []
-
-
-Underfull \hbox (badness 4467) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 LLM ex-terne
- []
-
-
-Underfull \hbox (badness 4366) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 et in-fra-struc-
- []
-
-
-Underfull \hbox (badness 3690) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 ture d'hé-ber-
- []
-
-
-Underfull \hbox (badness 1603) in paragraph at lines 394--394
-\T1/cmr/bx/n/12 sup-port se-lon
- []
+LaTeX Warning: Citation 'moodle' on page 8 undefined on input line 169.
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1403,6 +1265,290 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [8]
+Underfull \hbox (badness 10000) in paragraph at lines 210--211
+[]|\T1/cmr/bx/n/10 Google
+ []
+
+
+Overfull \hbox (7.57072pt too wide) in paragraph at lines 212--213
+[]|\T1/cmr/bx/n/10 360Learning| 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 213--214
+[]|\T1/cmr/bx/n/10 CYPHER
+ []
+
+
+Overfull \hbox (2.36475pt too wide) in paragraph at lines 214--215
+[]|\T1/cmr/bx/n/10 OpenMAIC| 
+ []
+
+
+Underfull \hbox (badness 3646) in paragraph at lines 221--222
+[]|\T1/cmr/m/n/10 Oui (GPT-
+ []
+
+
+Underfull \hbox (badness 8038) in paragraph at lines 224--225
+[]|\T1/cmr/m/n/10 Oui (multi-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 224--225
+\T1/cmr/m/n/10 agents +
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 242--243
+[]|\T1/cmr/m/n/10 Oui
+ []
+
+
+Overfull \hbox (9.81323pt too wide) in paragraph at lines 242--243
+\T1/cmr/m/n/10 (PDF/DOCX)| 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 243--244
+[]|\T1/cmr/m/n/10 Oui
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 243--244
+\T1/cmr/m/n/10 (CY-PHER
+ []
+
+
+Underfull \hbox (badness 8038) in paragraph at lines 244--245
+[]|\T1/cmr/m/n/10 Oui (multi-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 249--250
+[]|\T1/cmr/m/n/10 Assistance
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 249--250
+\T1/cmr/m/n/10 conver-sa-tion-
+ []
+
+
+Underfull \hbox (badness 1127) in paragraph at lines 269--270
+[]|\T1/cmr/m/n/10 Suivi des com-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 280--281
+[]|\T1/cmr/m/n/10 Faible
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 282--283
+[]|\T1/cmr/m/n/10 Bonne
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 283--284
+[]|\T1/cmr/m/n/10 Moyenne
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 285--286
+[]|\T1/cmr/m/n/10 Totale
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 285--286
+\T1/cmr/m/n/10 (auto-
+ []
+
+
+Overfull \hbox (1.232pt too wide) in paragraph at lines 285--286
+\T1/cmr/m/n/10 hébergeable)| 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 289--290
+[]|\T1/cmr/m/n/10 Architecture
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 293--294
+[]|\T1/cmr/m/n/10 Oui (plan
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 304--305
+[]|\T1/cmr/m/n/10 Oui
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 304--305
+\T1/cmr/m/n/10 (AGPL-3.0,
+ []
+
+
+LaTeX Warning: Citation 'googleSkills' on page 9 undefined on input line 311.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 311--312
+[]|\T1/cmr/bx/n/10 Gratuit
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 311--312
+\T1/cmr/bx/n/10 (Star-ter) ;
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 311--312
+\T1/cmr/bx/n/10 Pro
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 311--312
+\T1/cmr/bx/n/10 29$/mois
+ []
+
+
+Overfull \hbox (4.2882pt too wide) in paragraph at lines 311--312
+[] 
+ []
+
+
+LaTeX Warning: Citation 'duolingoMax' on page 9 undefined on input line 313.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 313--314
+[]|\T1/cmr/bx/n/10 Gratuit ;
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 313--314
+\T1/cmr/bx/n/10 Su-per
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 313--314
+\T1/cmr/bx/n/10 Duo-lingo
+ []
+
+
+Overfull \hbox (6.68344pt too wide) in paragraph at lines 313--314
+\T1/cmr/bx/n/10 12,99$/mois
+ []
+
+
+Overfull \hbox (11.30592pt too wide) in paragraph at lines 313--314
+[] 
+ []
+
+
+LaTeX Warning: Citation 'learning360prix' on page 9 undefined on input line 315
+.
+
+
+Overfull \hbox (43.41891pt too wide) in paragraph at lines 315--316
+[]|\T1/cmr/bx/n/10 8$/utilisateur/mois
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 315--316
+\T1/cmr/bx/n/10 (Team)
+ []
+
+
+Overfull \hbox (24.07364pt too wide) in paragraph at lines 315--316
+[] 
+ []
+
+
+LaTeX Warning: Citation 'cypherLearningprix' on page 9 undefined on input line 
+317.
+
+
+Underfull \hbox (badness 5431) in paragraph at lines 317--318
+[]|\T1/cmr/bx/n/10 Sur de-vis
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 317--318
+\T1/cmr/bx/n/10 (dès
+ []
+
+
+Overfull \hbox (4.54408pt too wide) in paragraph at lines 317--318
+\T1/cmr/bx/n/10 10000$/an)
+ []
+
+
+Overfull \hbox (44.50615pt too wide) in paragraph at lines 317--318
+[] 
+ []
+
+
+LaTeX Warning: Citation 'openmaic' on page 9 undefined on input line 319.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 319--320
+[]|\T1/cmr/bx/n/10 Gratuit
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 319--320
+\T1/cmr/bx/n/10 (OSS) ;
+ []
+
+
+Underfull \hbox (badness 5802) in paragraph at lines 319--320
+\T1/cmr/bx/n/10 API LLM
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 319--320
+\T1/cmr/bx/n/10 + hé-ber-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 319--320
+\T1/cmr/bx/n/10 ge-ment
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 319--320
+\T1/cmr/bx/n/10 re-quis
+ []
+
+
+LaTeX Warning: Citation 'moodle' on page 9 undefined on input line 321.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 321--322
+[]|\T1/cmr/bx/n/10 Gratuit
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 321--322
+\T1/cmr/bx/n/10 (OSS) ;
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 321--322
+\T1/cmr/bx/n/10 hé-ber-ge-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 321--322
+\T1/cmr/bx/n/10 ment +
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 321--322
+\T1/cmr/bx/n/10 sup-port
+ []
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1411,11 +1557,6 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [9]
-Underfull \hbox (badness 7722) in paragraph at lines 507--507
-[]|\T1/cmr/m/n/12 Gestion des for-ma-
- []
-
-ignored error: Infinite glue shrinkage found in box being split
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1424,13 +1565,127 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [10]
-Underfull \hbox (badness 10000) in paragraph at lines 607--607
+Underfull \hbox (badness 1728) in paragraph at lines 400--401
+\T1/cmr/m/n/10 ad-mi-nis-tra-teur, ma-na-ger, ex-pert pé-da-go-gique et membre
+ []
+
+
+Underfull \hbox (badness 6428) in paragraph at lines 408--408
+[]|\T1/cmr/m/n/10 Suivi des ap-pren-tis-
+ []
+
+
+Underfull \hbox (badness 1297) in paragraph at lines 412--413
+\T1/cmr/m/n/10 ca-pable d'ac-com-pa-gner l'uti-li-sa-teur tout au long de son
+ []
+
+
+LaTeX Warning: Citation 'iso25010' on page 11 undefined on input line 432.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 453--453
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 456--456
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 5667) in paragraph at lines 456--457
+\T1/cmr/m/n/12 multi-tenant. L'iso-la-tion des don-nées est as-su-rée via
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 459--459
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 462--462
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 465--465
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 1454) in paragraph at lines 465--466
+[]|\T1/cmr/m/n/12 L'architecture mi-cro-ser-vices per-met l'ajout de nou-veaux
+ []
+
+
+Underfull \hbox (badness 1210) in paragraph at lines 465--466
+\T1/cmr/m/n/12 mo-dules ou fonc-tion-na-li-tés sans im-pact sur les ser-vices
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 468--468
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 471--471
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 474--474
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 1748) in paragraph at lines 474--475
+[]|\T1/cmr/m/n/12 La pla-te-forme per-met l'in-té-gra-tion de nou-veaux agents
+ []
+
+
+Underfull \hbox (badness 1360) in paragraph at lines 474--475
+\T1/cmr/m/n/12 IA et de nou-velles fonc-tion-na-li-tés sans mo-di-fi-ca-tion de
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 477--477
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 480--480
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 483--483
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 483--483
 []|\T1/cmr/m/n/12 Intégrité des
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 613--613
-[]|\T1/cmr/m/n/12 Compatibilité
+Underfull \hbox (badness 10000) in paragraph at lines 486--486
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 2181) in paragraph at lines 486--487
+\T1/cmr/m/n/12 uti-li-sa-teurs, sco-ped te-nant) et su-per_admin_audit_logs
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 489--489
+[]|\T1/cmr/m/n/12 ENF-
+ []
+
+
+Underfull \hbox (badness 1194) in paragraph at lines 489--490
+[]|\T1/cmr/m/n/12 Les com-po-sants de la pla-te-forme (ba-ckend, fron-tend et
  []
 
 
@@ -1458,6 +1713,18 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [13]
+Underfull \hbox (badness 1342) in paragraph at lines 512--513
+[]\T1/cmr/m/n/12 Cependant, avec l'émer-gence de l'in-tel-li-gence ar-ti-fi-cie
+lle gé-né-ra-tive et des sys-tèmes
+ []
+
+
+LaTeX Warning: Citation 'sarkar2025vibecoding' on page 14 undefined on input li
+ne 520.
+
+
+LaTeX Warning: Citation 'awsblog2025' on page 14 undefined on input line 528.
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1467,6 +1734,171 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 [14]
 
+LaTeX Warning: Citation 'githubspeckit' on page 15 undefined on input line 536.
+
+
+
+LaTeX Warning: Citation 'bmad2025' on page 15 undefined on input line 536.
+
+
+LaTeX Warning: Citation 'gsd2026' on page 15 undefined on input line 536.
+
+
+LaTeX Warning: Citation 'kiro2025' on page 15 undefined on input line 536.
+
+
+Underfull \hbox (badness 1648) in paragraph at lines 536--537
+[]\T1/cmr/m/n/12 L'adoption crois-sante des ap-proches AI-Driven De-ve-lop-ment
+ Li-fe-cycle a conduit à
+ []
+
+
+Underfull \hbox (badness 1661) in paragraph at lines 536--537
+\T1/cmr/m/n/12 l'in-tel-li-gence ar-ti-fi-cielle. Parmi les so-lu-tions les plu
+s ré-pan-dues fi-gurent Gi-tHub Spec
+ []
+
+
+Underfull \hbox (badness 1708) in paragraph at lines 536--537
+\T1/cmr/m/n/12 Kit [], BMAD Me-thod [], GSD Fra-me-work [] et AWS
+ []
+
+
+Underfull \hbox (badness 4792) in paragraph at lines 547--547
+[]|\T1/cmr/bx/n/12 GitHub Spec
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 547--547
+[]|\T1/cmr/bx/n/12 BMAD
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 547--547
+[]|\T1/cmr/bx/n/12 GSD
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 550--550
+[]|\T1/cmr/bx/n/12 Gestion du
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 550--550
+[]|\T1/cmr/m/n/12 Agents à
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 550--550
+\T1/cmr/m/n/12 contexte
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 550--550
+[]|\T1/cmr/m/n/12 Sous-agents à
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 550--551
+[]|\T1/cmr/m/n/12 Steering files
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 552--552
+[]|\T1/cmr/m/n/12 Oui
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 552--553
+[]|\T1/cmr/m/n/12 Partiel (hooks
+ []
+
+
+Underfull \hbox (badness 1107) in paragraph at lines 554--554
+[]|\T1/cmr/m/n/12 Claude, Cur-sor,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 554--554
+[]|\T1/cmr/m/n/12 Claude Code,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 554--554
+\T1/cmr/m/n/12 Co-dex CLI,
+ []
+
+
+Underfull \hbox (badness 3724) in paragraph at lines 556--556
+[]|\T1/cmr/bx/n/12 Courbe d'ap-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 556--557
+[]|\T1/cmr/m/n/12 Faible à
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 558--558
+[]|\T1/cmr/bx/n/12 Vérification
+ []
+
+
+Underfull \hbox (badness 5050) in paragraph at lines 558--558
+[]|\T1/cmr/m/n/12 Checklists qua-
+ []
+
+
+Underfull \hbox (badness 5189) in paragraph at lines 558--559
+[]|\T1/cmr/m/n/12 Hooks au-to-ma-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 560--561
+[]|\T1/cmr/m/n/12 Non
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 560--561
+\T1/cmr/m/n/12 (pro-prié-taire
+ []
+
+
+Underfull \hbox (badness 2521) in paragraph at lines 562--562
+[]|\T1/cmr/m/n/12 Initiation SDD,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 562--562
+[]|\T1/cmr/m/n/12 Équipes
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 562--562
+\T1/cmr/m/n/12 en-tre-prise,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 562--562
+[]|\T1/cmr/m/n/12 Projets
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 562--562
+\T1/cmr/m/n/12 multi-agents,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 562--563
+[]|\T1/cmr/m/n/12 Projets
+ []
+
+
+Overfull \hbox (5.4944pt too wide) in paragraph at lines 545--565
+ [][] 
+ []
+
+
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
 (fancyhdr)                \setlength{\headheight}{14.49998pt}.
@@ -1474,200 +1906,17 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [15]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[16]
-Underfull \hbox (badness 10000) in paragraph at lines 835--835
-[]|\T1/cmr/bx/n/12 GitHub
+Underfull \hbox (badness 5460) in paragraph at lines 586--586
+[]|\T1/cmr/bx/n/12 Qualité du
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 837--837
-[]|\T1/cmr/m/n/12 Toolkit SDD
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 837--837
-[]|\T1/cmr/m/n/12 Framework
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 837--837
-[]|\T1/cmr/m/n/12 Méta-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 837--837
-\T1/cmr/m/n/12 prompting
- []
-
-
-Underfull \hbox (badness 6708) in paragraph at lines 839--839
+Underfull \hbox (badness 10000) in paragraph at lines 586--587
 []|\T1/cmr/bx/n/12 Gestion du
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 839--839
-[]|\T1/cmr/m/n/12 Artefacts
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 839--839
-\T1/cmr/m/n/12 Mark-down
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 839--839
-[]|\T1/cmr/m/n/12 Agents à
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 839--839
-\T1/cmr/m/n/12 contexte res-
- []
-
-
-Underfull \hbox (badness 1087) in paragraph at lines 839--839
-[]|\T1/cmr/m/n/12 Sous-agents à
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 839--840
-[]|\T1/cmr/m/n/12 Steering files
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 841--841
-[]|\T1/cmr/m/n/12 Oui (12
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 841--841
-[]|\T1/cmr/m/n/12 Oui (or-ches-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 841--841
-\T1/cmr/m/n/12 tra-teur +
- []
-
-
-Overfull \hbox (6.97511pt too wide) in paragraph at lines 843--843
-[]|\T1/cmr/bx/n/12 Compatibilité| 
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 843--843
-[]|\T1/cmr/m/n/12 30+ in-té-gra-
- []
-
-
-Underfull \hbox (badness 5388) in paragraph at lines 843--843
-[]|\T1/cmr/m/n/12 Claude, Cur-
- []
-
-
-Underfull \hbox (badness 1189) in paragraph at lines 843--843
-[]|\T1/cmr/m/n/12 Claude Code,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 843--843
-\T1/cmr/m/n/12 Co-dex CLI,
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 843--844
-[]|\T1/cmr/m/n/12 VS Code
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 845--845
-[]|\T1/cmr/bx/n/12 Courbe
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 845--845
-\T1/cmr/bx/n/12 d'ap-pren-tis-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 845--846
-[]|\T1/cmr/m/n/12 Faible à
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 847--847
-[]|\T1/cmr/bx/n/12 Vérification
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 847--847
-[]|\T1/cmr/m/n/12 Checklists
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 847--848
-[]|\T1/cmr/m/n/12 Hooks au-to-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 851--851
-[]|\T1/cmr/m/n/12 Initiation
- []
-
-
-Underfull \hbox (badness 3989) in paragraph at lines 851--851
-\T1/cmr/m/n/12 SDD, pro-jets
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 851--851
-[]|\T1/cmr/m/n/12 Équipes en-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 851--851
-\T1/cmr/m/n/12 agents, solo
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[17]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[18]
-Overfull \hbox (6.07727pt too wide) in paragraph at lines 926--926
-[]|\T1/cmr/bx/n/12 Performance| 
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 926--927
-[]|\T1/cmr/bx/n/12 Gestion du
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 936--936
-[]|\T1/cmr/bx/n/12 Très
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 936--937
+Underfull \hbox (badness 10000) in paragraph at lines 596--597
 []|\T1/cmr/bx/n/12 AGENTS.md
  []
 
@@ -1678,7 +1927,261 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[19]) (chapitres/chapitre3.tex
+[16]) (chapitres/chapitre3.tex
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[17]
+Chapitre 2.
+
+Overfull \hbox (37.7646pt too wide) in paragraph at lines 4--4
+[][] 
+ []
+
+\openout3 = `main.mtc'.
+
+\openout3 = `main.mtc'.
+
+(main.mtc2) [18
+
+]
+
+LaTeX Warning: Citation 'cloudflare_llm' on page 19 undefined on input line 34.
+
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[19]
+Underfull \hbox (badness 1454) in paragraph at lines 47--48
+\T1/cmr/m/n/12 ap-pli-ca-tif en-ri-chi par un contexte mé-tier (cours, pro-gres
+-sion de l'ap-pre-nant, ob-jec-tifs
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+[]|\T1/cmr/bx/n/12 Nombre de
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+[]|\T1/cmr/bx/n/12 Fenêtre de
+ []
+
+
+LaTeX Warning: Citation 'openai_gpt_oss' on page 20 undefined on input line 80.
+
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 openai/gpt-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+\T1/cmr/m/n/12 oss-120b :free
+ []
+
+
+Underfull \hbox (badness 4072) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 OpenRouter /
+ []
+
+
+LaTeX Warning: Citation 'openrouter_gpt_oss_free' on page 20 undefined on input
+ line 80.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 131K to-kens
+ []
+
+
+Overfull \hbox (75.62473pt too wide) in paragraph at lines 80--80
+[]| 
+ []
+
+
+LaTeX Warning: Citation 'openrouter_gpt_oss_free' on page 20 undefined on input
+ line 80.
+
+
+Underfull \hbox (badness 1502) in paragraph at lines 80--80
+\T1/cmr/m/n/12 0 $ / 1M to-kens en sor-tie
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 Non
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+\T1/cmr/m/n/12 com-mu-ni-qué
+ []
+
+
+LaTeX Warning: Citation 'openai_gpt54_mini_intro' on page 20 undefined on input
+ line 80.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 GPT-5.4 mini
+ []
+
+
+Overfull \hbox (43.88655pt too wide) in paragraph at lines 80--80
+[]| 
+ []
+
+
+LaTeX Warning: Citation 'openai_gpt54_mini_intro' on page 20 undefined on input
+ line 80.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 400K to-kens
+ []
+
+
+Overfull \hbox (78.02977pt too wide) in paragraph at lines 80--80
+[]| 
+ []
+
+
+LaTeX Warning: Citation 'openai_api_pricing' on page 20 undefined on input line
+ 80.
+
+
+LaTeX Warning: Citation 'anthropic_haiku' on page 20 undefined on input line 80
+.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 Claude Haiku 4.5
+ []
+
+
+LaTeX Warning: Citation 'anthropic_haiku_system_card' on page 20 undefined on i
+nput line 80.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 200K to-kens
+ []
+
+
+Overfull \hbox (106.18677pt too wide) in paragraph at lines 80--80
+[]| 
+ []
+
+
+LaTeX Warning: Citation 'anthropic_pricing' on page 20 undefined on input line 
+80.
+
+
+Underfull \hbox (badness 1502) in paragraph at lines 80--80
+\T1/cmr/m/n/12 5 $ / 1M to-kens en sor-tie
+ []
+
+
+LaTeX Warning: Citation 'cloudflare_gemini_31_flash_lite' on page 20 undefined 
+on input line 80.
+
+
+Overfull \hbox (83.83371pt too wide) in paragraph at lines 80--80
+[]| 
+ []
+
+
+Underfull \hbox (badness 2846) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 Google / Ge-
+ []
+
+
+LaTeX Warning: Citation 'cloudflare_gemini_31_flash_lite' on page 20 undefined 
+on input line 80.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 1M to-kens
+ []
+
+
+Overfull \hbox (117.97693pt too wide) in paragraph at lines 80--80
+[]| 
+ []
+
+
+LaTeX Warning: Citation 'google_gemini_pricing' on page 20 undefined on input l
+ine 80.
+
+
+LaTeX Warning: Citation 'groq_llama_31_8b_model' on page 20 undefined on input 
+line 80.
+
+
+Overfull \hbox (50.07254pt too wide) in paragraph at lines 80--80
+[]| 
+ []
+
+
+LaTeX Warning: Citation 'groq_llama_31_8b_model' on page 20 undefined on input 
+line 80.
+
+
+Underfull \hbox (badness 6348) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 131072 to-kens
+ []
+
+
+Overfull \hbox (84.21576pt too wide) in paragraph at lines 80--80
+[]| 
+ []
+
+
+LaTeX Warning: Citation 'groq_pricing' on page 20 undefined on input line 80.
+
+
+LaTeX Warning: Citation 'mistral_small_4_model_card' on page 20 undefined on in
+put line 80.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 Mistral Small 4
+ []
+
+
+Overfull \hbox (68.29446pt too wide) in paragraph at lines 80--80
+[]| 
+ []
+
+
+LaTeX Warning: Citation 'mistral_small_4_model_card' on page 20 undefined on in
+put line 80.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 80--80
+[]|\T1/cmr/m/n/12 256K to-kens
+ []
+
+
+Overfull \hbox (102.43768pt too wide) in paragraph at lines 80--80
+[]| 
+ []
+
+
+LaTeX Warning: Citation 'mistral_pricing' on page 20 undefined on input line 80
+.
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1687,24 +2190,36 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [20]
-Chapitre 2.
 
-Overfull \hbox (37.7646pt too wide) in paragraph at lines 5--5
-[][] 
- []
+LaTeX Warning: Citation 'google_ai_agents' on page 21 undefined on input line 1
+05.
 
 
-Overfull \hbox (92.42679pt too wide) in paragraph at lines 5--5
-[][] 
- []
+LaTeX Warning: Citation 'google_multi_agent_system' on page 21 undefined on inp
+ut line 117.
 
-\openout3 = `main.mtc'.
 
-\openout3 = `main.mtc'.
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-(main.mtc2) [21
+[21]
 
-]
+LaTeX Warning: Citation 'aws_rag' on page 22 undefined on input line 144.
+
+<figures/rag_workflow.jpg, id=995, 901.3675pt x 533.995pt>
+File: figures/rag_workflow.jpg Graphic file (type jpg)
+<use figures/rag_workflow.jpg>
+Package pdftex.def Info: figures/rag_workflow.jpg  used on input line 152.
+(pdftex.def)             Requested size: 411.14528pt x 243.57921pt.
+
+LaTeX Warning: Citation 'aws_rag' on page 22 undefined on input line 153.
+
+
+LaTeX Warning: Citation 'aws_rag' on page 22 undefined on input line 153.
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1713,58 +2228,18 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [22]
-Underfull \hbox (badness 10000) in paragraph at lines 103--103
-[]|\T1/cmr/bx/n/12 Nombre de
- []
+
+LaTeX Warning: Citation 'ibm_agentic_rag' on page 23 undefined on input line 15
+9.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 103--103
-[]|\T1/cmr/bx/n/12 Fenêtre de
- []
+LaTeX Warning: Citation 'ibm_embedding' on page 23 undefined on input line 175.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 103--103
-[]|\T1/cmr/m/n/12 openai/gpt-oss-
- []
 
-
-Underfull \hbox (badness 4072) in paragraph at lines 103--103
-[]|\T1/cmr/m/n/12 OpenRouter /
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 103--103
-[]|\T1/cmr/m/n/12 131K to-kens
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 103--103
-\T1/cmr/m/n/12 qué pu-bli-que-
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 103--103
-[]|\T1/cmr/m/n/12 400K to-kens
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 103--103
-[]|\T1/cmr/m/n/12 200K to-kens
- []
-
-
-Underfull \hbox (badness 2846) in paragraph at lines 103--103
-[]|\T1/cmr/m/n/12 Google / Ge-
- []
-
-
-Underfull \hbox (badness 6348) in paragraph at lines 103--103
-[]|\T1/cmr/m/n/12 131072 to-kens
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 103--103
-[]|\T1/cmr/m/n/12 256K to-kens
+Underfull \hbox (badness 1048) in paragraph at lines 175--176
+[]\T1/cmr/m/n/12 Les in-cor-po-ra-tions [], ou em-bed-dings, dé-si-gnent des re
+-pré-sen-ta-tions
  []
 
 
@@ -1774,7 +2249,113 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[23]
+[23 <./figures/rag_workflow.jpg>]
+
+LaTeX Warning: Citation 'baai_bge_small' on page 24 undefined on input line 206
+.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[]|\T1/cmr/m/n/12 BAAI/bge-small-en-
+ []
+
+
+Underfull \hbox (badness 1715) in paragraph at lines 206--206
+[]|\T1/cmr/m/n/12 Gratuit à l'usage, exé-cu-tion lo-cale,
+ []
+
+
+LaTeX Warning: Citation 'openai_embedding_models' on page 24 undefined on input
+ line 206.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[]|\T1/cmr/m/n/12 text-embedding-3-small
+ []
+
+
+Overfull \hbox (42.38918pt too wide) in paragraph at lines 206--206
+[]| 
+ []
+
+
+LaTeX Warning: Citation 'openai_embedding_pricing' on page 24 undefined on inpu
+t line 206.
+
+
+LaTeX Warning: Citation 'mistral_embed_models' on page 24 undefined on input li
+ne 206.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[]|\T1/cmr/m/n/12 mistral-embed
+ []
+
+
+Overfull \hbox (19.69888pt too wide) in paragraph at lines 206--206
+[]| 
+ []
+
+
+LaTeX Warning: Citation 'mistral_embed_model_card' on page 24 undefined on inpu
+t line 206.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[]|\T1/cmr/m/n/12 Service cloud payant : 0,10
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+\T1/cmr/m/n/12 $ / 1M to-kens en en-trée
+ []
+
+
+LaTeX Warning: Citation 'cohere_embed_models' on page 24 undefined on input lin
+e 206.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[]|\T1/cmr/m/n/12 embed-english-v3.0
+ []
+
+
+Overfull \hbox (16.3816pt too wide) in paragraph at lines 206--206
+[]| 
+ []
+
+
+LaTeX Warning: Citation 'cohere_pricing' on page 24 undefined on input line 206
+.
+
+
+LaTeX Warning: Citation 'google_vertex_embeddings' on page 24 undefined on inpu
+t line 206.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 206--206
+[]|\T1/cmr/m/n/12 gemini-embedding-001
+ []
+
+
+Overfull \hbox (42.25029pt too wide) in paragraph at lines 206--206
+[]| 
+ []
+
+
+Underfull \hbox (badness 7186) in paragraph at lines 206--206
+\T1/cmr/m/n/12 faut, di-men-
+ []
+
+
+Underfull \hbox (badness 3579) in paragraph at lines 206--206
+\T1/cmr/m/n/12 sion confi-gu-
+ []
+
+
+LaTeX Warning: Citation 'google_gemini_pricing' on page 24 undefined on input l
+ine 206.
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1784,6 +2365,20 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 
 [24]
 
+LaTeX Warning: Citation 'hindsight_models' on page 25 undefined on input line 2
+20.
+
+
+LaTeX Warning: Citation 'kern_system_prompt' on page 25 undefined on input line
+ 228.
+
+<figures/system_prompt_agent_defis.png, id=1010, 729.47531pt x 130.98938pt>
+File: figures/system_prompt_agent_defis.png Graphic file (type png)
+<use figures/system_prompt_agent_defis.png>
+Package pdftex.def Info: figures/system_prompt_agent_defis.png  used on input l
+ine 261.
+(pdftex.def)             Requested size: 362.77264pt x 65.14073pt.
+
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
 (fancyhdr)                \setlength{\headheight}{14.49998pt}.
@@ -1791,11 +2386,19 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [25]
-<figures/rag_workflow.jpg, id=958, 901.3675pt x 533.995pt>
-File: figures/rag_workflow.jpg Graphic file (type jpg)
-<use figures/rag_workflow.jpg>
-Package pdftex.def Info: figures/rag_workflow.jpg  used on input line 213.
-(pdftex.def)             Requested size: 411.14528pt x 243.57921pt.
+
+LaTeX Warning: Citation 'agent_skills_overview' on page 26 undefined on input l
+ine 272.
+
+
+Underfull \hbox (badness 1412) in paragraph at lines 291--292
+[]\T1/cmr/m/n/12 Cette sec-tion pré-sente la so-lu-tion re-te-nue pour la ges-t
+ion de cette mé-moire, son
+ []
+
+
+LaTeX Warning: Citation 'hindsight_github' on page 26 undefined on input line 2
+95.
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1804,30 +2407,21 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[26 <./figures/rag_workflow.jpg>]
-Underfull \hbox (badness 10000) in paragraph at lines 274--274
-[]|\T1/cmr/m/n/12 BAAI/bge-small-en-
- []
+[26 <./figures/system_prompt_agent_defis.png>]
+<figures/hindsight_architecture.png, id=1021, 458.31226pt x 415.5525pt>
+File: figures/hindsight_architecture.png Graphic file (type png)
+<use figures/hindsight_architecture.png>
+Package pdftex.def Info: figures/hindsight_architecture.png  used on input line
+ 307.
+(pdftex.def)             Requested size: 362.77264pt x 328.94232pt.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 274--274
-[]|\T1/cmr/m/n/12 text-embedding-3-small
- []
+LaTeX Warning: Citation 'hindsight_homepage' on page 27 undefined on input line
+ 308.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 274--274
-[]|\T1/cmr/m/n/12 gemini-embedding-001
- []
-
-
-Underfull \hbox (badness 7186) in paragraph at lines 274--274
-\T1/cmr/m/n/12 faut, di-men-
- []
-
-
-Underfull \hbox (badness 3579) in paragraph at lines 274--274
-\T1/cmr/m/n/12 sion confi-gu-
- []
+LaTeX Warning: Citation 'hindsight_homepage' on page 27 undefined on input line
+ 308.
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1837,87 +2431,21 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [27]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[28]
-<figures/system_prompt_agent_defis.png, id=999, 729.47531pt x 130.98938pt>
-File: figures/system_prompt_agent_defis.png Graphic file (type png)
-<use figures/system_prompt_agent_defis.png>
-Package pdftex.def Info: figures/system_prompt_agent_defis.png  used on input l
-ine 327.
-(pdftex.def)             Requested size: 459.51054pt x 82.51173pt.
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[29 <./figures/system_prompt_agent_defis.png>]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[30]
-<figures/hindsight_architecture.png, id=1016, 458.31226pt x 415.5525pt>
-File: figures/hindsight_architecture.png Graphic file (type png)
-<use figures/hindsight_architecture.png>
-Package pdftex.def Info: figures/hindsight_architecture.png  used on input line
- 422.
-(pdftex.def)             Requested size: 459.51054pt x 416.66112pt.
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[31]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[32 <./figures/hindsight_architecture.png>]
-<figures/hindsight_retain_architecture.png, id=1031, 667.89525pt x 373.395pt>
+<figures/hindsight_retain_architecture.png, id=1028, 667.89525pt x 373.395pt>
 File: figures/hindsight_retain_architecture.png Graphic file (type png)
 <use figures/hindsight_retain_architecture.png>
 Package pdftex.def Info: figures/hindsight_retain_architecture.png  used on inp
-ut line 439.
+ut line 323.
 (pdftex.def)             Requested size: 474.02086pt x 265.00975pt.
 
 
 Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 440.
+(caption)                particular \caption on input line 324.
 See the caption package documentation for explanation.
 
 
-Overfull \hbox (25.57088pt too wide) in paragraph at lines 439--440
- [] 
- []
-
-<figures/hindsight_recall_architecture.png, id=1036, 1840.8775pt x 1324.95pt>
-File: figures/hindsight_recall_architecture.png Graphic file (type png)
-<use figures/hindsight_recall_architecture.png>
-Package pdftex.def Info: figures/hindsight_recall_architecture.png  used on inp
-ut line 451.
-(pdftex.def)             Requested size: 435.32422pt x 313.32436pt.
-
-Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 452.
-See the caption package documentation for explanation.
+LaTeX Warning: Citation 'hindsight_github' on page 28 undefined on input line 3
+24.
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -1926,28 +2454,62 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[33 <./figures/hindsight_retain_architecture.png>]
-<figures/hindsight_reflect_architecture.png, id=1047, 2860.6875pt x 1398.22375p
+[28 <./figures/hindsight_architecture.png>]
+
+LaTeX Warning: Citation 'hindsight_github' on page 29 undefined on input line 3
+24.
+
+
+LaTeX Warning: Citation 'hindsight_recall' on page 29 undefined on input line 3
+28.
+
+<figures/hindsight_recall_architecture.png, id=1035, 1840.8775pt x 1324.95pt>
+File: figures/hindsight_recall_architecture.png Graphic file (type png)
+<use figures/hindsight_recall_architecture.png>
+Package pdftex.def Info: figures/hindsight_recall_architecture.png  used on inp
+ut line 335.
+(pdftex.def)             Requested size: 435.32422pt x 313.32436pt.
+
+Package caption Warning: The option `hypcap=true' will be ignored for this
+(caption)                particular \caption on input line 336.
+See the caption package documentation for explanation.
+
+
+LaTeX Warning: Citation 'hindsight_github' on page 29 undefined on input line 3
+36.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[29 <./figures/hindsight_retain_architecture.png>]
+
+LaTeX Warning: Citation 'hindsight_github' on page 30 undefined on input line 3
+36.
+
+
+LaTeX Warning: Citation 'hindsight_reflect' on page 30 undefined on input line 
+340.
+
+<figures/hindsight_reflect_architecture.png, id=1042, 2860.6875pt x 1398.22375p
 t>
 File: figures/hindsight_reflect_architecture.png Graphic file (type png)
 <use figures/hindsight_reflect_architecture.png>
 Package pdftex.def Info: figures/hindsight_reflect_architecture.png  used on in
-put line 463.
+put line 347.
 (pdftex.def)             Requested size: 435.32422pt x 212.77544pt.
 
-
 Package caption Warning: The option `hypcap=true' will be ignored for this
-(caption)                particular \caption on input line 464.
+(caption)                particular \caption on input line 348.
 See the caption package documentation for explanation.
 
 
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+LaTeX Warning: Citation 'hindsight_github' on page 30 undefined on input line 3
+48.
 
-[34 <./figures/hindsight_recall_architecture.png (PNG copy)>]
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1955,7 +2517,11 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[35 <./figures/hindsight_reflect_architecture.png (PNG copy)>]
+[30 <./figures/hindsight_recall_architecture.png (PNG copy)>]
+
+LaTeX Warning: Citation 'hindsight_github' on page 31 undefined on input line 3
+48.
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1963,7 +2529,8 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[36]
+[31 <./figures/hindsight_reflect_architecture.png (PNG copy)>])
+(chapitres/chapitre2.tex
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1971,13 +2538,34 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[37]
-<figures/platform_layered_architecture.png, id=1070, 536.75531pt x 751.30687pt>
+[32]
+Chapitre 3.
+
+Overfull \hbox (37.7646pt too wide) in paragraph at lines 4--4
+[][] 
+ []
+
+\openout3 = `main.mtc'.
+
+\openout3 = `main.mtc'.
+
+(main.mtc3) [33
+
+]
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[34]
+<figures/platform_layered_architecture.png, id=1081, 536.75531pt x 751.30687pt>
 
 File: figures/platform_layered_architecture.png Graphic file (type png)
 <use figures/platform_layered_architecture.png>
 Package pdftex.def Info: figures/platform_layered_architecture.png  used on inp
-ut line 627.
+ut line 65.
 (pdftex.def)             Requested size: 364.44002pt x 510.11382pt.
 
 
@@ -1987,7 +2575,16 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[38]
+[35 <./figures/platform_layered_architecture.png>]
+Underfull \hbox (badness 1675) in paragraph at lines 78--79
+[]\T1/cmr/m/n/12 Les sous-sections sui-vantes dé-taillent en-suite les deux par
+-ties prin-ci-pales de cette
+ []
+
+
+LaTeX Warning: Citation 'traefik_official' on page 36 undefined on input line 9
+1.
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -1995,7 +2592,74 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[39 <./figures/platform_layered_architecture.png>]
+[36]
+<figures/backend_microservices_components.png, id=1094, 594.72188pt x 342.5297p
+t>
+File: figures/backend_microservices_components.png Graphic file (type png)
+<use figures/backend_microservices_components.png>
+Package pdftex.def Info: figures/backend_microservices_components.png  used on 
+input line 113.
+(pdftex.def)             Requested size: 411.14528pt x 236.79523pt.
+
+
+LaTeX Warning: Citation 'medimagh_multitenant' on page 37 undefined on input li
+ne 120.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[37 <./figures/backend_microservices_components.png>]
+<figures/Architecture_multi-tenant_plateforme.png, id=1101, 980.16188pt x 730.2
+2812pt>
+File: figures/Architecture_multi-tenant_plateforme.png Graphic file (type png)
+<use figures/Architecture_multi-tenant_plateforme.png>
+Package pdftex.def Info: figures/Architecture_multi-tenant_plateforme.png  used
+ on input line 134.
+(pdftex.def)             Requested size: 386.95897pt x 288.28651pt.
+<figures/diagrammeUC.png, id=1103, 721.69624pt x 835.12pt>
+File: figures/diagrammeUC.png Graphic file (type png)
+<use figures/diagrammeUC.png>
+Package pdftex.def Info: figures/diagrammeUC.png  used on input line 149.
+(pdftex.def)             Requested size: 348.26233pt x 402.99385pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[38 <./figures/Architecture_multi-tenant_plateforme.png>]
+Underfull \hbox (badness 1320) in paragraph at lines 158--159
+\T1/cmr/m/n/12 in-cluant les in-for-ma-tions d'iden-tité et d'ad-mi-nis-tra-tio
+n des or-ga-ni-sa-tions, les conte-nus
+ []
+
+
+Underfull \hbox (badness 1533) in paragraph at lines 158--159
+\T1/cmr/m/n/12 (ins-crip-tions, pro-gres-sion et ré-sul-tats), ainsi que les do
+n-nées liées aux fonc-tion-na-li-tés
+ []
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[39 <./figures/diagrammeUC.png>]
+<figures/course_maker_agent_workflow.png, id=1116, 889.82437pt x 1032.10594pt>
+File: figures/course_maker_agent_workflow.png Graphic file (type png)
+<use figures/course_maker_agent_workflow.png>
+Package pdftex.def Info: figures/course_maker_agent_workflow.png  used on input
+ line 178.
+(pdftex.def)             Requested size: 439.77876pt x 510.09872pt.
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2004,14 +2668,6 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
 [40]
-<figures/backend_microservices_components.png, id=1089, 594.72188pt x 342.5297p
-t>
-File: figures/backend_microservices_components.png Graphic file (type png)
-<use figures/backend_microservices_components.png>
-Package pdftex.def Info: figures/backend_microservices_components.png  used on 
-input line 673.
-(pdftex.def)             Requested size: 474.01765pt x 273.01016pt.
-
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2019,74 +2675,29 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[41 <./figures/backend_microservices_components.png>]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[42]
-<figures/multi_tenant_use_case_roles.png, id=1103, 1040.38687pt x 1085.55562pt>
-
-File: figures/multi_tenant_use_case_roles.png Graphic file (type png)
-<use figures/multi_tenant_use_case_roles.png>
-Package pdftex.def Info: figures/multi_tenant_use_case_roles.png  used on input
- line 726.
-(pdftex.def)             Requested size: 507.87315pt x 529.92264pt.
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[43 <./figures/multi_tenant_use_case_roles.png>]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[44]
-<figures/course_maker_agent_workflow.png, id=1114, 1799.72375pt x 1734.48pt>
-File: figures/course_maker_agent_workflow.png Graphic file (type png)
-<use figures/course_maker_agent_workflow.png>
-Package pdftex.def Info: figures/course_maker_agent_workflow.png  used on input
- line 792.
-(pdftex.def)             Requested size: 507.87369pt x 489.4622pt.
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[45]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[46 <./figures/course_maker_agent_workflow.png>]
-<figures/ai_coaching_agent_workflow.png, id=1125, 1810.765pt x 1154.3125pt>
+[41 <./figures/course_maker_agent_workflow.png>]
+<figures/ai_coaching_agent_workflow.png, id=1127, 810.77907pt x 760.34062pt>
 File: figures/ai_coaching_agent_workflow.png Graphic file (type png)
 <use figures/ai_coaching_agent_workflow.png>
 Package pdftex.def Info: figures/ai_coaching_agent_workflow.png  used on input 
-line 807.
-(pdftex.def)             Requested size: 493.36153pt x 314.50429pt.
-<figures/learner_memory_agent_workflow.png, id=1126, 2914.89pt x 1311.90125pt>
+line 193.
+(pdftex.def)             Requested size: 493.38686pt x 462.69333pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[42 <./figures/ai_coaching_agent_workflow.png>]
+<figures/learner_memory_agent_workflow.png, id=1134, 938.75719pt x 705.38531pt>
+
 File: figures/learner_memory_agent_workflow.png Graphic file (type png)
 <use figures/learner_memory_agent_workflow.png>
 Package pdftex.def Info: figures/learner_memory_agent_workflow.png  used on inp
-ut line 822.
-(pdftex.def)             Requested size: 2914.88292pt x 1311.89806pt.
+ut line 208.
+(pdftex.def)             Requested size: 483.69687pt x 363.44432pt.
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -2095,37 +2706,18 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[47 <./figures/ai_coaching_agent_workflow.png>]
-Overfull \vbox (17.34929pt too high) has occurred while \output is active []
+[43 <./figures/learner_memory_agent_workflow.png>]
+<figures/recommendation_agent_workflow.png, id=1141, 768.62157pt x 607.51968pt>
 
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[48 <./figures/learner_memory_agent_workflow.png>]
-<figures/recommendation_agent_workflow.png, id=1139, 2070.73625pt x 1662.21pt>
 File: figures/recommendation_agent_workflow.png Graphic file (type png)
 <use figures/recommendation_agent_workflow.png>
 Package pdftex.def Info: figures/recommendation_agent_workflow.png  used on inp
-ut line 837.
-(pdftex.def)             Requested size: 507.85617pt x 407.66351pt.
+ut line 223.
+(pdftex.def)             Requested size: 507.88994pt x 401.437pt.
 
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[49]
-Overfull \hbox (82.78967pt too wide) in paragraph at lines 846--847
-\T1/cmr/m/it/12 led_quiz_reformulation\T1/cmr/m/n/12 , \T1/cmr/m/it/12 lear-ner
-_reported_difficulty\T1/cmr/m/n/12 , \T1/cmr/m/it/12 course_problem_signal \T1/
-cmr/m/n/12 et \T1/cmr/m/it/12 ge-ne-ral_course_reinforcement\T1/cmr/m/n/12 .
+Underfull \hbox (badness 1043) in paragraph at lines 232--233
+\T1/cmr/m/n/12 pri-vi-lé-giant le der-nier cours suivi ou un contenu as-so-cié 
+à une dif-fi-culté ré-cente non
  []
 
 
@@ -2135,22 +2727,13 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[50 <./figures/recommendation_agent_workflow.png>]
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[51]
-<figures/solo_challenge_agent_workflow.png, id=1154, 3651.6425pt x 2334.7225pt>
-
+[44 <./figures/recommendation_agent_workflow.png>]
+<figures/solo_challenge_agent_workflow.png, id=1148, 855.195pt x 770.88pt>
 File: figures/solo_challenge_agent_workflow.png Graphic file (type png)
 <use figures/solo_challenge_agent_workflow.png>
 Package pdftex.def Info: figures/solo_challenge_agent_workflow.png  used on inp
-ut line 857.
-(pdftex.def)             Requested size: 665.73666pt x 425.64691pt.
+ut line 244.
+(pdftex.def)             Requested size: 459.51054pt x 414.19878pt.
 
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
@@ -2159,13 +2742,28 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[52 <./figures/solo_challenge_agent_workflow.png>]
-Underfull \hbox (badness 1194) in paragraph at lines 899--899
+[45 <./figures/solo_challenge_agent_workflow.png>]
+Underfull \hbox (badness 1708) in paragraph at lines 285--285
+\T1/cmr/m/n/10.95 l'or-ga-ni-sa-tion des écrans et la main-te-nance de
+ []
+
+
+Underfull \hbox (badness 1194) in paragraph at lines 285--285
 []|\T1/cmr/m/n/10.95 Développement des mi-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 899--899
+Underfull \hbox (badness 1609) in paragraph at lines 285--285
+[]|\T1/cmr/m/n/10.95 FastAPI s'in-tègre di-rec-te-ment avec l'éco-sys-tème
+ []
+
+
+Underfull \hbox (badness 1019) in paragraph at lines 285--285
+\T1/cmr/m/n/10.95 Py-thon uti-lisé par les ser-vices IA et offre une
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 285--285
 []|\T1/cmr/m/n/10.95 Routage des re-quêtes
  []
 
@@ -2176,57 +2774,104 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[53
+[46]
+Underfull \hbox (badness 3954) in paragraph at lines 311--311
+[]|\T1/cmr/m/n/10.95 Stockage des don-nées
+ []
 
 
-]
-Underfull \hbox (badness 10000) in paragraph at lines 927--927
+Underfull \hbox (badness 5652) in paragraph at lines 311--312
+[]|\T1/cmr/m/n/10.95 PostgreSQL est adapté aux don-nées for-te-ment
+ []
+
+
+Underfull \hbox (badness 3503) in paragraph at lines 313--313
 []|\T1/cmr/m/n/10.95 Stockage et re-cherche
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 927--927
-\T1/cmr/m/n/10.95 des re-pré-sen-ta-tions
+Underfull \hbox (badness 6412) in paragraph at lines 313--314
+\T1/cmr/m/n/10.95 di-rec-te-ment dans Post-greSQL, ce qui sim-pli-fie
  []
 
 
-Underfull \hbox (badness 3503) in paragraph at lines 929--929
+Underfull \hbox (badness 1102) in paragraph at lines 315--315
 []|\T1/cmr/m/n/10.95 Stockage ob-jet des fi-
  []
 
 
-Underfull \hbox (badness 1769) in paragraph at lines 933--933
-\T1/cmr/m/n/10.95 IA et struc-tu-ra-tion de
+Underfull \hbox (badness 1546) in paragraph at lines 317--317
+\T1/cmr/m/n/10.95 ploi-tée par les agents
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 935--935
-[]|\T1/cmr/m/n/10.95 OpenRouter /
+Underfull \hbox (badness 6380) in paragraph at lines 317--318
+[]|\T1/cmr/m/n/10.95 Hindsight four-nit des opé-ra-tions dé-diées à la
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 937--937
+Underfull \hbox (badness 10000) in paragraph at lines 319--319
+[]|\T1/cmr/m/n/10.95 Orchestration
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 319--319
+\T1/cmr/m/n/10.95 des agents IA et
+ []
+
+
+Underfull \hbox (badness 2671) in paragraph at lines 319--319
+\T1/cmr/m/n/10.95 struc-tu-ra-tion de leurs
+ []
+
+
+Underfull \hbox (badness 5189) in paragraph at lines 321--321
+[]|\T1/cmr/m/n/10.95 Accès au mo-dèle de
+ []
+
+
+Underfull \hbox (badness 1701) in paragraph at lines 321--321
+\T1/cmr/m/n/10.95 par les fonc-tion-na-li-tés
+ []
+
+
+Underfull \hbox (badness 5077) in paragraph at lines 323--323
 []|\T1/cmr/m/n/10.95 Gestion des échanges
  []
 
 
-Underfull \hbox (badness 5519) in paragraph at lines 937--937
+Underfull \hbox (badness 1122) in paragraph at lines 323--323
 \T1/cmr/m/n/10.95 asyn-chrones entre cer-
  []
 
 
-Underfull \hbox (badness 1152) in paragraph at lines 939--939
-[]|\T1/cmr/m/n/10.95 Stockage tem-po-raire de
+Underfull \hbox (badness 1062) in paragraph at lines 323--324
+\T1/cmr/m/n/10.95 qui convient aux no-ti-fi-ca-tions et aux trai-te-ments
  []
 
 
-Underfull \hbox (badness 1173) in paragraph at lines 939--940
-[]|\T1/cmr/m/n/10.95 Redis est adapté aux don-nées in-ter-mé-
+Underfull \hbox (badness 2503) in paragraph at lines 325--326
+[]|\T1/cmr/m/n/10.95 Redis est adapté aux don-nées in-ter-mé-diaires et
  []
 
 
-Underfull \hbox (badness 1546) in paragraph at lines 943--943
-[]|\T1/cmr/m/n/10.95 Conteneurisation et or-
+Underfull \hbox (badness 1540) in paragraph at lines 327--328
+\T1/cmr/m/n/10.95 l'en-vi-ron-ne-ment de dé-ploie-ment, ce qui li-mite la
+ []
+
+
+Underfull \hbox (badness 1038) in paragraph at lines 329--329
+[]|\T1/cmr/m/n/10.95 Docker / Do-
+ []
+
+
+Underfull \hbox (badness 3668) in paragraph at lines 329--329
+\T1/cmr/m/n/10.95 ches-tra-tion lo-cale des
+ []
+
+
+Underfull \hbox (badness 5119) in paragraph at lines 329--329
+\T1/cmr/m/n/10.95 ser-vices de la pla-te-
  []
 
 ignored error: Infinite glue shrinkage found in box being split
@@ -2237,7 +2882,7 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[54]
+[47]) (chapitres/chapitre4.tex
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2245,7 +2890,27 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[55])
+[48]
+Chapitre 4.
+
+Overfull \hbox (37.7646pt too wide) in paragraph at lines 1--1
+[][] 
+ []
+
+\openout3 = `main.mtc'.
+
+\openout3 = `main.mtc'.
+
+(main.mtc4) [49
+
+]
+<figures/ch3_setup_superadmin.png, id=1182, 1084.05pt x 395.97937pt>
+File: figures/ch3_setup_superadmin.png Graphic file (type png)
+<use figures/ch3_setup_superadmin.png>
+Package pdftex.def Info: figures/ch3_setup_superadmin.png  used on input line 2
+9.
+(pdftex.def)             Requested size: 445.00023pt x 162.54594pt.
+
 
 Package fancyhdr Warning: \headheight is too small (12.0pt): 
 (fancyhdr)                Make it at least 14.49998pt, for example:
@@ -2253,152 +2918,565 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[56]
+[50]
+<figures/ch3_multitenant_tenants.png, id=1188, 1084.05pt x 637.63219pt>
+File: figures/ch3_multitenant_tenants.png Graphic file (type png)
+<use figures/ch3_multitenant_tenants.png>
+Package pdftex.def Info: figures/ch3_multitenant_tenants.png  used on input lin
+e 44.
+(pdftex.def)             Requested size: 445.00023pt x 261.74223pt.
 
-Package biblatex Warning: Split bibliography detected.
-(biblatex)                Many simple split bibliography setups with
-(biblatex)                non-overlapping bibliographies benefit from
-(biblatex)                setting 'defernumbers=true'.
-(biblatex)                See the documentation for details.
-(biblatex)                This warning can be suppressed with
-(biblatex)                '\BiblatexSplitbibDefernumbersWarningOff'.
 
-[57
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[51 <./figures/ch3_setup_superadmin.png> <./figures/ch3_multitenant_tenants.png
+>]
+<figures/ch3_multitenant_create_tenant.png, id=1197, 1084.05pt x 895.09406pt>
+File: figures/ch3_multitenant_create_tenant.png Graphic file (type png)
+<use figures/ch3_multitenant_create_tenant.png>
+Package pdftex.def Info: figures/ch3_multitenant_create_tenant.png  used on inp
+ut line 55.
+(pdftex.def)             Requested size: 445.00023pt x 367.428pt.
+<figures/ch3_identity_users_management.png, id=1199, 1084.05pt x 807.7678pt>
+File: figures/ch3_identity_users_management.png Graphic file (type png)
+<use figures/ch3_identity_users_management.png>
+Package pdftex.def Info: figures/ch3_identity_users_management.png  used on inp
+ut line 68.
+(pdftex.def)             Requested size: 445.00023pt x 331.58136pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[52 <./figures/ch3_multitenant_create_tenant.png>]
+<figures/ch3_auth_login_tenant.png, id=1206, 525.46312pt x 519.44063pt>
+File: figures/ch3_auth_login_tenant.png Graphic file (type png)
+<use figures/ch3_auth_login_tenant.png>
+Package pdftex.def Info: figures/ch3_auth_login_tenant.png  used on input line 
+81.
+(pdftex.def)             Requested size: 241.84843pt x 239.08032pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[53 <./figures/ch3_identity_users_management.png>]
+<figures/ch3_identity_audit_trail.png, id=1213, 1445.4pt x 1053.9375pt>
+File: figures/ch3_identity_audit_trail.png Graphic file (type png)
+<use figures/ch3_identity_audit_trail.png>
+Package pdftex.def Info: figures/ch3_identity_audit_trail.png  used on input li
+ne 101.
+(pdftex.def)             Requested size: 445.00023pt x 324.48189pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[54 <./figures/ch3_auth_login_tenant.png>]
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[55 <./figures/ch3_identity_audit_trail.png (PNG copy)>]
+<figures/ch3_learning_traditional_course_form.png, id=1225, 1084.05pt x 547.294
+7pt>
+File: figures/ch3_learning_traditional_course_form.png Graphic file (type png)
+<use figures/ch3_learning_traditional_course_form.png>
+Package pdftex.def Info: figures/ch3_learning_traditional_course_form.png  used
+ on input line 122.
+(pdftex.def)             Requested size: 435.32422pt x 219.77415pt.
+<figures/ch3_learning_traditional_course_structure.png, id=1226, 1084.05pt x 63
+7.63219pt>
+File: figures/ch3_learning_traditional_course_structure.png Graphic file (type 
+png)
+<use figures/ch3_learning_traditional_course_structure.png>
+Package pdftex.def Info: figures/ch3_learning_traditional_course_structure.png 
+ used on input line 129.
+(pdftex.def)             Requested size: 445.00023pt x 261.74223pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[56 <./figures/ch3_learning_traditional_course_form.png> <./figures/ch3_learnin
+g_traditional_course_structure.png>]
+<figures/ch3_learning_ai_course_input.png, id=1235, 834.86906pt x 721.94719pt>
+File: figures/ch3_learning_ai_course_input.png Graphic file (type png)
+<use figures/ch3_learning_ai_course_input.png>
+Package pdftex.def Info: figures/ch3_learning_ai_course_input.png  used on inpu
+t line 144.
+(pdftex.def)             Requested size: 348.26233pt x 301.15575pt.
+<figures/ch3_learning_ai_course_draft_editor.png, id=1236, 850.67813pt x 748.29
+562pt>
+File: figures/ch3_learning_ai_course_draft_editor.png Graphic file (type png)
+<use figures/ch3_learning_ai_course_draft_editor.png>
+Package pdftex.def Info: figures/ch3_learning_ai_course_draft_editor.png  used 
+on input line 151.
+(pdftex.def)             Requested size: 396.63496pt x 348.90157pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[57 <./figures/ch3_learning_ai_course_input.png>]
+<figures/ch3_learning_course_catalog.png, id=1247, 1084.05pt x 514.17094pt>
+File: figures/ch3_learning_course_catalog.png Graphic file (type png)
+<use figures/ch3_learning_course_catalog.png>
+Package pdftex.def Info: figures/ch3_learning_course_catalog.png  used on input
+ line 165.
+(pdftex.def)             Requested size: 396.63496pt x 188.12195pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[58 <./figures/ch3_learning_ai_course_draft_editor.png>]
+<figures/ch3_learning_course_enrollment_action.png, id=1253, 889.07156pt x 667.
+74469pt>
+File: figures/ch3_learning_course_enrollment_action.png Graphic file (type png)
+
+<use figures/ch3_learning_course_enrollment_action.png>
+Package pdftex.def Info: figures/ch3_learning_course_enrollment_action.png  use
+d on input line 172.
+(pdftex.def)             Requested size: 299.8897pt x 225.22675pt.
+<figures/ch3_learning_my_learning_enrollments.png, id=1254, 1084.05pt x 426.844
+68pt>
+File: figures/ch3_learning_my_learning_enrollments.png Graphic file (type png)
+<use figures/ch3_learning_my_learning_enrollments.png>
+Package pdftex.def Info: figures/ch3_learning_my_learning_enrollments.png  used
+ on input line 179.
+(pdftex.def)             Requested size: 396.63496pt x 156.17151pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[59 <./figures/ch3_learning_course_catalog.png> <./figures/ch3_learning_course_
+enrollment_action.png> <./figures/ch3_learning_my_learning_enrollments.png>]
+<figures/ch3_learning_progress_dashboard.png, id=1265, 1445.4pt x 1104.125pt>
+File: figures/ch3_learning_progress_dashboard.png Graphic file (type png)
+<use figures/ch3_learning_progress_dashboard.png>
+Package pdftex.def Info: figures/ch3_learning_progress_dashboard.png  used on i
+nput line 194.
+(pdftex.def)             Requested size: 396.63496pt x 302.98668pt.
+<figures/ch3_learning_lesson_progress_tracking.png, id=1266, 1084.05pt x 214.55
+156pt>
+File: figures/ch3_learning_lesson_progress_tracking.png Graphic file (type png)
+
+<use figures/ch3_learning_lesson_progress_tracking.png>
+Package pdftex.def Info: figures/ch3_learning_lesson_progress_tracking.png  use
+d on input line 201.
+(pdftex.def)             Requested size: 396.63496pt x 78.4989pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[60 <./figures/ch3_learning_progress_dashboard.png (PNG copy)> <./figures/ch3_l
+earning_lesson_progress_tracking.png>]
+<figures/ch3_learning_goals_tracking.png, id=1273, 1084.05pt x 426.84468pt>
+File: figures/ch3_learning_goals_tracking.png Graphic file (type png)
+<use figures/ch3_learning_goals_tracking.png>
+Package pdftex.def Info: figures/ch3_learning_goals_tracking.png  used on input
+ line 212.
+(pdftex.def)             Requested size: 445.00023pt x 175.21587pt.
+<figures/espace_certificate.png, id=1276, 950.95274pt x 278.84175pt>
+File: figures/espace_certificate.png Graphic file (type png)
+<use figures/espace_certificate.png>
+Package pdftex.def Info: figures/espace_certificate.png  used on input line 225
+.
+(pdftex.def)             Requested size: 362.77264pt x 106.37367pt.
+<figures/certificate.png, id=1277, 611.886pt x 428.19975pt>
+File: figures/certificate.png Graphic file (type png)
+<use figures/certificate.png>
+Package pdftex.def Info: figures/certificate.png  used on input line 232.
+(pdftex.def)             Requested size: 348.26233pt x 243.71703pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[61 <./figures/ch3_learning_goals_tracking.png> <./figures/espace_certificate.p
+ng>]
+Underfull \hbox (badness 1147) in paragraph at lines 248--249
+\T1/cmr/m/n/12 chant toute fal-si-fi-ca-tion. La clé pri-vée est sé-cu-ri-sée v
+ia une va-riable d'en-vi-ron-ne-ment
+ []
+
+<figures/validation_certificat.png, id=1285, 481.19775pt x 507.0945pt>
+File: figures/validation_certificat.png Graphic file (type png)
+<use figures/validation_certificat.png>
+Package pdftex.def Info: figures/validation_certificat.png  used on input line 
+252.
+(pdftex.def)             Requested size: 280.54506pt x 295.64705pt.
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[62 <./figures/certificate.png>]
+<figures/xp.png, id=1293, 865.43324pt x 367.97475pt>
+File: figures/xp.png Graphic file (type png)
+<use figures/xp.png>
+Package pdftex.def Info: figures/xp.png  used on input line 272.
+(pdftex.def)             Requested size: 280.54506pt x 119.28717pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[63 <./figures/validation_certificat.png> <./figures/xp.png>]
+<figures/ch3_gamification_badges.png, id=1302, 1164.35pt x 265.99374pt>
+File: figures/ch3_gamification_badges.png Graphic file (type png)
+<use figures/ch3_gamification_badges.png>
+Package pdftex.def Info: figures/ch3_gamification_badges.png  used on input lin
+e 287.
+(pdftex.def)             Requested size: 445.00023pt x 101.65906pt.
+<figures/ch3_gamification_badge_management.png, id=1304, 1066.7353pt x 783.6778
+1pt>
+File: figures/ch3_gamification_badge_management.png Graphic file (type png)
+<use figures/ch3_gamification_badge_management.png>
+Package pdftex.def Info: figures/ch3_gamification_badge_management.png  used on
+ input line 302.
+(pdftex.def)             Requested size: 386.95897pt x 284.27621pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[64 <./figures/ch3_gamification_badges.png (PNG copy)> <./figures/ch3_gamificat
+ion_badge_management.png>]
+<figures/ch3_gamification_leaderboard.png, id=1311, 528.7755pt x 440.847pt>
+File: figures/ch3_gamification_leaderboard.png Graphic file (type png)
+<use figures/ch3_gamification_leaderboard.png>
+Package pdftex.def Info: figures/ch3_gamification_leaderboard.png  used on inpu
+t line 317.
+(pdftex.def)             Requested size: 445.00023pt x 371.01526pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[65 <./figures/ch3_gamification_leaderboard.png>]
+<figures/ch3_ai_coaching_agent.png, id=1319, 1150.89975pt x 463.13025pt>
+File: figures/ch3_ai_coaching_agent.png Graphic file (type png)
+<use figures/ch3_ai_coaching_agent.png>
+Package pdftex.def Info: figures/ch3_ai_coaching_agent.png  used on input line 
+348.
+(pdftex.def)             Requested size: 459.51054pt x 184.9096pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[66 <./figures/ch3_ai_coaching_agent.png>]
+<figures/ch3_ai_recommendation_agent.png, id=1326, 533.5935pt x 319.79475pt>
+File: figures/ch3_ai_recommendation_agent.png Graphic file (type png)
+<use figures/ch3_ai_recommendation_agent.png>
+Package pdftex.def Info: figures/ch3_ai_recommendation_agent.png  used on input
+ line 365.
+(pdftex.def)             Requested size: 445.00023pt x 266.71292pt.
+<figures/ch3_ai_solo_challenge_agent.png, id=1328, 640.19176pt x 511.31026pt>
+File: figures/ch3_ai_solo_challenge_agent.png Graphic file (type png)
+<use figures/ch3_ai_solo_challenge_agent.png>
+Package pdftex.def Info: figures/ch3_ai_solo_challenge_agent.png  used on input
+ line 382.
+(pdftex.def)             Requested size: 362.77264pt x 289.74123pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[67 <./figures/ch3_ai_recommendation_agent.png>]
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[68 <./figures/ch3_ai_solo_challenge_agent.png>]) (chapitres/chapitre5.tex
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[69]
+Chapitre 5.
+
+Overfull \hbox (37.7646pt too wide) in paragraph at lines 1--1
+[][] 
+ []
+
+\openout3 = `main.mtc'.
+
+\openout3 = `main.mtc'.
+
+(main.mtc5) [70
+
+]
+Underfull \hbox (badness 1259) in paragraph at lines 11--12
+[]\T1/cmr/m/n/12 Les tests ont été or-ga-ni-sés en plu-sieurs ni-veaux com-plé-
+men-taires, al-lant des tests
+ []
+
+
+Underfull \hbox (badness 5592) in paragraph at lines 45--45
+[]|\T1/cmr/m/n/12 Gestion des uti-li-sa-
+ []
+
+
+Underfull \hbox (badness 3792) in paragraph at lines 45--45
+[]|\T1/cmr/m/n/12 Complétion de le-çons, at-tri-bu-tion XP, badges, ob-jec-tifs
+ et
+ []
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[71]
+<figures/ch3_unit_tests_pytest_terminal.png, id=1364, 1425.325pt x 1063.975pt>
+File: figures/ch3_unit_tests_pytest_terminal.png Graphic file (type png)
+<use figures/ch3_unit_tests_pytest_terminal.png>
+Package pdftex.def Info: figures/ch3_unit_tests_pytest_terminal.png  used on in
+put line 52.
+(pdftex.def)             Requested size: 445.00023pt x 332.1829pt.
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[72 <./figures/ch3_unit_tests_pytest_terminal.png (PNG copy)>]
+Underfull \hbox (badness 1215) in paragraph at lines 97--97
+[]|\T1/cmr/m/n/12 Création, mo-di-fi-ca-tion, pu-bli-ca-tion et consul-ta-tion 
+d'un cours
+ []
+
+
+Underfull \hbox (badness 3396) in paragraph at lines 97--97
+[]|\T1/cmr/m/n/12 Attribution d'un badge après dé-ver-rouillage d'un pa-lier de
+
+ []
+
+
+Underfull \hbox (badness 1087) in paragraph at lines 97--97
+[]|\T1/cmr/m/n/12 Création d'une équipe, at-tri-bu-tion de membres, dé-fi-ni-ti
+on du
+ []
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[73]
+Underfull \hbox (badness 10000) in paragraph at lines 132--132
+[]|\T1/cmr/m/n/12 POST
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 159--159
+[]|\T1/cmr/m/n/12 Attribution d'un
+ []
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[74]
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[75]
+Overfull \hbox (8.22874pt too wide) in paragraph at lines 217--217
+[]|\T1/cmr/bx/n/12 Faithfulness| 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 217--217
+[]|\T1/cmr/bx/n/12 Answer
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 217--217
+[]|\T1/cmr/bx/n/12 Context
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 217--217
+[]|\T1/cmr/bx/n/12 Context
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 217--217
+[]|\T1/cmr/bx/n/12 Context
+ []
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[76]
+Underfull \hbox (badness 10000) in paragraph at lines 247--247
+[]|\T1/cmr/m/n/12 Authentification des uti-li-sa-teurs
+ []
+
+
+Underfull \hbox (badness 4913) in paragraph at lines 257--257
+[]|\T1/cmr/m/n/12 Objectifs d'ap-pren-tis-sage per-son-
+ []
+
+ignored error: Infinite glue shrinkage found in box being split
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[77]
+Underfull \hbox (badness 1253) in paragraph at lines 285--286
+[]\T1/cmr/m/n/12 Les pers-pec-tives d'évo-lu-tion de la pla-te-forme s'ar-ti-cu
+lent au-tour de plu-sieurs axes
+ []
+
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[78]) (conclusion.tex
+
+Package fancyhdr Warning: \headheight is too small (12.0pt): 
+(fancyhdr)                Make it at least 14.49998pt, for example:
+(fancyhdr)                \setlength{\headheight}{14.49998pt}.
+(fancyhdr)                You might also make \topmargin smaller:
+(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
+
+[79]) [80
+
+]
+
+LaTeX Warning: Empty bibliography on input line 224.
+
+[81
 
 
 ]
-Overfull \hbox (30.31197pt too wide) in paragraph at lines 202--202
-\T1/cmr/m/n/12 adresse : []$\T1/cmtt/m/n/12 https : / / www -[] cdn . anthropic
- . com / 7aad69bf12627d42234e01ee7c36305dc2f6a970 .
- []
+
+Package biblatex Warning: Keyword 'web' not found on input line 234.
 
 
-Overfull \hbox (18.32661pt too wide) in paragraph at lines 202--202
-[][]\T1/cmr/m/sc/12 Anthropic[]\T1/cmr/m/n/12 . ``Pri-cing.'' Ta-ri-fi-ca-tion 
-of-fi-cielle An-thro-pic. adresse : []$\T1/cmtt/m/n/12 https : / / docs . anthr
-opic .
- []
+LaTeX Warning: Empty bibliography on input line 234.
 
-
-Overfull \hbox (1.19513pt too wide) in paragraph at lines 202--202
-[][]\T1/cmr/m/sc/12 Groq[]\T1/cmr/m/n/12 . ``On-Demand Pri-cing for Tokens-as-a
--Service.'' Ta-ri-fi-ca-tion of-fi-cielle Groq. adresse :
- []
-
-
-Overfull \hbox (31.09023pt too wide) in paragraph at lines 202--202
-[][]\T1/cmr/m/sc/12 BAAI[]\T1/cmr/m/n/12 . ``BAAI/bge-small-en-v1.5.'' Hug-ging
- Face Mo-del Card. adresse : []$\T1/cmtt/m/n/12 https : / / huggingface .
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[58]
-Overfull \hbox (1.22528pt too wide) in paragraph at lines 202--202
-[][]\T1/cmr/m/sc/12 IBM[]\T1/cmr/m/n/12 . ``Qu'est-ce que le trai-te-ment au-to
--ma-tique du lan-gage na-tu-rel ?'' IBM Think. adresse :
- []
-
-
-Overfull \hbox (13.8347pt too wide) in paragraph at lines 202--202
-[][]\T1/cmr/m/sc/12 OpenAI[]\T1/cmr/m/n/12 . ``GPT-4o mini.'' Do-cu-men-ta-tion
- of-fi-cielle Ope-nAI. adresse : []$\T1/cmtt/m/n/12 https : / / developers .
- []
-
-
-Overfull \hbox (31.54207pt too wide) in paragraph at lines 202--202
-\T1/cmr/m/it/12 Know-ledge En-gi-nee-ring Re-view\T1/cmr/m/n/12 , t. 10, n$[]$ 
-2, p. 115-152, 1995. \T1/cmr/m/sc/12 doi \T1/cmr/m/n/12 : []$\T1/cmtt/m/n/12 10
- . 1017 / S0269888900008122$[] 
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[59]
-
-Package biblatex Warning: Split bibliography detected.
-(biblatex)                Many simple split bibliography setups with
-(biblatex)                non-overlapping bibliographies benefit from
-(biblatex)                setting 'defernumbers=true'.
-(biblatex)                See the documentation for details.
-(biblatex)                This warning can be suppressed with
-(biblatex)                '\BiblatexSplitbibDefernumbersWarningOff'.
-
-
-Overfull \hbox (22.93436pt too wide) in paragraph at lines 212--212
-[][]\T1/cmr/m/sc/12 360Learning[]\T1/cmr/m/n/12 , \T1/cmr/m/it/12 360Lear-ning 
-AI-Powered Lear-ning Plat-form Fea-tures\T1/cmr/m/n/12 , []$\T1/cmtt/m/n/12 htt
-ps : / / 360learning .
- []
-
-
-Overfull \hbox (7.88242pt too wide) in paragraph at lines 212--212
-[][]\T1/cmr/m/sc/12 CYPHER Learning[]\T1/cmr/m/n/12 , \T1/cmr/m/it/12 CY-PHER L
-ear-ning Pri-cing Plans\T1/cmr/m/n/12 , []$\T1/cmtt/m/n/12 https : / / www . cy
-pherlearning .
- []
-
-[60
+[82
 
 
 ]
-Overfull \hbox (3.50711pt too wide) in paragraph at lines 212--212
-[][]\T1/cmr/m/sc/12 Google[]\T1/cmr/m/n/12 . ``Ge-mini De-ve-lo-per API Pri-cin
-g.'' Ta-ri-fi-ca-tion of-fi-cielle de l'API Ge-mini. adresse :
- []
+<abstract.pdf, id=1418, 597.79335pt x 845.19763pt>
+File: abstract.pdf Graphic file (type pdf)
+<use abstract.pdf>
+Package pdftex.def Info: abstract.pdf  used on input line 239.
+(pdftex.def)             Requested size: 597.79189pt x 845.19557pt.
+<abstract.pdf, id=1420, page=1, 597.79335pt x 845.19763pt>
+File: abstract.pdf Graphic file (type pdf)
+<use abstract.pdf, page 1>
+Package pdftex.def Info: abstract.pdf , page1 used on input line 239.
+(pdftex.def)             Requested size: 597.79189pt x 845.19557pt.
+File: abstract.pdf Graphic file (type pdf)
+<use abstract.pdf, page 1>
+Package pdftex.def Info: abstract.pdf , page1 used on input line 239.
+(pdftex.def)             Requested size: 597.81924pt x 845.23425pt.
+File: abstract.pdf Graphic file (type pdf)
+<use abstract.pdf, page 1>
+Package pdftex.def Info: abstract.pdf , page1 used on input line 239.
+(pdftex.def)             Requested size: 597.81924pt x 845.23425pt.
+File: abstract.pdf Graphic file (type pdf)
+<use abstract.pdf, page 1>
+Package pdftex.def Info: abstract.pdf , page1 used on input line 239.
+(pdftex.def)             Requested size: 597.81924pt x 845.23425pt.
+File: abstract.pdf Graphic file (type pdf)
+<use abstract.pdf, page 1>
+Package pdftex.def Info: abstract.pdf , page1 used on input line 239.
+(pdftex.def)             Requested size: 597.81924pt x 845.23425pt.
+ [83
 
 
-Overfull \hbox (13.90407pt too wide) in paragraph at lines 212--212
-[][]\T1/cmr/m/sc/12 Vectorize.io[]\T1/cmr/m/n/12 . ``Hind-sight,'' vi-sité le 3
- juin 2026. adresse : []$\T1/cmtt/m/n/12 https : / / hindsight . vectorize .
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[61]
-Overfull \hbox (26.14743pt too wide) in paragraph at lines 212--212
-[][]\T1/cmr/m/sc/12 McKinsey & Company[]\T1/cmr/m/n/12 , \T1/cmr/m/it/12 The St
-ate of AI 2024\T1/cmr/m/n/12 , []$\T1/cmtt/m/n/12 https : / / www . mckinsey . 
-com / capabilities /
- []
-
-
-Overfull \hbox (29.40775pt too wide) in paragraph at lines 212--212
-[][]\T1/cmr/m/sc/12 Stack Overflow[]\T1/cmr/m/n/12 , \T1/cmr/m/it/12 Stack Over
--flow De-ve-lo-per Sur-vey 2025\T1/cmr/m/n/12 , []$\T1/cmtt/m/n/12 https : / / 
-survey . stackoverflow .
- []
-
-
-Overfull \hbox (2.25789pt too wide) in paragraph at lines 212--212
-[][]\T1/cmr/m/sc/12 BCMS[]\T1/cmr/m/n/12 , \T1/cmr/m/it/12 Spec-Driven De-ve-lo
-p-ment (SDD) : The De-fi-ni-tive 2026 Guide\T1/cmr/m/n/12 , []$\T1/cmtt/m/n/12 
-https : / / thebcms .
- []
-
-
-Package fancyhdr Warning: \headheight is too small (12.0pt): 
-(fancyhdr)                Make it at least 14.49998pt, for example:
-(fancyhdr)                \setlength{\headheight}{14.49998pt}.
-(fancyhdr)                You might also make \topmargin smaller:
-(fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
-
-[62]
+ <./abstract.pdf>]
 Package minitoc Info: I0009
 (minitoc)             Listing minitoc auxiliary files. 
 (minitoc)             Creating the main.maf file.
@@ -2422,44 +3500,61 @@ Package fancyhdr Warning: \headheight is too small (12.0pt):
 (fancyhdr)                You might also make \topmargin smaller:
 (fancyhdr)                \addtolength{\topmargin}{-2.49998pt}.
 
-[63] (main.aux)
+[84] (main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-12-24>
  ***********
+
+
+LaTeX Warning: There were undefined references.
+
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 7DFD5F7CAF1B7A2809031988429C4439;22788.
+(rerunfilecheck)             Checksum: 8510ACCEBB84A5B5960E035C5F1DF9CE;27132.
+
+Package biblatex Warning: Please (re)run Biber on the file:
+(biblatex)                main
+(biblatex)                and rerun LaTeX afterwards.
+
 Package logreq Info: Writing requests to 'main.run.xml'.
 \openout1 = `main.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 26455 strings out of 467871
- 473378 string characters out of 5418376
- 1323342 words of memory out of 5000000
- 54690 multiletter control sequences out of 15000+600000
- 645817 words of font info for 81 fonts, out of 8000000 for 9000
+ 26509 strings out of 467871
+ 471546 string characters out of 5418376
+ 1325647 words of memory out of 5000000
+ 54724 multiletter control sequences out of 15000+600000
+ 648613 words of font info for 90 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,17n,79p,1575b,2714s stack positions out of 10000i,1000n,20000p,200000b,200000s
- <C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm
-0800.pk> <C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi60
-0\ectt1200.pk> <C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec
-/dpi600\tcti1200.pk> <C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknap
-pen/ec/dpi600\ecbx1728.pk> <C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour
-/jknappen/ec/dpi600\ecrm1095.pk> <C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/
-ljfour/jknappen/ec/dpi600\ecbx1095.pk> <C:\Users\ayate\AppData\Local\MiKTeX\fon
-ts/pk/ljfour/jknappen/ec/dpi600\ecbx1440.pk> <C:\Users\ayate\AppData\Local\MiKT
-eX\fonts/pk/ljfour/jknappen/ec/dpi600\ecxc1728.pk> <C:\Users\ayate\AppData\Loca
-l\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\eccc1200.pk> <C:\Users\ayate\AppDat
-a\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecti1200.pk> <C:\Users\ayate\
-AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1200.pk> <C:\Users\
-ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1200.pk> <C:\
-Users\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx2488.pk
-><C:/Users/ayate/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/c
-msy10.pfb>
-Output written on main.pdf (70 pages, 3001720 bytes).
+ 75i,17n,79p,1575b,2671s stack positions out of 10000i,1000n,20000p,200000b,200000s
+
+pdfTeX warning (dest): name{conc.1} has been referenced but does not exist, rep
+laced by a fixed one
+
+
+pdfTeX warning (dest): name{intro.1} has been referenced but does not exist, re
+placed by a fixed one
+
+ <C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbi12
+00.pk> <C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\
+ectt1200.pk> <C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/d
+pi600\ecrm1000.pk> <C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappe
+n/ec/dpi600\ecbx1000.pk> <C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/j
+knappen/ec/dpi600\ecbx1728.pk> <C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/lj
+four/jknappen/ec/dpi600\ecbx1440.pk> <C:\Users\ayate\AppData\Local\MiKTeX\fonts
+/pk/ljfour/jknappen/ec/dpi600\ecxc1728.pk> <C:\Users\ayate\AppData\Local\MiKTeX
+\fonts/pk/ljfour/jknappen/ec/dpi600\eccc1200.pk> <C:\Users\ayate\AppData\Local\
+MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecti1200.pk> <C:\Users\ayate\AppData\
+Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1200.pk> <C:\Users\ayate\Ap
+pData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1200.pk> <C:\Users\ay
+ate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1095.pk> <C:\Us
+ers\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1095.pk> 
+<C:\Users\ayate\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx248
+8.pk>
+Output written on main.pdf (94 pages, 11683490 bytes).
 PDF statistics:
- 2131 PDF objects out of 2487 (max. 8388607)
- 297 named destinations out of 1000 (max. 500000)
- 958 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 2314 PDF objects out of 2487 (max. 8388607)
+ 290 named destinations out of 1000 (max. 500000)
+ 1233 words of extra memory for PDF output out of 10000 (max. 10000000)
 

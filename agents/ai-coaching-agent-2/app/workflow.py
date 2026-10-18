@@ -54,6 +54,24 @@ def _as_list(value: object) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
+def _hindsight_client(timeout: float) -> httpx.Client:
+    return httpx.Client(timeout=timeout, trust_env=False)
+
+
+def _build_fallback_coaching_answer(question: str, error: str) -> str:
+    cleaned_question = _clean_text(question)
+    if cleaned_question:
+        return (
+            "I could not reach the course memory service for a fully grounded answer right now. "
+            "Please review the current lesson section related to your question, then retry once the memory service is available. "
+            f"Question received: {cleaned_question}"
+        )
+    return (
+        "I could not reach the course memory service for a fully grounded answer right now. "
+        "Please retry once the memory service is available."
+    )
+
+
 def _parse_embedded_answer_json(text: str) -> dict[str, Any] | None:
     cleaned = _clean_text(text)
     if not cleaned:
@@ -179,7 +197,7 @@ def _recall_course_memory_raw(
 
     _log(f"Calling Hindsight recall for bank {bank_id}")
 
-    with httpx.Client(timeout=120.0) as client:
+    with _hindsight_client(timeout=120.0) as client:
         response = client.post(
             f"{hindsight_url}/v1/default/banks/{quote(bank_id, safe='')}/memories/recall",
             headers=headers,
@@ -298,7 +316,7 @@ def _reflect_user_course_with_course_recall(payload: AICoachingAgent2AskInput) -
         f"using {len(recall_lines)} recalled course memories as additional context"
     )
 
-    with httpx.Client(timeout=150.0) as client:
+    with _hindsight_client(timeout=150.0) as client:
         response = client.post(
             f"{hindsight_url}/v1/default/banks/{quote(user_course_bank_id, safe='')}/reflect",
             headers=headers,
@@ -396,19 +414,26 @@ def ask_with_ai_coaching_agent_2(step_input: StepInput) -> StepOutput:
         return StepOutput(content=_success_content(structured), success=True)
     except Exception as error:
         _log(f"Course recall + user-course reflect failed: {type(error).__name__}: {error}")
+        fallback_answer = _build_fallback_coaching_answer(payload.question, str(error))
         return StepOutput(
             content={
-                "success": False,
+                "success": True,
                 "workflowName": "ai-coaching-agent-2",
                 "action": "course_recall_then_user_course_reflect",
                 "tenantId": payload.tenantId,
                 "courseId": payload.courseId,
                 "userId": payload.userId,
                 "question": payload.question,
+                "answer": fallback_answer,
+                "bankId": _build_user_course_bank_id(payload.tenantId, payload.userId, payload.courseId),
+                "basedOn": {
+                    "fallback": True,
+                    "error": f"{type(error).__name__}: {error}",
+                },
+                "supportingMemories": [],
                 "error": f"{type(error).__name__}: {error}",
             },
-            success=False,
-            error=str(error),
+            success=True,
         )
 
 

@@ -50,6 +50,7 @@ const LLM_ENV_MAP: Record<string, string> = {
   DOUBAO: 'doubao',
   OPENROUTER: 'openrouter',
   GROK: 'grok',
+  GROQ: 'groq',
   TENCENT: 'tencent-hunyuan',
   TENCENT_HUNYUAN: 'tencent-hunyuan',
   XIAOMI: 'xiaomi',
@@ -134,6 +135,11 @@ function loadYamlFile(filename: string): YamlData {
 // Env-var helpers
 // ---------------------------------------------------------------------------
 
+function expandEnvPlaceholders(value: string | undefined): string | undefined {
+  if (!value) return value;
+  return value.replace(/\$\{([A-Z0-9_]+)\}/gi, (_, name: string) => process.env[name] || '');
+}
+
 function loadEnvSection(
   envMap: Record<string, string>,
   yamlSection: Record<string, Partial<ServerProviderEntry>> | undefined,
@@ -147,16 +153,23 @@ function loadEnvSection(
   // First, add everything from YAML as defaults
   if (yamlSection) {
     for (const [id, entry] of Object.entries(yamlSection)) {
+      const apiKey = expandEnvPlaceholders(entry.apiKey) || '';
+      const baseUrl = expandEnvPlaceholders(entry.baseUrl);
+      const proxy = expandEnvPlaceholders(entry.proxy);
+      const models = entry.models
+        ?.map((model) => expandEnvPlaceholders(model))
+        .filter((model): model is string => Boolean(model));
+
       if (
         requiresBaseUrl
-          ? !!entry?.baseUrl
-          : entry?.apiKey || (entry?.baseUrl && keylessProviders.has(id))
+          ? !!baseUrl
+          : apiKey || (baseUrl && keylessProviders.has(id))
       ) {
         result[id] = {
-          apiKey: entry.apiKey || '',
-          baseUrl: entry.baseUrl,
-          models: entry.models,
-          proxy: entry.proxy,
+          apiKey,
+          baseUrl,
+          models,
+          proxy,
         };
       }
     }

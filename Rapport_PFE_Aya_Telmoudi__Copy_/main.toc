@@ -1,113 +1,128 @@
 \babel@toc {french}{}\relax 
-\contentsline {chapter}{\numberline {1}Contexte général et étude de l’existant}{1}{chapter.1}%
-\contentsline {section}{\numberline {1.1}Introduction}{2}{section.1.1}%
-\contentsline {section}{\numberline {1.2}Présentation de la société}{2}{section.1.2}%
-\contentsline {subsection}{\numberline {1.2.1}Présentation générale}{2}{subsection.1.2.1}%
-\contentsline {subsection}{\numberline {1.2.2}Domaines d'activité de 3S}{2}{subsection.1.2.2}%
-\contentsline {section}{\numberline {1.3}Contexte du projet}{3}{section.1.3}%
-\contentsline {subsection}{\numberline {1.3.1}Problématique}{3}{subsection.1.3.1}%
-\contentsline {subsection}{\numberline {1.3.2}Objectif}{4}{subsection.1.3.2}%
-\contentsline {subsection}{\numberline {1.3.3}Solution proposée}{4}{subsection.1.3.3}%
-\contentsline {section}{\numberline {1.4}Étude et analyse de l'existant}{5}{section.1.4}%
-\contentsline {subsection}{\numberline {1.4.1}Solutions commercialisées}{5}{subsection.1.4.1}%
-\contentsline {subsubsection}{\numberline {1.4.1.1}Google Skills}{5}{subsubsection.1.4.1.1}%
-\contentsline {subsubsection}{\numberline {1.4.1.2}Duolingo}{6}{subsubsection.1.4.1.2}%
-\contentsline {subsubsection}{\numberline {1.4.1.3}360Learning}{6}{subsubsection.1.4.1.3}%
-\contentsline {subsubsection}{\numberline {1.4.1.4}CYPHER Learning}{6}{subsubsection.1.4.1.4}%
-\contentsline {subsection}{\numberline {1.4.2}Solutions non commercialisées}{7}{subsection.1.4.2}%
-\contentsline {subsubsection}{\numberline {1.4.2.1}OpenMAIC}{7}{subsubsection.1.4.2.1}%
-\contentsline {subsubsection}{\numberline {1.4.2.2}Moodle}{7}{subsubsection.1.4.2.2}%
-\contentsline {subsection}{\numberline {1.4.3}Synthèse comparative}{7}{subsection.1.4.3}%
-\contentsline {subsection}{\numberline {1.4.4}Améliorations et innovations}{8}{subsection.1.4.4}%
+\contentsline {introduction}{Introduction générale}{1}{intro.1}
+\contentsline {chapter}{\numberline {1}Contexte général et méthodologie de travail}{3}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Introduction}{4}{section.1.1}%
+\contentsline {section}{\numberline {1.2}Présentation de la société}{4}{section.1.2}%
+\contentsline {subsection}{\numberline {1.2.1}Présentation générale}{4}{subsection.1.2.1}%
+\contentsline {subsection}{\numberline {1.2.2}Domaines d'activité de 3S}{5}{subsection.1.2.2}%
+\contentsline {section}{\numberline {1.3}Contexte et objectifs du projet}{5}{section.1.3}%
+\contentsline {section}{\numberline {1.4}Étude et analyse de l'existant}{6}{section.1.4}%
+\contentsline {subsection}{\numberline {1.4.1}Solutions commercialisées}{6}{subsection.1.4.1}%
+\contentsline {subsubsection}{\numberline {1.4.1.1}Google Skills}{6}{subsubsection.1.4.1.1}%
+\contentsline {subsubsection}{\numberline {1.4.1.2}Duolingo}{7}{subsubsection.1.4.1.2}%
+\contentsline {subsubsection}{\numberline {1.4.1.3}360Learning}{7}{subsubsection.1.4.1.3}%
+\contentsline {subsubsection}{\numberline {1.4.1.4}CYPHER Learning}{7}{subsubsection.1.4.1.4}%
+\contentsline {subsection}{\numberline {1.4.2}Solutions non commercialisées}{8}{subsection.1.4.2}%
+\contentsline {subsubsection}{\numberline {1.4.2.1}OpenMAIC}{8}{subsubsection.1.4.2.1}%
+\contentsline {subsubsection}{\numberline {1.4.2.2}Moodle}{8}{subsubsection.1.4.2.2}%
+\contentsline {subsection}{\numberline {1.4.3}Synthèse comparative}{9}{subsection.1.4.3}%
+\contentsline {subsection}{\numberline {1.4.4}Solution proposée}{10}{subsection.1.4.4}%
 \contentsline {section}{\numberline {1.5}Spécification des exigences}{10}{section.1.5}%
-\contentsline {subsection}{\numberline {1.5.1}Exigences fonctionnelles}{10}{subsection.1.5.1}%
+\contentsline {subsection}{\numberline {1.5.1}Exigences fonctionnelles}{11}{subsection.1.5.1}%
 \contentsline {subsection}{\numberline {1.5.2}Exigences non fonctionnelles}{11}{subsection.1.5.2}%
 \contentsline {section}{\numberline {1.6}Méthodologie de travail}{13}{section.1.6}%
 \contentsline {subsection}{\numberline {1.6.1}Analyse des approches de développement}{13}{subsection.1.6.1}%
-\contentsline {subsubsection}{\numberline {1.6.1.1}Méthodes agiles traditionnelles}{13}{subsubsection.1.6.1.1}%
-\contentsline {subsubsection}{\numberline {1.6.1.2}Inadéquation structurelle avec le développement assisté par l'IA}{13}{subsubsection.1.6.1.2}%
-\contentsline {subsubsection}{\numberline {1.6.1.3}Le vibe coding : une réponse insuffisante}{14}{subsubsection.1.6.1.3}%
+\contentsline {subsubsection}{\numberline {1.6.1.1}Évolution des méthodes de développement et limites dans le contexte de l'IA}{13}{subsubsection.1.6.1.1}%
+\contentsline {subsubsection}{\numberline {1.6.1.2}Le vibe coding : une réponse insuffisante}{14}{subsubsection.1.6.1.2}%
 \contentsline {subsection}{\numberline {1.6.2}Approche AI-Driven Development Lifecycle (AI-DLC)}{14}{subsection.1.6.2}%
-\contentsline {subsubsection}{\numberline {1.6.2.1}Présentation}{14}{subsubsection.1.6.2.1}%
-\contentsline {subsubsection}{\numberline {1.6.2.2}Principes fondamentaux}{15}{subsubsection.1.6.2.2}%
-\contentsline {subsubsection}{\numberline {1.6.2.3}Phases de l'AI-DLC}{15}{subsubsection.1.6.2.3}%
-\contentsline {subsection}{\numberline {1.6.3}Frameworks d'Implémentation de l'AI-DLC}{16}{subsection.1.6.3}%
-\contentsline {subsubsection}{\numberline {1.6.3.1}GitHub Spec Kit}{16}{subsubsection.1.6.3.1}%
-\contentsline {subsubsection}{\numberline {1.6.3.2}BMAD Method}{16}{subsubsection.1.6.3.2}%
-\contentsline {subsubsection}{\numberline {1.6.3.3}GSD Framework}{16}{subsubsection.1.6.3.3}%
-\contentsline {subsubsection}{\numberline {1.6.3.4}AWS Kiro}{17}{subsubsection.1.6.3.4}%
-\contentsline {subsection}{\numberline {1.6.4}Étude Comparative des Frameworks}{17}{subsection.1.6.4}%
-\contentsline {subsection}{\numberline {1.6.5}Choix de l'environnement de développement}{18}{subsection.1.6.5}%
-\contentsline {subsubsection}{\numberline {1.6.5.1}Démarche adoptée : approche hybride progressive}{18}{subsubsection.1.6.5.1}%
-\contentsline {paragraph}{Phase 1 : Découverte et planification avec GSD}{18}{subsubsection.1.6.5.1}%
-\contentsline {paragraph}{Phase 2 : Sélection de l'outil de construction par benchmark empirique}{19}{subsubsection.1.6.5.1}%
-\contentsline {paragraph}{Phase 3 : Construction avec Codex CLI et skills personnalisées}{19}{table.caption.6}%
-\contentsline {subsection}{\numberline {1.6.6}Synthèse}{19}{subsection.1.6.6}%
-\contentsline {section}{\numberline {1.7}Conclusion}{20}{section.1.7}%
-\contentsline {chapter}{\numberline {2}Fondements IA, conception et architecture de la solution}{21}{chapter.2}%
-\contentsline {section}{\numberline {2.1}Introduction}{22}{section.2.1}%
-\contentsline {section}{\numberline {2.2}Fondements de l'intelligence artificielle utilisée}{22}{section.2.2}%
-\contentsline {subsection}{\numberline {2.2.1}Les modèles de langage de grande taille (LLMs)}{22}{subsection.2.2.1}%
-\contentsline {subsubsection}{\numberline {2.2.1.1}Définition des LLMs}{22}{subsubsection.2.2.1.1}%
-\contentsline {subsubsection}{\numberline {2.2.1.2}Utilisation dans le projet}{23}{subsubsection.2.2.1.2}%
-\contentsline {subsubsection}{\numberline {2.2.1.3}Étude du choix du LLM}{23}{subsubsection.2.2.1.3}%
-\contentsline {subsubsection}{\numberline {2.2.1.4}Choix retenu}{24}{subsubsection.2.2.1.4}%
-\contentsline {subsection}{\numberline {2.2.2}Les agents intelligents et les systèmes multi-agents}{24}{subsection.2.2.2}%
-\contentsline {subsubsection}{\numberline {2.2.2.1}Définition des agents intelligents}{24}{subsubsection.2.2.2.1}%
-\contentsline {subsubsection}{\numberline {2.2.2.2}Définition des systèmes multi-agents}{24}{subsubsection.2.2.2.2}%
-\contentsline {subsubsection}{\numberline {2.2.2.3}Utilisation dans le projet}{25}{subsubsection.2.2.2.3}%
-\contentsline {subsection}{\numberline {2.2.3}Le Retrieval-Augmented Generation (RAG)}{26}{subsection.2.2.3}%
-\contentsline {subsubsection}{\numberline {2.2.3.1}Définition du RAG}{26}{subsubsection.2.2.3.1}%
-\contentsline {subsubsection}{\numberline {2.2.3.2}Workflow général}{26}{subsubsection.2.2.3.2}%
-\contentsline {subsubsection}{\numberline {2.2.3.3}Agentic RAG}{26}{subsubsection.2.2.3.3}%
-\contentsline {subsubsection}{\numberline {2.2.3.4}Utilisation dans le projet}{27}{subsubsection.2.2.3.4}%
-\contentsline {subsection}{\numberline {2.2.4}Modèles d’Embeddings}{27}{subsection.2.2.4}%
-\contentsline {subsubsection}{\numberline {2.2.4.1}Définition des embeddings}{27}{subsubsection.2.2.4.1}%
-\contentsline {subsubsection}{\numberline {2.2.4.2}Embeddings et recherche sémantique}{27}{subsubsection.2.2.4.2}%
-\contentsline {subsubsection}{\numberline {2.2.4.3}Étude du choix du modèle d'embeddings}{27}{subsubsection.2.2.4.3}%
-\contentsline {subsubsection}{\numberline {2.2.4.4}Choix retenu}{28}{subsubsection.2.2.4.4}%
-\contentsline {subsection}{\numberline {2.2.5}Les prompts système des agents IA}{28}{subsection.2.2.5}%
-\contentsline {subsubsection}{\numberline {2.2.5.1}Définition}{28}{subsubsection.2.2.5.1}%
-\contentsline {subsubsection}{\numberline {2.2.5.2}Rôle dans les agents IA}{28}{subsubsection.2.2.5.2}%
-\contentsline {subsubsection}{\numberline {2.2.5.3}Utilisation dans le projet}{29}{subsubsection.2.2.5.3}%
-\contentsline {subsection}{\numberline {2.2.6}Les agent skills}{29}{subsection.2.2.6}%
-\contentsline {subsubsection}{\numberline {2.2.6.1}Définition}{29}{subsubsection.2.2.6.1}%
-\contentsline {subsubsection}{\numberline {2.2.6.2}Besoin des skills dans le projet}{29}{subsubsection.2.2.6.2}%
-\contentsline {subsubsection}{\numberline {2.2.6.3}Skills ajoutés dans la plateforme}{30}{subsubsection.2.2.6.3}%
-\contentsline {section}{\numberline {2.3}Système de mémoire persistante des agents IA}{30}{section.2.3}%
-\contentsline {subsection}{\numberline {2.3.1}Présentation de Hindsight}{31}{subsection.2.3.1}%
-\contentsline {subsection}{\numberline {2.3.2}Architecture générale de Hindsight}{31}{subsection.2.3.2}%
-\contentsline {subsection}{\numberline {2.3.3}Fonctionnalités fondamentales utilisées}{32}{subsection.2.3.3}%
-\contentsline {subsection}{\numberline {2.3.4}Infrastructure et configuration de Hindsight dans le projet}{35}{subsection.2.3.4}%
-\contentsline {subsubsection}{\numberline {2.3.4.1}Position dans l'architecture}{35}{subsubsection.2.3.4.1}%
-\contentsline {subsubsection}{\numberline {2.3.4.2}Stockage et persistance}{35}{subsubsection.2.3.4.2}%
-\contentsline {subsubsection}{\numberline {2.3.4.3}Configuration des embeddings}{36}{subsubsection.2.3.4.3}%
-\contentsline {subsubsection}{\numberline {2.3.4.4}Configuration du LLM}{36}{subsubsection.2.3.4.4}%
-\contentsline {subsection}{\numberline {2.3.5}Structure des mémoires persistantes dans Hindsight}{36}{subsection.2.3.5}%
-\contentsline {section}{\numberline {2.4}Architecture de la plateforme}{37}{section.2.4}%
-\contentsline {subsection}{\numberline {2.4.1}Vue d'ensemble de l'architecture}{37}{subsection.2.4.1}%
-\contentsline {subsubsection}{\numberline {2.4.1.1}Organisation générale des couches}{37}{subsubsection.2.4.1.1}%
-\contentsline {subsubsection}{\numberline {2.4.1.2}Articulation entre les couches}{39}{subsubsection.2.4.1.2}%
-\contentsline {subsubsection}{\numberline {2.4.1.3}Séparation entre logique métier et logique IA}{40}{subsubsection.2.4.1.3}%
-\contentsline {subsection}{\numberline {2.4.2}Architecture microservices du backend}{40}{subsection.2.4.2}%
-\contentsline {subsubsection}{\numberline {2.4.2.1}API Gateway}{40}{subsubsection.2.4.2.1}%
-\contentsline {subsubsection}{\numberline {2.4.2.2}Microservices réels et modules fonctionnels internes}{40}{subsubsection.2.4.2.2}%
-\contentsline {subsubsection}{\numberline {2.4.2.3}Communication entre les services}{42}{subsubsection.2.4.2.3}%
-\contentsline {subsection}{\numberline {2.4.3}Architecture multi-tenant}{42}{subsection.2.4.3}%
-\contentsline {subsubsection}{\numberline {2.4.3.1}Isolation des données au niveau des services}{42}{subsubsection.2.4.3.1}%
-\contentsline {subsubsection}{\numberline {2.4.3.2}Gestion des rôles par tenant}{42}{subsubsection.2.4.3.2}%
-\contentsline {subsection}{\numberline {2.4.4}Modèle de données}{44}{subsection.2.4.4}%
-\contentsline {subsubsection}{\numberline {2.4.4.1}Organisation générale des données}{44}{subsubsection.2.4.4.1}%
-\contentsline {subsubsection}{\numberline {2.4.4.2}Stockage hybride des ressources}{44}{subsubsection.2.4.4.2}%
-\contentsline {subsection}{\numberline {2.4.5}Architecture des agents IA}{45}{subsection.2.4.5}%
-\contentsline {subsubsection}{\numberline {2.4.5.1}Agent de création de cours}{45}{subsubsection.2.4.5.1}%
-\contentsline {subsubsection}{\numberline {2.4.5.2}Agent de coaching pédagogique}{46}{subsubsection.2.4.5.2}%
-\contentsline {subsubsection}{\numberline {2.4.5.3}Agent de mémoire apprenant}{47}{subsubsection.2.4.5.3}%
-\contentsline {subsubsection}{\numberline {2.4.5.4}Agent de recommandation}{49}{subsubsection.2.4.5.4}%
-\contentsline {subsubsection}{\numberline {2.4.5.5}Agent de défis personnalisés}{50}{subsubsection.2.4.5.5}%
-\contentsline {section}{\numberline {2.5}Choix technologiques et justification}{53}{section.2.5}%
-\contentsline {subsection}{\numberline {2.5.1}Stack frontend et backend}{53}{subsection.2.5.1}%
-\contentsline {subsection}{\numberline {2.5.2}Bases de données, IA et infrastructure}{54}{subsection.2.5.2}%
-\contentsline {section}{\numberline {2.6}Conclusion}{56}{section.2.6}%
-\contentsline {chapter}{Bibliographie}{57}{chapter*.21}%
-\contentsline {chapter}{Webographie}{60}{chapter*.22}%
+\contentsline {subsection}{\numberline {1.6.3}Étude comparative des frameworks d'implémentation de l'AI-DLC}{15}{subsection.1.6.3}%
+\contentsline {subsection}{\numberline {1.6.4}Choix de l'environnement de développement}{16}{subsection.1.6.4}%
+\contentsline {section}{\numberline {1.7}Conclusion}{17}{section.1.7}%
+\contentsline {chapter}{\numberline {2}Concepts de base et étude préalable}{18}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Introduction}{19}{section.2.1}%
+\contentsline {section}{\numberline {2.2}Fondements de l'intelligence artificielle}{19}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Les modèles de langage de grande taille (LLMs)}{19}{subsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.1.1}Définition des LLMs}{19}{subsubsection.2.2.1.1}%
+\contentsline {subsubsection}{\numberline {2.2.1.2}Utilisation dans le projet}{19}{subsubsection.2.2.1.2}%
+\contentsline {subsubsection}{\numberline {2.2.1.3}Étude du choix du LLM}{20}{subsubsection.2.2.1.3}%
+\contentsline {subsubsection}{\numberline {2.2.1.4}Choix retenu}{20}{subsubsection.2.2.1.4}%
+\contentsline {subsection}{\numberline {2.2.2}Les agents intelligents et les systèmes multi-agents}{21}{subsection.2.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.2.1}Définition des agents intelligents}{21}{subsubsection.2.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2.2}Définition des systèmes multi-agents}{21}{subsubsection.2.2.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.2.3}Utilisation dans le projet}{21}{subsubsection.2.2.2.3}%
+\contentsline {subsection}{\numberline {2.2.3}Le Retrieval-Augmented Generation (RAG)}{22}{subsection.2.2.3}%
+\contentsline {subsubsection}{\numberline {2.2.3.1}Définition du RAG}{22}{subsubsection.2.2.3.1}%
+\contentsline {subsubsection}{\numberline {2.2.3.2}Workflow général}{22}{subsubsection.2.2.3.2}%
+\contentsline {subsubsection}{\numberline {2.2.3.3}Agentic RAG}{23}{subsubsection.2.2.3.3}%
+\contentsline {subsubsection}{\numberline {2.2.3.4}Utilisation dans le projet}{23}{subsubsection.2.2.3.4}%
+\contentsline {subsection}{\numberline {2.2.4}Modèles d’Embeddings}{23}{subsection.2.2.4}%
+\contentsline {subsubsection}{\numberline {2.2.4.1}Définition des embeddings}{24}{subsubsection.2.2.4.1}%
+\contentsline {subsubsection}{\numberline {2.2.4.2}Embeddings et recherche sémantique}{24}{subsubsection.2.2.4.2}%
+\contentsline {subsubsection}{\numberline {2.2.4.3}Étude du choix du modèle d'embeddings}{24}{subsubsection.2.2.4.3}%
+\contentsline {subsubsection}{\numberline {2.2.4.4}Choix retenu}{24}{subsubsection.2.2.4.4}%
+\contentsline {subsection}{\numberline {2.2.5}Les prompts système des agents IA}{25}{subsection.2.2.5}%
+\contentsline {subsubsection}{\numberline {2.2.5.1}Définition}{25}{subsubsection.2.2.5.1}%
+\contentsline {subsubsection}{\numberline {2.2.5.2}Rôle dans les agents IA}{25}{subsubsection.2.2.5.2}%
+\contentsline {subsubsection}{\numberline {2.2.5.3}Utilisation dans le projet}{25}{subsubsection.2.2.5.3}%
+\contentsline {subsection}{\numberline {2.2.6}Les agent skills}{26}{subsection.2.2.6}%
+\contentsline {subsubsection}{\numberline {2.2.6.1}Définition}{26}{subsubsection.2.2.6.1}%
+\contentsline {subsubsection}{\numberline {2.2.6.2}Besoin des skills dans le projet}{26}{subsubsection.2.2.6.2}%
+\contentsline {section}{\numberline {2.3}Système de mémoire persistante des agents IA}{26}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Présentation de Hindsight}{27}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Architecture générale de Hindsight}{27}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Fonctionnalités fondamentales utilisées}{28}{subsection.2.3.3}%
+\contentsline {subsection}{\numberline {2.3.4}Structure des mémoires persistantes dans Hindsight}{31}{subsection.2.3.4}%
+\contentsline {section}{\numberline {2.4}Conclusion}{32}{section.2.4}%
+\contentsline {chapter}{\numberline {3}Conception architecturale de la plateforme}{33}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Introduction}{34}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Architecture de la plateforme}{34}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Vue d'ensemble de l'architecture}{34}{subsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.1.1}Organisation générale des couches}{34}{subsubsection.3.2.1.1}%
+\contentsline {subsubsection}{\numberline {3.2.1.2}Articulation entre les couches}{36}{subsubsection.3.2.1.2}%
+\contentsline {subsubsection}{\numberline {3.2.1.3}Séparation entre logique métier et logique IA}{36}{subsubsection.3.2.1.3}%
+\contentsline {subsection}{\numberline {3.2.2}Architecture microservices du backend}{36}{subsection.3.2.2}%
+\contentsline {subsubsection}{\numberline {3.2.2.1}API Gateway}{36}{subsubsection.3.2.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2.2}Microservices réels et modules fonctionnels internes}{37}{subsubsection.3.2.2.2}%
+\contentsline {subsection}{\numberline {3.2.3}Architecture multi-tenant}{38}{subsection.3.2.3}%
+\contentsline {subsection}{\numberline {3.2.4}Modèle de données}{39}{subsection.3.2.4}%
+\contentsline {subsection}{\numberline {3.2.5}Architecture des agents IA}{40}{subsection.3.2.5}%
+\contentsline {subsubsection}{\numberline {3.2.5.1}Agent de création de cours}{40}{subsubsection.3.2.5.1}%
+\contentsline {subsubsection}{\numberline {3.2.5.2}Agent de coaching pédagogique}{41}{subsubsection.3.2.5.2}%
+\contentsline {subsubsection}{\numberline {3.2.5.3}Agent de mémoire apprenant}{42}{subsubsection.3.2.5.3}%
+\contentsline {subsubsection}{\numberline {3.2.5.4}Agent de recommandation}{43}{subsubsection.3.2.5.4}%
+\contentsline {subsubsection}{\numberline {3.2.5.5}Agent de défis personnalisés}{44}{subsubsection.3.2.5.5}%
+\contentsline {section}{\numberline {3.3}Choix technologiques et justification}{46}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Stack frontend et backend}{46}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Bases de données, IA et infrastructure}{47}{subsection.3.3.2}%
+\contentsline {section}{\numberline {3.4}Conclusion}{48}{section.3.4}%
+\contentsline {chapter}{\numberline {4}Réalisation}{49}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Introduction}{50}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Réalisation et présentation des modules}{50}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Module Identity : gestion des identités, des accès et du multi-tenant}{50}{subsection.4.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.1.1}Initialisation de la plateforme et création du SuperAdmin}{50}{subsubsection.4.2.1.1}%
+\contentsline {subsubsection}{\numberline {4.2.1.2}Gestion des tenants et isolation multi-tenant}{51}{subsubsection.4.2.1.2}%
+\contentsline {subsubsection}{\numberline {4.2.1.3}Gestion des utilisateurs et des comptes}{52}{subsubsection.4.2.1.3}%
+\contentsline {subsubsection}{\numberline {4.2.1.4}Mécanisme d'authentification}{53}{subsubsection.4.2.1.4}%
+\contentsline {subsubsection}{\numberline {4.2.1.5}Gestion des sessions et des jetons d'accès}{54}{subsubsection.4.2.1.5}%
+\contentsline {subsubsection}{\numberline {4.2.1.6}Traçabilité et audit des actions d'administration}{54}{subsubsection.4.2.1.6}%
+\contentsline {subsection}{\numberline {4.2.2}Gestion des formations, cours et progression}{55}{subsection.4.2.2}%
+\contentsline {subsubsection}{\numberline {4.2.2.1}Gestion administrative et création des cours}{55}{subsubsection.4.2.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.2.2}Inscription des apprenants aux cours}{58}{subsubsection.4.2.2.2}%
+\contentsline {subsubsection}{\numberline {4.2.2.3}Suivi de la progression individuelle}{60}{subsubsection.4.2.2.3}%
+\contentsline {subsubsection}{\numberline {4.2.2.4}Objectifs d'apprentissage personnels et collectifs}{61}{subsubsection.4.2.2.4}%
+\contentsline {subsubsection}{\numberline {4.2.2.5}Certificats de fin de cours et vérification}{61}{subsubsection.4.2.2.5}%
+\contentsline {paragraph}{Mécanisme de sécurité et de vérification}{62}{figure.caption.43}%
+\contentsline {subsection}{\numberline {4.2.3}Mentorat et gamification}{63}{subsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.2.4}Modules IA -- les 5 agents}{65}{subsection.4.2.4}%
+\contentsline {section}{\numberline {4.3}Déploiement et hébergement de la plateforme}{68}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Conclusion}{69}{section.4.4}%
+\contentsline {chapter}{\numberline {5}Tests et validation}{70}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Introduction}{71}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Tests et validation}{71}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Tests unitaires}{71}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}Tests fonctionnels}{73}{subsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.2.3}Tests de performance}{73}{subsection.5.2.3}%
+\contentsline {subsubsection}{\numberline {5.2.3.1}Temps de réponse des API et capacité sous charge}{74}{subsubsection.5.2.3.1}%
+\contentsline {subsubsection}{\numberline {5.2.3.2}Progression et gamification}{74}{subsubsection.5.2.3.2}%
+\contentsline {subsection}{\numberline {5.2.4}Évaluation qualitative des modules IA}{75}{subsection.5.2.4}%
+\contentsline {subsubsection}{\numberline {5.2.4.1}Objectif de l'évaluation}{75}{subsubsection.5.2.4.1}%
+\contentsline {subsubsection}{\numberline {5.2.4.2}Méthodologie avec RAGAS}{75}{subsubsection.5.2.4.2}%
+\contentsline {subsubsection}{\numberline {5.2.4.3}Jeu de données d'évaluation}{76}{subsubsection.5.2.4.3}%
+\contentsline {subsubsection}{\numberline {5.2.4.4}Résultats obtenus avec RAGAS}{76}{subsubsection.5.2.4.4}%
+\contentsline {section}{\numberline {5.3}Évaluation et discussion des résultats}{77}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Tableau de traçabilité exigences -- réalisation}{77}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.2}Limites identifiées et perspectives}{78}{subsection.5.3.2}%
+\contentsline {section}{\numberline {5.4}Conclusion}{79}{section.5.4}%
+\contentsline {introduction}{Conclusion et perspectives}{80}{conc.1}
+\contentsline {chapter}{Bibliographie}{81}{chapter*.59}%
+\contentsline {chapter}{Webographie}{82}{chapter*.60}%
