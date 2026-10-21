@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 
@@ -73,6 +73,45 @@ function resolveRepoRoot() {
 
 function resolveAgentWorkspace(repoRoot: string) {
   return path.join(repoRoot, "agents", "ai-coaching-agent-2");
+}
+
+function loadAgentEnv(repoRoot: string) {
+  const envFiles = [
+    path.join(repoRoot, ".env.local"),
+    path.join(repoRoot, "upskilling_platform", ".env"),
+    path.join(repoRoot, "agents", "chat-coach", ".env"),
+  ];
+
+  const mergedEnv: Record<string, string> = {};
+  for (const envFile of envFiles) {
+    if (!existsSync(envFile)) {
+      continue;
+    }
+
+    const content = readFileSync(envFile, "utf8");
+    for (const rawLine of content.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith("#") || !line.includes("=")) {
+        continue;
+      }
+
+      const separatorIndex = line.indexOf("=");
+      const key = line.slice(0, separatorIndex).trim();
+      const value = line.slice(separatorIndex + 1).trim();
+      if (key) {
+        mergedEnv[key] = value;
+      }
+    }
+  }
+
+  if (mergedEnv.HINDSIGHT_URL === "http://hindsight:8888") {
+    mergedEnv.HINDSIGHT_URL = "http://127.0.0.1:8888";
+  }
+  if (mergedEnv.HINDSIGHT_API_URL === "http://hindsight:8888") {
+    mergedEnv.HINDSIGHT_API_URL = "http://127.0.0.1:8888";
+  }
+
+  return mergedEnv;
 }
 
 function pythonHasAgentRuntime(pythonExecutable: string) {
@@ -211,12 +250,17 @@ export async function ensureAICoachingAgent2Service() {
     const pythonExecutable = resolveAgentPython(repoRoot);
     const workspace = resolveAgentWorkspace(repoRoot);
     const scriptPath = path.join(workspace, "app", "run_agent_os_service.py");
+    const agentEnv = loadAgentEnv(repoRoot);
 
     console.log(agentMessage("[AI Coaching Agent 2] Booting AgentOS service."));
 
     const processHandle = spawn(pythonExecutable, [scriptPath], {
       cwd: workspace,
       stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        ...agentEnv,
+      },
     });
 
     state.process = processHandle;

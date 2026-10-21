@@ -46,6 +46,10 @@ def _hindsight_headers() -> dict[str, str]:
     return headers
 
 
+def _hindsight_client(timeout: float) -> httpx.Client:
+    return httpx.Client(timeout=timeout, trust_env=False)
+
+
 def _parse_json_object_from_text(text: str) -> dict[str, Any] | None:
     cleaned = _clean_text(text)
     if not cleaned:
@@ -68,7 +72,7 @@ def _parse_json_object_from_text(text: str) -> dict[str, Any] | None:
 
 def _call_hindsight_reflect(*, bank_id: str, query: str, max_tokens: int) -> dict[str, Any]:
     hindsight_url = DEFAULT_HINDSIGHT_URL.rstrip("/")
-    with httpx.Client(timeout=180.0) as client:
+    with _hindsight_client(timeout=180.0) as client:
         response = client.post(
             f"{hindsight_url}/v1/default/banks/{quote(bank_id, safe='')}/reflect",
             headers=_hindsight_headers(),
@@ -127,7 +131,7 @@ def _list_learner_course_banks(tenant_id: str, user_id: str) -> list[dict[str, s
         "Calling Hindsight bank listing to discover learner-course banks "
         f"for tenant={tenant_id} user={user_id}"
     )
-    with httpx.Client(timeout=60.0) as client:
+    with _hindsight_client(timeout=60.0) as client:
         response = client.get(
             f"{hindsight_url}/v1/default/banks",
             headers=_hindsight_headers(),
@@ -166,7 +170,7 @@ def _list_learner_course_banks(tenant_id: str, user_id: str) -> list[dict[str, s
 
 def _resolve_course_title_from_bank(bank_id: str, course_id: str) -> str:
     hindsight_url = DEFAULT_HINDSIGHT_URL.rstrip("/")
-    with httpx.Client(timeout=60.0) as client:
+    with _hindsight_client(timeout=60.0) as client:
         response = client.get(
             f"{hindsight_url}/v1/default/banks/{quote(bank_id, safe='')}/memories/list?limit=12&offset=0",
             headers=_hindsight_headers(),
@@ -319,7 +323,7 @@ def _recall_skill_signal_candidates_for_course(
         },
     }
 
-    with httpx.Client(timeout=120.0) as client:
+    with _hindsight_client(timeout=120.0) as client:
         response = client.post(
             f"{hindsight_url}/v1/default/banks/{quote(bank_id, safe='')}/memories/recall",
             headers=_hindsight_headers(),
@@ -639,11 +643,42 @@ def _map_course_signals_to_skill_domains(
         "Calling Hindsight reflect on course bank for skill-domain mapping. "
         f"courseId={course_id} courseTitle={course_title}"
     )
-    reflect_result = _call_hindsight_reflect(
-        bank_id=course_bank_id,
-        query=reflect_query,
-        max_tokens=1400,
-    )
+    try:
+        reflect_result = _call_hindsight_reflect(
+            bank_id=course_bank_id,
+            query=reflect_query,
+            max_tokens=1400,
+        )
+    except Exception as error:
+        _log(
+            "Course-domain reflect failed; falling back to recall-signal labels. "
+            f"bankId={course_bank_id} error={type(error).__name__}: {error}"
+        )
+        fallback_domains = []
+        for signal in signals:
+            if not isinstance(signal, dict):
+                continue
+            category = _clean_text(signal.get("category")) or "learning_gap"
+            text = _clean_text(signal.get("text"))
+            if not text:
+                continue
+            fallback_domains.append(
+                {
+                    "skill_domain": category.replace("_", " ").title(),
+                    "status": "weak_unresolved" if category != "remediated_concept" else "remediated",
+                    "evidence": [text],
+                }
+            )
+        return {
+            "courseId": course_id,
+            "courseTitle": course_title,
+            "courseBankId": course_bank_id,
+            "mappedDomains": _normalize_and_validate_course_skill_map(fallback_domains),
+            "sourceSignals": useful_signals,
+            "status": "mapped_with_fallback",
+            "fallback": True,
+            "error": f"{type(error).__name__}: {error}",
+        }
     parsed = reflect_result.get("parsedAnswer") if isinstance(reflect_result, dict) else None
     mapped = parsed.get("course_skill_map") if isinstance(parsed, dict) else []
     normalized_mapped = _normalize_and_validate_course_skill_map(mapped)
@@ -725,11 +760,40 @@ def _build_cross_course_synthesis(
     )
 
     _log("Calling Hindsight reflect for cross-course skill synthesis.")
-    reflect_result = _call_hindsight_reflect(
-        bank_id=skill_profile_bank_id,
-        query=reflect_query,
-        max_tokens=1800,
-    )
+    try:
+        reflect_result = _call_hindsight_reflect(
+            bank_id=skill_profile_bank_id,
+            query=reflect_query,
+            max_tokens=1800,
+        )
+    except Exception as error:
+        _log(
+            "Cross-course synthesis reflect failed; using mapped course domains directly. "
+            f"bankId={skill_profile_bank_id} error={type(error).__name__}: {error}"
+        )
+        fallback_items: list[dict[str, Any]] = []
+        for course in actionable_courses:
+            course_title = _clean_text(course.get("courseTitle"))
+            for domain in course.get("mappedDomains", []):
+                if not isinstance(domain, dict):
+                    continue
+                evidence = domain.get("evidence") if isinstance(domain.get("evidence"), list) else []
+                fallback_items.append(
+                    {
+                        "skill_domain": _clean_text(domain.get("skill_domain")),
+                        "status": _clean_text(domain.get("status")) or "mixed",
+                        "evidence_summary": [
+                            f"{course_title}: {entry}" if course_title else entry
+                            for entry in evidence
+                            if isinstance(entry, str)
+                        ],
+                    }
+                )
+        return {
+            "status": "cross_course_synthesized_with_fallback",
+            "skillRadar": _normalize_and_merge_skill_radar(fallback_items),
+            "error": f"{type(error).__name__}: {error}",
+        }
     parsed = reflect_result.get("parsedAnswer") if isinstance(reflect_result, dict) else None
     radar = parsed.get("skill_radar") if isinstance(parsed, dict) else []
     normalized_radar = _normalize_and_merge_skill_radar(
@@ -928,7 +992,21 @@ def _attach_learner_messages_to_recommendations(
     if not recommendations:
         return recommendations
 
-    bank_context = _ensure_skill_profile_bank(payload.tenantId, payload.userId)
+    try:
+        bank_context = _ensure_skill_profile_bank(payload.tenantId, payload.userId)
+    except Exception as error:
+        _log(
+            "Skill-profile bank ensure failed; using deterministic recommendation messages. "
+            f"error={type(error).__name__}: {error}"
+        )
+        return [
+            {
+                **item,
+                "learnerMessage": _build_default_learner_message(item),
+            }
+            for item in recommendations
+        ]
+
     skill_profile_bank_id = bank_context["bankId"]
     _log(
         "Preparing learner-facing recommendation copy from the skill profile bank. "
@@ -972,11 +1050,24 @@ def _attach_learner_messages_to_recommendations(
     )
 
     _log("Calling Hindsight reflect for learner-facing recommendation copy.")
-    reflect_result = _call_hindsight_reflect(
-        bank_id=skill_profile_bank_id,
-        query=reflect_query,
-        max_tokens=1200,
-    )
+    try:
+        reflect_result = _call_hindsight_reflect(
+            bank_id=skill_profile_bank_id,
+            query=reflect_query,
+            max_tokens=1200,
+        )
+    except Exception as error:
+        _log(
+            "Learner-facing copy reflect failed; using deterministic recommendation messages. "
+            f"bankId={skill_profile_bank_id} error={type(error).__name__}: {error}"
+        )
+        return [
+            {
+                **item,
+                "learnerMessage": _build_default_learner_message(item),
+            }
+            for item in recommendations
+        ]
     parsed = reflect_result.get("parsedAnswer") if isinstance(reflect_result, dict) else None
     rewritten = parsed.get("recommendations") if isinstance(parsed, dict) else []
 
@@ -1123,7 +1214,7 @@ def _ensure_skill_profile_bank(tenant_id: str, user_id: str) -> dict[str, Any]:
     }
 
     _log(f"Ensuring Hindsight skill-profile bank exists: {bank_id}")
-    with httpx.Client(timeout=60.0) as client:
+    with _hindsight_client(timeout=60.0) as client:
         response = client.put(
             f"{hindsight_url}/v1/default/banks/{quote(bank_id, safe='')}",
             headers=headers,
