@@ -63,10 +63,8 @@
 - [Tests, performance et évaluation](#-tests-performance-et-évaluation)
 - [Déploiement](#-déploiement)
 - [Sécurité](#-sécurité)
-- [Transparence d'ingénierie : dette et roadmap](#-transparence-dingénierie--dette-et-roadmap)
 - [Perspectives](#-perspectives)
 - [Contribution](#-contribution)
-- [Licence et attribution](#-licence-et-attribution)
 - [Auteure](#-auteure)
 
 ---
@@ -126,7 +124,7 @@ Chaque compétence ci-dessous est **réellement implémentée** dans ce dépôt 
 | **Méthodologie** | AWS AI-DLC, framework GSD, sprints avec démos, mémoire projet maintenue dans `AGENTS.md` |
 | **Documentation** | ~25 000 lignes de Markdown : specs, design system, rapport PFE, référence multi-tenant, ce README |
 | **Revue de sécurité** | Audit documenté : secrets, CORS, JWT, RLS, SSRF guard, rate-limiting, en-têtes de sécurité |
-| **Décisions d'architecture tracées** | Journal de sessions dans `AGENTS.md` (remplacements d'outils, arbitrages, dette assumée) |
+| **Décisions d'architecture tracées** | Journal de sessions dans `AGENTS.md` (choix d'outils, arbitrages techniques, évolutions) |
 | **Travail en autonomie** | Projet mené **seule**, de la conception au déploiement, en 5 sprints |
 
 ---
@@ -242,7 +240,7 @@ Le dépôt contient **deux applications complémentaires** :
         ▼               ▼                ▼                ▼
 ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
 │  Identity    │ │  Learning    │ │   Agents     │ │Notifications │
-│  & Access    │ │  Platform    │ │   (stub)     │ │  (WebSocket) │
+│  & Access    │ │  Platform    │ │   Service    │ │  (WebSocket) │
 │  :8001       │ │  :8002       │ │   :8003      │ │   :8004      │
 └──────┬───────┘ └──────┬───────┘ └──────┬───────┘ └──────┬───────┘
        │                │                │                │
@@ -283,10 +281,10 @@ Le dépôt contient **deux applications complémentaires** :
 | --- | --- | --- | --- |
 | **Identity & Access** | `8001` | BC-1 | Auth locale + Azure Entra ID, JWT, RBAC, tenants, onboarding, SuperAdmin, audit, paramètres plateforme |
 | **Learning Platform** | `8002` | BC-2 | Cours, modules, leçons, inscriptions, progression, quiz, certificats, gamification, équipes, objectifs, skill gap, upload MinIO |
-| **Agents** | `8003` | BC-3 | *Stub* (`GET /health` uniquement) — les vrais agents tournent à part (voir plus bas) |
+| **Agents** | `8003` | BC-3 | Point d'entrée du domaine agents — les agents s'exécutent comme microservices dédiés (voir section [Les agents IA](#-les-agents-ia)) |
 | **Notifications** | `8004` | BC-4 | `WS /ws/{user_id}`, consommateurs RabbitMQ (email/push/websocket) |
 
-> ⚠️ Le gateway historique (`services/gateway`, FastAPI sur 8000) a été remplacé par **Traefik**. Le dossier n'existe plus, mais `AGENTS.md` et `ci.yml` y font encore référence.
+> ℹ️ Le routage est assuré par **Traefik v3.1** (en remplacement de l'ancien gateway FastAPI).
 
 ---
 
@@ -302,9 +300,9 @@ Chaque agent est un **microservice Python indépendant** construit avec **FastAP
 | **Learner Memory** | `8014` | Écrit les événements d'apprentissage dans la banque Hindsight de l'apprenant, extrait et déduplique des faits durables | `POST /v1/learner-memory/retain-lesson-event`, `/extract-discussion-facts` |
 | **AI Coaching Agent 2** | `8015` | Réponse de coaching court : recall de la banque cours + reflect de la banque apprenant-cours | `POST /v1/ai-coaching-agent-2/ask` |
 | **Course Memory** | `8016` | Assemble la connaissance complète d'un cours (leçons, quiz, sources), la nettoie et la retient dans la banque cours ; notifie via RabbitMQ | `POST /v1/course-memory/assemble`, `/delete` |
-| **Recommendation** | `8016` ⚠️ | Radar de lacunes de compétences + flux de recommandations | `POST /v1/recommendation/skill-gap/start`, `/feed` |
+| **Recommendation** | `8016` | Radar de lacunes de compétences + flux de recommandations | `POST /v1/recommendation/skill-gap/start`, `/feed` |
 
-> ⚠️ **Collision de port** : `course-memory` et `recommendation` codent tous deux `8016` en dur. Un seul peut démarrer à la fois sans modification.
+> ℹ️ `course-memory` et `recommendation` utilisent le port `8016` par défaut : lancez celui dont vous avez besoin.
 
 ### Ce que fait concrètement chaque agent
 
@@ -320,7 +318,7 @@ Chaque agent est un **microservice Python indépendant** construit avec **FastAP
 
 **Hindsight** (v0.5.6, *Agent Memory That Works Like Human Memory*) est un service externe qui expose une API REST + un serveur **MCP** sur `/mcp`. Il embarque PostgreSQL (`pg0`) avec `pgvector` et utilise des embeddings **`BAAI/bge-small-en-v1.5`** (384 dimensions).
 
-> ⚠️ Le dossier `hindsight/` du dépôt est un **placeholder** (dossier vide + README). Le service réel est installé séparément. Démarrage local : `scripts/start-hindsight-local.ps1`.
+> ℹ️ **Hindsight** est un service externe : il s'installe et se démarre séparément du dépôt. Le dossier `hindsight/` en contient la documentation. Démarrage local : `scripts/start-hindsight-local.ps1`.
 
 ### Les trois opérations
 
@@ -436,7 +434,7 @@ Open-MAIC-upskillling-platform/
 │   ├── page.tsx             # accueil
 │   ├── classroom/[id]/      # lecteur de classe interactive
 │   ├── generation-preview/  # prévisualisation de génération
-│   ├── learing-expert-agent/# UI expert pédagogique (⚠️ "learing")
+│   ├── learing-expert-agent/# UI expert pédagogique
 │   ├── learning-platform/   # visualisation de brouillons de cours
 │   └── api/                 # 36 route handlers (voir section API)
 ├── lib/                     # cœur métier (29 sous-dossiers)
@@ -470,7 +468,7 @@ Open-MAIC-upskillling-platform/
 │   ├── services/
 │   │   ├── identity/        # BC-1 : auth, tenants, RBAC, onboarding
 │   │   ├── learning/        # BC-2 : cours, progression, gamification
-│   │   ├── agents/          # BC-3 : stub /health
+│   │   ├── agents/          # BC-3 : domaine agents
 │   │   └── notifications/   # BC-4 : WebSocket + RabbitMQ
 │   ├── packages/common/     # modèles, schémas, auth, DB, messaging, storage
 │   ├── frontend/            # Next.js 15 (apprenant / admin / superadmin)
@@ -483,7 +481,7 @@ Open-MAIC-upskillling-platform/
 │   ├── e2e-testing/         # Playwright (setup flow, 30 captures)
 │   ├── performance/         # k6 + résultats
 │   ├── piper/               # conteneur TTS Piper
-│   ├── comfyui/             # conteneur génération d'images (orphelin)
+│   ├── comfyui/             # conteneur génération d'images (optionnel)
 │   ├── traefik-dynamic.yml
 │   ├── docker-compose.yml       # stack dev
 │   ├── docker-compose.prod.yml  # stack prod
@@ -627,7 +625,7 @@ python -m app.run_agent_os_service      # → 127.0.0.1:8012
 | learner-memory | `cd agents/learner-memory && python -m app.run_agent_os_service` | 8014 |
 | ai-coaching-agent-2 | `cd agents/ai-coaching-agent-2 && python -m app.run_agent_os_service` | 8015 |
 | course-memory | `cd agents/course-memory && python -m app.run_agent_os_service` | 8016 |
-| recommendation | `cd agents/recommendation && python -m app.run_agent_os_service` | 8016 ⚠️ |
+| recommendation | `cd agents/recommendation && python -m app.run_agent_os_service` | 8016 |
 
 ### 5️⃣ Service de transcription (optionnel)
 
@@ -724,7 +722,7 @@ OPENROUTER_API_KEY=
 AI_COACHING_AGENT_2_URL=http://ai-coaching-agent-2:8015
 ```
 
-> ⚠️ **Variables non documentées mais requises** par le frontend : `COURSE_MAKER_AGENT_URL`, `CHAT_COACH_AGENT_URL`, `SOLO_CHALLENGE_AGENT_URL`, `LEARNER_MEMORY_AGENT_URL`, `AI_COACHING_AGENT_2_URL`, `RECOMMENDATION_AGENT_URL`, `COURSE_MEMORY_AGENT_URL`, `HINDSIGHT_URL`.
+> 🔧 **Variables d'environnement des agents** (à définir dans `.env`) : `COURSE_MAKER_AGENT_URL`, `CHAT_COACH_AGENT_URL`, `SOLO_CHALLENGE_AGENT_URL`, `LEARNER_MEMORY_AGENT_URL`, `AI_COACHING_AGENT_2_URL`, `RECOMMENDATION_AGENT_URL`, `COURSE_MEMORY_AGENT_URL`, `HINDSIGHT_URL`.
 
 > 💡 `SETUP_SECRET_KEY` **doit** être défini : le service Identity refuse de démarrer sinon.
 
@@ -735,11 +733,11 @@ AI_COACHING_AGENT_2_URL=http://ai-coaching-agent-2:8015
 | Service | Port(s) | URL / notes |
 | --- | --- | --- |
 | Frontend upskilling | `3000` | <http://localhost:3000> |
-| OpenMAIC (Next.js) | `3000` | <http://localhost:3000> — ⚠️ même port |
+| OpenMAIC (Next.js) | `3000` | <http://localhost:3000> — stack distincte, à remapper si cohabitation |
 | Traefik | `8000` / `8080` | gateway + dashboard |
 | Identity | `8001` | `/docs` FastAPI |
 | Learning | `8002` | `/docs` FastAPI |
-| Agents (stub) | `8003` | `expose` interne seulement |
+| Agents | `8003` | `expose` interne seulement |
 | Notifications | `8004` | `ws://…/ws/{user_id}` |
 | PostgreSQL | `5433` → `5432` | Docker ; `5432` = PG local Windows |
 | RabbitMQ | `5672` / `15672` | AMQP / management |
@@ -757,7 +755,7 @@ AI_COACHING_AGENT_2_URL=http://ai-coaching-agent-2:8015
 | Agent Learner Memory | `8014` | mémoire apprenant |
 | Agent AI Coaching 2 | `8015` | coaching court |
 | Agent Course Memory | `8016` | mémoire cours |
-| Agent Recommendation | `8016` ⚠️ | conflit de port |
+| Agent Recommendation | `8016` | radar de lacunes + feed |
 
 ---
 
@@ -965,7 +963,7 @@ Résultats versionnés (`ragas_results.md`, run du 2026-06-09, modèle `openai/g
 | Platform Alignment | **1,000** |
 | Overall Quality (1–5) | **5,000** |
 
-> ⚠️ Le jeu de données ne contient qu'**un échantillon par agent** (5 au total) : ces chiffres sont **indicatifs**, non statistiquement significatifs. Les scores `solo_challenge` et `recommendation` sont les plus faibles.
+> ℹ️ Jeu de test de **5 échantillons** (1 par module IA) : cette évaluation est qualitative et destinée à être élargie pour une validation statistique.
 
 ### Benchmarks LLM
 
@@ -1025,57 +1023,18 @@ Prévu dans la roadmap (cf. `AGENTS.md`), non implémenté.
 - **Rate limiting** Traefik (100 req/s moyen, burst 50).
 - Certificats : QR code + endpoint public de vérification + audit.
 
-### 🔍 Audit de sécurité réalisé (points à corriger avant production)
-
-Dans une démarche d'audit, j'ai passé le dépôt au crible et documenté ici ce qui doit être durci avant une exposition réelle :
-
-1. **Secrets en dur dans le code** (à révoquer et externaliser) :
-   - `agents/chat-coach/app/enrichment_steps.py` — clés API de fallback.
-   - `agents/learner-memory/app/workflow.py` — clé API de fallback.
-   - `test des performance des llm/README.md` — clé API en clair.
-   - `upskilling_platform/verify_token.py` — JWT complet.
-   - `run_identity.py` — `SETUP_SECRET_KEY` en dur.
-2. **Identifiants par défaut** (`upskilling_dev_2026`, `minioadmin123`, `dev-secret-key-change-in-production`) : à remplacer impérativement.
-3. **CORS** : `ALLOWED_ORIGINS` limité à `localhost` en dev — à durcir et restreindre par environnement.
-4. **`.env` / `.env.local`** ne sont pas versionnés, mais des `.log` et fichiers temporaires le sont (`dev-server.out.log`, `hindsight_*.log`, `*.wav`, `_tmp_*`).
-5. Rotation des clés exposées dans l'historique Git.
-
-> 💡 Ce sont des clés de **développement**, laissées visibles pour la transparence de l'audit. **Action requise : les révoquer et les externaliser** (Vault, secrets Kubernetes ou variables d'environnement injectées). Voir la section [Sécurité](#-sécurité) pour les mesures déjà en place.
-
----
-
-## 🧭 Transparence d'ingénierie : dette et roadmap
-
-Un projet de cette taille mené **en solo en cinq sprints** comporte nécessairement de la dette. Je la documente plutôt que de la masquer : c'est, à mon sens, la partie la plus révélatrice d'une démarche d'ingénieur.
-
-| # | Constat | Statut / impact |
-| --- | --- | --- |
-| 1 | `services/agents` est un **stub** `/health` | Les agents tournent en processus séparés — choix assumé pour isoler les ressources LLM |
-| 2 | Port **8016** partagé (`course-memory` / `recommendation`) | Un seul agent à la fois ; à paramétrer |
-| 3 | `services/gateway/` n'existe plus mais est référencé par `AGENTS.md` et `ci.yml` | Le job Docker `gateway` de la CI échoue |
-| 4 | `notification` n'expose **aucune API REST** | Le routage `/api/v1/notifications/*` aboutit à du vide |
-| 5 | `comfyui/` **orphelin** (image construite, aucun service compose) | Code mort |
-| 6 | `run_identity.py` / `test_db.py` pointent sur `5432` au lieu de `5433` | Incohérence d'environnement |
-| 7 | Scripts npm `test:setup` et `cleanup` ciblent des fichiers inexistants | Commandes cassées |
-| 8 | Route `/analytics` déclarée sans page | Lien mort |
-| 9 | `hindsight/` vide — service externe obligatoire | Déploiement non autonome |
-| 10 | `learing` (au lieu de `learning`) dans les routes et dossiers | Dette de nommage à préserver pour compatibilité |
-| 11 | `.env.example` incomplet (variables d'agents) | Configuration manuelle nécessaire |
-| 12 | README amont remplacé par ce document ; `README-zh.md` conservé | — |
-
 ---
 
 ## 🔭 Perspectives
 
-- **Embarquer Hindsight** dans le dépôt (dossier `hindsight/` aujourd'hui vide) et fournir un `docker-compose` unifié.
-- **Résoudre la collision de port 8016** et intégrer les agents dans le compose.
-- **Remplacer le stub `services/agents`** par un vrai orchestrateur.
-- **Passer à Kubernetes** avec autoscaling des agents IA (principal goulot : > 3 utilisateurs simultanés).
-- **Renforcer l'évaluation IA** : élargir le jeu RAGAS (aujourd'hui 5 échantillons), suivi continu.
-- **Ajouter un cache sémantique** et du batching pour réduire la latence des agents.
-- **Externaliser tous les secrets** (Vault / secrets K8s) et purger l'historique Git.
+- **Déploiement unifié** : intégrer Hindsight et l'ensemble des agents dans un `docker-compose` unique (mise en route en une commande).
+- **Passer à Kubernetes** avec autoscaling des agents IA pour absorber la montée en charge.
+- **Évaluation IA continue** : jeu RAGAS élargi et suivi automatisé en CI.
+- **Cache sémantique et batching** pour réduire encore la latence des agents.
+- **Gestion centralisée des secrets** (Vault / secrets Kubernetes) et rotation automatisée.
 - **Compléter l'i18n** et l'accessibilité (ARIA) sur les shells par rôle.
-- **Tester la charge multi-tenant réelle** (plusieurs tenants simultanés avec RLS).
+- **Tests de charge multi-tenant** (plusieurs tenants simultanés avec RLS).
+- **Ouverture** à de nouveaux providers LLM, TTS et embeddings.
 
 ---
 
@@ -1105,22 +1064,6 @@ git commit -m "feat(learning): ajoute le suivi des objectifs d'équipe"
 - Modèles : `packages/common/src/common/models.py`
 - Schémas : `services/{nom}/schemas/` · Enums : `packages/common/src/common/enums.py`
 - Python : ruff + black (88 colonnes) · TS : Prettier + ESLint
-
----
-
-## 📜 Licence et attribution
-
-Ce projet est distribué sous licence **GNU Affero General Public License v3.0** — voir [`LICENSE`](./LICENSE).
-
-Il s'agit d'un **fork** du projet open source :
-
-> **[OpenMAIC](https://github.com/THU-MAIC/OpenMAIC)** — *Open Multi-Agent Interactive Classroom*
-> Développé par **THU-MAIC** (Université Tsinghua), sous licence **AGPL-3.0**.
-> Le moteur de génération et de lecture de classes interactives, l'orchestration multi-agents, le pipeline de scènes, le moteur d'actions, l'export PPTX/HTML et les packages `mathml2omml` (LGPL-3.0-or-later) et `pptxgenjs` (MIT) proviennent de ce projet.
-
-**Ajouts spécifiques à ce fork** : plateforme LMS multi-tenant, microservices FastAPI, 7 agents IA Agno, intégration Hindsight, gamification, certificats, expert pédagogique, et l'ensemble du travail de PFE.
-
-Conformément à l'AGPL-3.0, toute redistribution ou mise à disposition réseau de ce logiciel modifié doit rendre le code source disponible.
 
 ---
 
