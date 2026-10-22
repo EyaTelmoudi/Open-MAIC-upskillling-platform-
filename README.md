@@ -42,8 +42,42 @@
 
 ---
 
+## 🎬 Démo vidéo
+
+> ▶️ **[Voir la démo (MP4 — 30 Mo)](https://drive.google.com/file/d/1ZeWitpTY4NvPj-WZSoVN0C_LsmTcevwN/view?usp=drive_link)** · 📥 [Télécharger le MP4](https://drive.google.com/uc?export=download&id=1ZeWitpTY4NvPj-WZSoVN0C_LsmTcevwN) · 🎞️ [**Scénario détaillé de la démo**](./DEMO.md)
+
+<a href="https://drive.google.com/file/d/1ZeWitpTY4NvPj-WZSoVN0C_LsmTcevwN/view?usp=drive_link">
+  <img src="https://drive.google.com/thumbnail?id=1ZeWitpTY4NvPj-WZSoVN0C_LsmTcevwN&amp;sz=w1280" alt="Vignette de la démo — Open-MAIC Upskilling Platform" width="100%"/>
+</a>
+
+*Vignette de la démo — cliquez pour la lire dans Google Drive.*
+
+### Ce que montre la démo
+
+La démo suit un **parcours complet en 9 séquences** — du premier démarrage d'une plateforme vierge jusqu'au certificat vérifiable — en montrant à chaque étape la brique technique sous-jacente.
+
+| # | Séquence | Ce qu'on voit à l'écran | La brique technique démontrée |
+| :---: | --- | --- | --- |
+| 1 | **Le pitch** | Catalogue, parcours, gamification, certificats | Multi-tenant · RBAC 7 rôles |
+| 2 | **Démarrage vierge** | Assistant `/setup` en 6 étapes (clé secrète → SuperAdmin → plateforme → organisation → 1<sup>er</sup> tenant) | `SETUP_SECRET_KEY` · verrouillage **HTTP 410** |
+| 3 | **Pilotage plateforme** | Dashboard SuperAdmin : tenants, admins, analytics, audit, paramètres | Cloisonnement **SuperAdmin ↔ Admin Tenant** (RGPD) |
+| 4 | **Isolation** | Deux tenants, deux jeux de données, aucun chevauchement | `tenant_id` **API + RLS PostgreSQL** |
+| 5 | **Équipe & contenu** | Import d'utilisateurs (CSV), mapping de rôles, invitation, onboarding, création de cours / modules / leçons / quiz | FastAPI + SQLAlchemy + MinIO (URLs signées) |
+| 6 | **Génération de cours par IA** | Un sujet ou un PDF → outline → scènes → narration TTS → quiz → classe interactive, en **streaming NDJSON** | Pipeline OpenMAIC multi-agents · agent **Course Maker** |
+| 7 | **Apprenant en action** | Inscription, lecteur de leçon (slides / vidéo / texte), progression, XP, niveau, streak, badges, classement | Streaming · WebSocket · RabbitMQ · Redis |
+| 8 | **Coaching à mémoire** | Question → intention + affect → `recall` / `reflect` → réponse structurée en 5 champs ; l'agent **se souvient** d'un élément dit plus tôt | Agents Agno · **Hindsight** (`retain` / `recall` / `reflect`) |
+| 9 | **Preuve & mesure** | Défi solo adaptatif, radar de lacunes, certificat PDF + QR code → `/verify/{certificateNumber}`, résultats RAGAS et k6 | RAG · pgvector · **RAGAS** · **k6** |
+
+> 💡 **Version courte (3 min)** : séquences 1, 6, 8 et 9 — l'essentiel pour un premier contact.
+> **Version longue (9 min)** : les 9 séquences — format 권u pour la soutenance.
+
+📄 Le plan de tournage complet (voix off, minutage, liste de contrôle, commandes de lancement) est disponible dans **[`DEMO.md`](./DEMO.md)**.
+
+---
+
 ## 📑 Table des matières
 
+- [**Démo vidéo**](#-démo-vidéo) 🎬
 - [**Compétences démontrées (mapping CV)**](#-compétences-démontrées-mapping-cv) ⭐
 - [Réalisations techniques clés](#-réalisations-techniques-clés)
 - [À propos du projet](#-à-propos-du-projet)
